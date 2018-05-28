@@ -23,7 +23,7 @@ epochs = 2
 
 # Config
 
-paperspace = False
+paperspace = True
 cheetah = False
 
 if paperspace:
