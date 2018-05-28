@@ -5,13 +5,8 @@ from asclepius.dataset import Dataset
 
 ###
 
-# Config
-
-dir1 = r"/home/paperspace/asclepius/dir1"
-dir2 = r"home/paperspace/asclepius/dir2"
-
-signal_length = 4000
-signal_stride = 400
+signal_length = 40
+signal_stride = 4
 
 # Constructing training / test data from n reads per class (dir)
 max_reads = 1
@@ -26,7 +21,20 @@ deep = False
 batch_size = 10
 epochs = 2
 
-###
+# Config
+
+paperspace = False
+cheetah = False
+
+if paperspace:
+    dir1 = r"/home/paperspace/asclepius/dir1"
+    dir2 = r"/home/paperspace/asclepius/dir2"
+elif cheetah:
+    dir1 = r"/home/esteinig/code/asclepius/dir1"
+    dir2 = r"/home/esteinig/code/asclepius/dir2"
+else:
+    dir1 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir1"
+    dir2 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir2"
 
 # 1. 40, 4
 # 2. 4000, 400
@@ -65,7 +73,7 @@ def main():
 
     asclep.train(dataset, epochs=epochs, batch_size=batch_size)
 
-    asclep.save("model.h5")
+    #asclep.save("model.h5")
 
 
 def config():

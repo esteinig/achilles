@@ -15,7 +15,7 @@ class Asclepius:
         self.model = None
 
     def build(self, signal_length=4000, _nb_channels=256, _nb_classes=2, _lstm_units=200,
-              _nb_residual_block_layers=5, _nb_lstm_layers=3, deep=False, summary=True):
+              _nb_residual_block_layers=5, _nb_lstm_layers=3, rnn=False, deep=False, summary=True):
 
         # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
         # with dimensions (height, width, depth) - since it is a signal sequence:
@@ -32,6 +32,7 @@ class Asclepius:
 
         # Residual block stack, see config
         x = self.residual_block(inputs, _nb_channels)
+
         if deep:
             for i in range(_nb_residual_block_layers-1):
                 x = self.residual_block(x, _nb_channels)
@@ -46,11 +47,12 @@ class Asclepius:
         # Add two Bidirectional LSTM layers where sequences returned,
         # then into last layer with standard LSTM output into Dense
 
-        if deep:
-            for i in range(_nb_lstm_layers-1):
-                x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True))(x)  # recurrent_dropout=0.3
+        if rnn:
+            if deep:
+                for i in range(_nb_lstm_layers-1):
+                    x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True))(x)  # recurrent_dropout=0.3
 
-        x = layers.Bidirectional(layers.LSTM(_lstm_units))(x)
+            x = layers.Bidirectional(layers.LSTM(_lstm_units))(x)
 
         outputs = layers.Dense(_nb_classes, activation="softmax")(x)
 
@@ -75,14 +77,11 @@ class Asclepius:
 
         print("Input shape:", x_train.shape)
 
-        prog = ProgbarLogger(count_mode='samples', stateful_metrics=None)
         csv = CSVLogger('{}.csv'.format(uuid.uuid4()), append=True)
 
         # TODO: Implement TensorBoard
         history = self.model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs,
-                                 validation_data=(x_test, y_test), callbacks=[prog, csv])
-
-
+                                 validation_data=(x_test, y_test), callbacks=[csv])
 
     @staticmethod
     def residual_block(y, nb_channels, _strides=(1, 1), _project_shortcut=True):

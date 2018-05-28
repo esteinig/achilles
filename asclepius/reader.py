@@ -51,7 +51,7 @@ def get_signal_windows(dirs, split_data, max_reads=10, normalize=True, window_si
     # For each directory of two classes (labels)
     # with Bp and Human reads...
     for label, path in enumerate(dirs):
-        path = os.path.join(BASE, path)
+        # path = os.path.join(BASE, path)
         # Get a list of Fast5 files...
         files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith(".fast5")]
         # ... and pick first <max_reads>
