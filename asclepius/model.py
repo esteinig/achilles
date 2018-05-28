@@ -15,7 +15,7 @@ class Asclepius:
         self.model = None
 
     def build(self, signal_length=4000, _nb_channels=256, _nb_classes=2, _lstm_units=200,
-              _nb_residual_block_layers=5, _nb_lstm_layers=3, rnn=False, deep=False, summary=True):
+              _nb_residual_block_layers=5, _nb_lstm_layers=3, rnn=True, deep=False, summary=True):
 
         # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
         # with dimensions (height, width, depth) - since it is a signal sequence:
@@ -31,14 +31,19 @@ class Asclepius:
         ######################
 
         # Residual block stack, see config
-        x = self.residual_block(inputs, _nb_channels)
+        x = self.residual_block(inputs, _nb_channels, input_shape=shape)
 
         if deep:
             for i in range(_nb_residual_block_layers-1):
                 x = self.residual_block(x, _nb_channels)
 
-        # Reshape the output layer of residual blocks from 4D to 3D
-        x = layers.Reshape((1*signal_length*_nb_channels, 1))(x)
+
+        # Reshape the output layer of residual blocks from 4D to 3D,
+        # have changed this from (1, signal_length * _nb_channels, 1)
+        # which crashed the LSTM with OOM to (1, signal_length, _nb_channels)
+        # which might work?
+
+        x = layers.Reshape((1 * signal_length, _nb_channels))(x)
 
         ######################
         # Bidirectional LSTM #
@@ -48,11 +53,15 @@ class Asclepius:
         # then into last layer with standard LSTM output into Dense
 
         if rnn:
+
             if deep:
                 for i in range(_nb_lstm_layers-1):
                     x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True))(x)  # recurrent_dropout=0.3
 
             x = layers.Bidirectional(layers.LSTM(_lstm_units))(x)
+        else:
+            # If no RNN layers, flatten shape for Dense
+            x = layers.Flatten()(x)
 
         outputs = layers.Dense(_nb_classes, activation="softmax")(x)
 
@@ -84,7 +93,7 @@ class Asclepius:
                                  validation_data=(x_test, y_test), callbacks=[csv])
 
     @staticmethod
-    def residual_block(y, nb_channels, _strides=(1, 1), _project_shortcut=True):
+    def residual_block(y, nb_channels, input_shape=None, _strides=(1, 1), _project_shortcut=True):
 
         """ Residual block adapted from https://gist.github.com/mjdietzx/5319e42637ed7ef095d430cb5c5e8c64
 
@@ -95,7 +104,11 @@ class Asclepius:
 
         shortcut = y
 
-        y = layers.Conv2D(nb_channels, kernel_size=(1, 1), strides=_strides, padding='same')(y)
+        if input_shape:
+            y = layers.Conv2D(nb_channels, input_shape=input_shape, kernel_size=(1, 1), strides=_strides, padding='same')(y)
+        else:
+            y = layers.Conv2D(nb_channels, kernel_size=(1, 1), strides=_strides, padding='same')(y)
+
         y = layers.BatchNormalization()(y)
         y = layers.LeakyReLU()(y)
 

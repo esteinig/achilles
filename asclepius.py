@@ -5,11 +5,11 @@ from asclepius.dataset import Dataset
 
 ###
 
-signal_length = 40
-signal_stride = 4
+signal_length = 4000
+signal_stride = 400
 
 # Constructing training / test data from n reads per class (dir)
-max_reads = 1
+max_reads = 10
 
 # Normalizing signal: (s - mean(s)) / std(s)
 normalize = True
@@ -19,7 +19,7 @@ deep = False
 
 # Training with adam and binary_crossentropy
 batch_size = 10
-epochs = 2
+epochs = 10
 
 # Config
 
@@ -73,7 +73,7 @@ def main():
 
     asclep.train(dataset, epochs=epochs, batch_size=batch_size)
 
-    #asclep.save("model.h5")
+    asclep.save("model.h5")
 
 
 def config():
