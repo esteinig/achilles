@@ -4,6 +4,7 @@ from textwrap import dedent
 from matplotlib import style
 from matplotlib import pyplot as plt
 
+
 from keras import callbacks
 
 style.use("ggplot")

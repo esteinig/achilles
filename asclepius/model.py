@@ -5,6 +5,7 @@ from keras import backend as K
 from keras import layers, Model
 
 from asclepius.utils import BatchLogger
+from asclepius.dataset import Dataset
 
 class Asclepius:
 
@@ -78,20 +79,20 @@ class Asclepius:
 
         return self.model
 
-    def train(self, dataset, batch_size=32, epochs=10, run_id="run_1", log_interval=10):
+    def train(self, data_file, batch_size=15, epochs=10, workers=2, run_id="run_1", log_interval=10):
 
-        # For clarity extract the training and test data from dataset object:
-        x_train, y_train, x_test, y_test = dataset["data"]["train"], dataset["labels"]["train"],\
-                                           dataset["data"]["test"], dataset["labels"]["test"]
+        # Reads data from HDF5 data file:
+        dataset = Dataset(data_file=data_file)
 
-        print("Input shape:", x_train.shape)
-        print("Estimated memory for training input:", x_train.nbytes*1e-06, "MB")
+        training_generator = dataset.get_signal_generator(data_type="training", batch_size=batch_size, shuffle=True)
+        validation_generator = dataset.get_signal_generator(data_type="validation", batch_size=batch_size, shuffle=True)
 
         log = BatchLogger(run_id, log_interval=log_interval)
 
         # TODO: Implement TensorBoard
-        history = self.model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs,
-                                 validation_data=(x_test, y_test), callbacks=[log])
+        history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers,
+                                           batch_size=batch_size, epochs=epochs, 
+                                           validation_data=validation_generator, callbacks=[log])
 
         np.array(history).tofile(run_id+".model")
 

@@ -9,7 +9,7 @@ class Terminal:
 
         subparsers = parser.add_subparsers(help='Achilles')
 
-        make = subparsers.add_parser("make", help="Make dataset from Fast5 ra signal for reading into training.")
+        make = subparsers.add_parser("make", help="Make dataset from Fast5 raw signal for reading into training.")
 
         make.add_argument("--dirs", "-d", required=False, dest="dirs", default="dir1,dir2", type=str,
                            help="Surveillance query file: surveillance/query.txt")
@@ -17,7 +17,6 @@ class Terminal:
                           help="Surveillance query file: surveillance/query.txt")
         make.add_argument("--run_id", "-i", required=False, dest="run_id", default="run_test", type=str,
                            help="Surveillance query file: surveillance/query.txt")
-
 
         make.add_argument("--max_signals", "-m", required=False, dest="max", default="dir1,dir2", type=str,
                            help="Surveillance query file: surveillance/query.txt")

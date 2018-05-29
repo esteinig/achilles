@@ -3,7 +3,7 @@ import datetime
 
 from asclepius.model import Asclepius
 from asclepius.dataset import Dataset
-
+from asclepius.terminal import Terminal
 # Fast5 raw signal per read
 signal_length = 4000
 signal_stride = 400
@@ -53,8 +53,16 @@ else:
 
 def main():
 
-    # Run ID
-    run_id = datetime.datetime.now()
+    # Terminal input
+    args = Terminal().args
+
+    if args["subparser"] == "prep":
+        # Prepping data for batch-wise input into Achilles
+        # Outputs a HDF5 file with train / validation arrays of Fast5 file names
+        # and
+        ds = Dataset(dirs=args["dirs"], output=args["output"])
+
+
 
     # Read data:
     ds = Dataset(dir1, dir2)
