@@ -1,12 +1,10 @@
 # Keras model of Chiron (Asclepius)
 
-import uuid
-from keras import layers, Model
-from keras.callbacks import TensorBoard, ProgbarLogger, CSVLogger
-
 import numpy as np
 from keras import backend as K
+from keras import layers, Model
 
+from asclepius.utils import BatchLogger
 
 class Asclepius:
 
@@ -14,8 +12,8 @@ class Asclepius:
 
         self.model = None
 
-    def build(self, signal_length=4000, _nb_channels=256, _nb_classes=2, _lstm_units=200,
-              _nb_residual_block_layers=5, _nb_lstm_layers=3, rnn=True, deep=False, summary=True):
+    def build(self, signal_length=4000, activation="sigmoid", nb_channels=256, _nb_classes=2, _lstm_units=200,
+              nb_residual_block=5, nb_lstm=3, rnn=True, deep=False, summary=True):
 
         # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
         # with dimensions (height, width, depth) - since it is a signal sequence:
@@ -31,19 +29,19 @@ class Asclepius:
         ######################
 
         # Residual block stack, see config
-        x = self.residual_block(inputs, _nb_channels, input_shape=shape)
+        x = self.residual_block(inputs, nb_channels, input_shape=shape)
 
         if deep:
-            for i in range(_nb_residual_block_layers-1):
-                x = self.residual_block(x, _nb_channels)
-
+            for i in range(nb_residual_block-1):
+                x = self.residual_block(x, nb_channels)
 
         # Reshape the output layer of residual blocks from 4D to 3D,
         # have changed this from (1, signal_length * _nb_channels, 1)
         # which crashed the LSTM with OOM to (1, signal_length, _nb_channels)
         # which might work?
 
-        x = layers.Reshape((1 * signal_length, _nb_channels))(x)
+        # Check dimensins here!
+        x = layers.Reshape((1 * signal_length, nb_channels))(x)
 
         ######################
         # Bidirectional LSTM #
@@ -53,17 +51,15 @@ class Asclepius:
         # then into last layer with standard LSTM output into Dense
 
         if rnn:
-
             if deep:
-                for i in range(_nb_lstm_layers-1):
+                for i in range(nb_lstm-1):
                     x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True))(x)  # recurrent_dropout=0.3
-
             x = layers.Bidirectional(layers.LSTM(_lstm_units))(x)
         else:
             # If no RNN layers, flatten shape for Dense
             x = layers.Flatten()(x)
 
-        outputs = layers.Dense(_nb_classes, activation="softmax")(x)
+        outputs = layers.Dense(_nb_classes, activation=activation)(x)
 
         self.model = Model(inputs=inputs, outputs=outputs)
 
@@ -72,25 +68,32 @@ class Asclepius:
 
         return self.model
 
-    def compile(self, optimizer="Adam", loss="binary_crossentropy"):
+    def save(self, file):
+
+        self.model.save(file)
+
+    def compile(self, optimizer="adam", loss="binary_crossentropy"):
 
         self.model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
 
         return self.model
 
-    def train(self, dataset, batch_size=32, epochs=10):
+    def train(self, dataset, batch_size=32, epochs=10, run_id="run_1", log_interval=10):
 
         # For clarity extract the training and test data from dataset object:
         x_train, y_train, x_test, y_test = dataset["data"]["train"], dataset["labels"]["train"],\
                                            dataset["data"]["test"], dataset["labels"]["test"]
 
         print("Input shape:", x_train.shape)
+        print("Estimated memory for training input:", x_train.nbytes*1e-06, "MB")
 
-        csv = CSVLogger('{}.csv'.format(uuid.uuid4()), append=True)
+        log = BatchLogger(run_id, log_interval=log_interval)
 
         # TODO: Implement TensorBoard
         history = self.model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs,
-                                 validation_data=(x_test, y_test), callbacks=[csv])
+                                 validation_data=(x_test, y_test), callbacks=[log])
+
+        np.array(history).tofile(run_id+".model")
 
     @staticmethod
     def residual_block(y, nb_channels, input_shape=None, _strides=(1, 1), _project_shortcut=True):
@@ -105,7 +108,8 @@ class Asclepius:
         shortcut = y
 
         if input_shape:
-            y = layers.Conv2D(nb_channels, input_shape=input_shape, kernel_size=(1, 1), strides=_strides, padding='same')(y)
+            y = layers.Conv2D(nb_channels, input_shape=input_shape, kernel_size=(1, 1),
+                              strides=_strides, padding='same')(y)
         else:
             y = layers.Conv2D(nb_channels, kernel_size=(1, 1), strides=_strides, padding='same')(y)
 

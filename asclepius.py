@@ -1,10 +1,10 @@
 import json
+import datetime
 
 from asclepius.model import Asclepius
 from asclepius.dataset import Dataset
 
-###
-
+# Fast5 raw signal per read
 signal_length = 4000
 signal_stride = 400
 
@@ -14,16 +14,28 @@ max_reads = 10
 # Normalizing signal: (s - mean(s)) / std(s)
 normalize = True
 
+# Configure activation function for classification output layer,
+# activation function and optimizer for compilation
+
+activation = "signmoid"
+loss = "binary_crossentropy"
+optimizer = "adam"
+
 # Multi-layer residual blocks and Bi-LSTMs
+
+rnn = False
+
 deep = False
+nb_residual_block = 5
+nb_lstm = 3
 
 # Training with adam and binary_crossentropy
 batch_size = 10
-epochs = 10
+epochs = 3
 
 # Config
 
-paperspace = True
+paperspace = False
 cheetah = False
 
 if paperspace:
@@ -36,42 +48,33 @@ else:
     dir1 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir1"
     dir2 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir2"
 
-# 1. 40, 4
-# 2. 4000, 400
-# 3. -"- epochs 128 batch_size 64
-# 4. Reduce reads (1 per class), epochs 10 batch size 10, TensorBoard and history, print to out STDOUT (run4.log)
-# 5. Same as before but point TensorBoard to UUID directory in /logs
-# 6. Increased RAM to 128 GB, jobs before getting killed. Reason not clear.
-# 7. No TensorBoard callback, checking for model build and training output? Should print shape before training.
-# 8. Not writing to log file with >
-# 9. - 12. RAM tests
-
 ###
 
 
 def main():
 
-    ds = Dataset(dir1, dir2)
+    # Run ID
+    run_id = datetime.datetime.now()
 
+    # Read data:
+    ds = Dataset(dir1, dir2)
     dataset = ds.get_data(max_reads_per_class=max_reads, normalize=normalize,
                           window_size=signal_length, window_step=signal_stride)
 
-    # dataset.plot_random_sample()
-
+    # Build model
     asclep = Asclepius()
-    asclep.build(signal_length=signal_length, deep=deep)
 
-    print("Built Asclepius model (deep = {}).".format(deep))
+    asclep.build(signal_length=signal_length, activation=activation,
+                 nb_residual_block=nb_residual_block,
+                 nb_lstm=nb_lstm, deep=deep, rnn=rnn)
 
-    asclep.compile()
-
-    print("Compiled Asclepius model (deep = {}).".format(deep))
+    asclep.compile(optimizer=optimizer, loss=loss)
 
     memory = asclep.estimate_memory_usage(batch_size=batch_size)
 
-    print("Estimated memory for Asclepius model (deep = {}): {} GB".format(deep, memory))
+    print("Estimated GPU memory for Asclepius model: {} GB".format(deep, memory))
 
-    asclep.train(dataset, epochs=epochs, batch_size=batch_size)
+    asclep.train(dataset, epochs=epochs, batch_size=batch_size, run_id=run_id)
 
     asclep.save("model.h5")
 
