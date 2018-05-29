@@ -7,6 +7,7 @@ from keras import layers, Model
 from asclepius.utils import BatchLogger
 from asclepius.dataset import Dataset
 
+
 class Asclepius:
 
     def __init__(self):

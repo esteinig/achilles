@@ -7,22 +7,7 @@ from skimage.util import view_as_windows
 from keras.utils.np_utils import to_categorical
 from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
 
-import asclepius.utils as utils
-
 from keras.utils import Sequence
-
-def main():
-
-
-    dir1 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir1"
-    dir2 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir2"
-
-    ds = Dataset(data_file="data.h5")
-
-    #ds.write_data(dir1, dir2, classes=2, max_per_class=200000, window_size=4000, window_step=400, normalize=True)
-
-    ds.print_data_summary()
-    ds.get_signal_generator()
 
 
 class Dataset:
@@ -46,7 +31,7 @@ class Dataset:
 
         with h5py.File(self.data_file, "w") as f:
 
-            for i, data_type in ("training", "validation"):
+            for i, data_type in enumerate(("training", "validation")):
 
                 max_per_type = max_per_class*proportions[i]
 
@@ -68,6 +53,8 @@ class Dataset:
                     for fast5, _ in files:
                         signal_windows = self.read_signal(fast5, normalize=normalize, window_size=window_size,
                                                           window_step=window_step)
+
+                        # 4D input tensor (nb_samples, 1, signal_length, 1) for Residual Blocks
                         input_tensor = self.transform_signal_to_tensor(signal_windows)
 
                         if total < max_per_type:
@@ -78,8 +65,8 @@ class Dataset:
                             total += input_tensor.shape[0]
 
                     # Writing all training labels to HDF5
-                    labels = to_categorical(np.array([label for _ in range(total)]), classes)
-                    self.write_chunk(labels, labels)
+                    encoded_labels = to_categorical(np.array([label for _ in range(total)]), classes)
+                    self.write_chunk(labels, encoded_labels)
 
     def print_data_summary(self):
 
@@ -178,9 +165,11 @@ class DataGenerator(Sequence):
         # Generate data
         data, labels = self.__data_generation(indices)
 
-        print("Training data batch:", data.shape)
-        print("Training label batch:", labels.shape)
-        print("Generated data for indices:", indices)
+        # Testing print statements:
+        
+        # print("Training data batch:", data.shape)
+        # print("Training label batch:", labels.shape)
+        # print("Generated data for indices:", indices)
 
         return data, labels
 
@@ -210,4 +199,17 @@ class DataGenerator(Sequence):
             return data, labels
 
 
-main()
+def test():
+
+    """ Local dataset test function on Windows """
+
+    dir1 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir1"
+    dir2 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir2"
+
+    ds = Dataset(data_file="../data.h5")
+
+    ds.write_data(dir1, dir2, classes=2, max_per_class=200000, window_size=4000,
+                  window_step=400, normalize=True)
+
+    ds.print_data_summary()
+    ds.get_signal_generator()
