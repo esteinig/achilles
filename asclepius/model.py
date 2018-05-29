@@ -91,7 +91,7 @@ class Asclepius:
 
         # TODO: Implement TensorBoard
         history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers,
-                                           batch_size=batch_size, epochs=epochs, 
+                                           batch_size=batch_size, epochs=epochs,
                                            validation_data=validation_generator, callbacks=[log])
 
         np.array(history).tofile(run_id+".model")
