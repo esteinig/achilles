@@ -9,5 +9,5 @@ setuptools.setup(
       author_email='eikejoachim.steinig@my.jcu.edu.au',
       license='MIT',
       packages=['asclepius', "ont_fast5_api"],
-      scripts=["achilles"],
+      scripts=["asclepius"],
 )
