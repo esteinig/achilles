@@ -66,7 +66,7 @@ class Terminal:
         train.set_defaults(subparser='train')
 
         if commands is None:
-            self.args = parser.parse_args(["prep", "--help"])
+            self.args = parser.parse_args()
         else:
             # Commands is a list of commands to be parsed
             # by Argparse - for testing only:
