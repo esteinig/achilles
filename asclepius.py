@@ -1,54 +1,7 @@
 import json
-import datetime
-
 from asclepius.model import Asclepius
 from asclepius.dataset import Dataset
 from asclepius.terminal import Terminal
-# Fast5 raw signal per read
-signal_length = 4000
-signal_stride = 400
-
-# Constructing training / test data from n reads per class (dir)
-max_reads = 10
-
-# Normalizing signal: (s - mean(s)) / std(s)
-normalize = True
-
-# Configure activation function for classification output layer,
-# activation function and optimizer for compilation
-
-activation = "signmoid"
-loss = "binary_crossentropy"
-optimizer = "adam"
-
-# Multi-layer residual blocks and Bi-LSTMs
-
-rnn = False
-
-deep = False
-nb_residual_block = 5
-nb_lstm = 3
-
-# Training with adam and binary_crossentropy
-batch_size = 10
-epochs = 3
-
-# Config
-
-paperspace = False
-cheetah = False
-
-if paperspace:
-    dir1 = r"/home/paperspace/asclepius/dir1"
-    dir2 = r"/home/paperspace/asclepius/dir2"
-elif cheetah:
-    dir1 = r"/home/esteinig/code/asclepius/dir1"
-    dir2 = r"/home/esteinig/code/asclepius/dir2"
-else:
-    dir1 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir1"
-    dir2 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir2"
-
-###
 
 
 def main():
@@ -58,33 +11,32 @@ def main():
 
     if args["subparser"] == "prep":
         # Prepping data for batch-wise input into Achilles
-        # Outputs a HDF5 file with train / validation arrays of Fast5 file names
-        # and
-        ds = Dataset(dirs=args["dirs"], output=args["output"])
+        # Writes trianing and validation data to HDF5 file
+        ds = Dataset(data_file=args["data_file"])
 
+        ds.write_data(args["dirs"], classes=len(args["dirs"]), max_per_class=args["signal_max"],
+                      window_size=args["signal_length"], window_step=args["signal_stride"], normalize=args["normalize"])
 
+        ds.print_data_summary()
 
-    # Read data:
-    ds = Dataset(dir1, dir2)
-    dataset = ds.get_data(max_reads_per_class=max_reads, normalize=normalize,
-                          window_size=signal_length, window_step=signal_stride)
+    elif args["subparser"] == "train":
 
-    # Build model
-    asclep = Asclepius()
+        # Build model
+        asclep = Asclepius(data_file=args["data_file"])
 
-    asclep.build(signal_length=signal_length, activation=activation,
-                 nb_residual_block=nb_residual_block,
-                 nb_lstm=nb_lstm, deep=deep, rnn=rnn)
+        asclep.build(signal_length=args["signal_length"], activation=args["activation"],
+                     nb_residual_block=args["nb_residual_blocks"], nb_channels=args["nb_channels"],
+                     nb_lstm=args["nb_lstm"], deep=args["deep"], rnn=args["rnn"])
 
-    asclep.compile(optimizer=optimizer, loss=loss)
+        asclep.compile(optimizer=args["optimizer"], loss=args["loss"])
 
-    memory = asclep.estimate_memory_usage(batch_size=batch_size)
+        memory = asclep.estimate_memory_usage(batch_size=args["batch_size"])
 
-    print("Estimated GPU memory for Asclepius model: {} GB".format(deep, memory))
+        print("Estimated GPU memory for Asclepius model: {} GB".format(memory))
 
-    asclep.train(dataset, epochs=epochs, batch_size=batch_size, run_id=run_id)
+        asclep.train(epochs=args["epochs"], batch_size=args["batch_size"], run_id=args["run_id"])
 
-    asclep.save("model.h5")
+        asclep.save(args["output_file"])
 
 
 def config():
@@ -97,5 +49,6 @@ def config():
 
     with open(r"/home/esteinig/.keras/keras.json", "w") as keras_config:
         json.dump(config, keras_config)
+
 
 main()

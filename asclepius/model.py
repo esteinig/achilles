@@ -10,8 +10,9 @@ from asclepius.dataset import Dataset
 
 class Asclepius:
 
-    def __init__(self):
+    def __init__(self, data_file):
 
+        self.data_file = data_file
         self.model = None
 
     def build(self, signal_length=4000, activation="sigmoid", nb_channels=256, _nb_classes=2, _lstm_units=200,
@@ -80,10 +81,10 @@ class Asclepius:
 
         return self.model
 
-    def train(self, data_file, batch_size=15, epochs=10, workers=2, run_id="run_1", log_interval=10):
+    def train(self, batch_size=15, epochs=10, workers=2, run_id="run_1", log_interval=10):
 
         # Reads data from HDF5 data file:
-        dataset = Dataset(data_file=data_file)
+        dataset = Dataset(data_file=self.data_file)
 
         training_generator = dataset.get_signal_generator(data_type="training", batch_size=batch_size, shuffle=True)
         validation_generator = dataset.get_signal_generator(data_type="validation", batch_size=batch_size, shuffle=True)

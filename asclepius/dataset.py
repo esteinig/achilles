@@ -1,13 +1,13 @@
 import os
-import numpy as np
-import operator
 import h5py
+import operator
+import numpy as np
+
 from textwrap import dedent
+from keras.utils import Sequence
 from skimage.util import view_as_windows
 from keras.utils.np_utils import to_categorical
 from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
-
-from keras.utils import Sequence
 
 
 class Dataset:
@@ -26,28 +26,33 @@ class Dataset:
         for data_batch, label_batch in dg:
             print(data_batch.shape, label_batch.shape)
 
-    def write_data(self, *dirs, classes=2, max_per_class=20000, window_size=4000, window_step=400,
-                   normalize=True, proportions=(0.7, 0.3)):
+    def write_data(self, *dirs, classes=2, max_per_class=20000, proportions=(0.7, 0.3),
+                   window_size=4000, window_step=400, normalize=True):
 
         with h5py.File(self.data_file, "w") as f:
 
+            # Save data, labels in /training and /validation HDF5
             for i, data_type in enumerate(("training", "validation")):
-
+                # Proportion of training / validation data signal window limit:
                 max_per_type = max_per_class*proportions[i]
-
+                # HDF5 file dataset creation:
                 data = f.create_dataset(data_type + "/data", shape=(0, 1, window_size, 1),
                                         maxshape=(None, 1, window_size, 1))
                 labels = f.create_dataset(data_type + "/labels", shape=(0, classes),
                                           maxshape=(None, classes))
 
+                # each dir corresponds to label (0, 1)
                 for label, path in enumerate(dirs):
-
+                    # All Fast5 files in dir:
                     files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith(".fast5")]
-
-                    # Sort by largest:
+                    # Sort by largest (assume longest):
                     files_and_sizes = ((path, os.path.getsize(path)) for path in files)
                     files = sorted(files_and_sizes, key=operator.itemgetter(1))
 
+                    # Main loop for reading through Fast5 files and extracting overlapping windows of signal
+                    # (window_size, window_step) of normalized (pA) signal until limit for proportioned data
+                    # set is reached. Write each signal windows to HDF5 (self.output) after transforming to
+                    # 4D input tensor to residual blocks in Achilles model.
                     total = 0
                     # Extract the normalized signal windows into nd array(num_windows, window_size)
                     for fast5, _ in files:
@@ -166,7 +171,7 @@ class DataGenerator(Sequence):
         data, labels = self.__data_generation(indices)
 
         # Testing print statements:
-        
+
         # print("Training data batch:", data.shape)
         # print("Training label batch:", labels.shape)
         # print("Generated data for indices:", indices)
