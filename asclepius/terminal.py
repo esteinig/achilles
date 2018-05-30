@@ -23,8 +23,13 @@ class Terminal:
                            help="Length of signal windows over each read from Fast5.")
         prep.add_argument("--signal_stride", "-s", required=False, default=400, dest="signal_stride", type=int,
                            help="Length of stride for signal windows over each read from Fast5.")
+
+        # TODO: Try without normalization!
         prep.add_argument("--normalize", "-norm", "-n", required=False, action="store_true", dest="normalize",
                            help="Normalize signal values to pA floats (subtract mean, divide by std)")
+
+        prep.add_argument("--print", "-p", required=False, action="store_true", dest="print",
+                          help="Print summary of data file")
 
         prep.set_defaults(subparser='prep')
 
@@ -46,6 +51,8 @@ class Terminal:
                            help="CPU threads to feed batches into generator to fit to model.")
         train.add_argument("--epochs", "-e", required=False, dest="epochs", default=3, type=int,
                           help="Training epochs.")
+        train.add_argument("--log_interval", "-log", required=False, dest="log_interval", default=1, type=int,
+                           help="Log loss and accuracy every batch (default: 1).")
 
         train.add_argument("--activation", "-a", required=False, dest="activation", default="sigmoid", type=str,
                           help="Activation function (default: sigmoid)")
@@ -68,6 +75,28 @@ class Terminal:
 
         train.set_defaults(subparser='train')
 
+        plot = subparsers.add_parser("plot", help="Plot loss and accuracy for model runs from logs.")
+
+        plot.add_argument("--log_file", "--file", "-f", required=False, dest="log_file", default="test_1.log", type=str,
+                           help="Log file from model training run.")
+        plot.add_argument("--plot_file", "--plot", "-p", required=False, dest="plot_file", default="test.pdf",
+                           type=str, help="Plot of loss and accuracy per batch (default: test.pdf).")
+        plot.add_argument("--error", "-e", required=False, action="store_true", dest="error",
+                          help="Plot accuracy as error: 1 - accuracy")
+
+        train.set_defaults(subparser='plot')
+
+        select = subparsers.add_parser("select", help="Utility function for selecting largest reads of recursive dir for"
+                                                      "generating data and training model")
+        select.add_argument("--input_dir", "--in", "-i", required=False, dest="input_dir", default="dir1", type=str,
+                          help="Recursive directory of passing Fast5 file for sorting by file size.")
+        select.add_argument("--output_dir", "--out", "-o", required=False, dest="output_dir", default="largest",
+                          type=str, help="Output file to copy largest Fast5 into.")
+        select.add_argument("--number_of_fast5", "--number", "-n", required=False, dest="n", default=3000,
+                          type=int, help="Number of largest Fast5 to copy.")
+
+        select.set_defaults(subparser='select')
+
         if commands is None:
             self.args = parser.parse_args()
         else:
@@ -82,8 +111,6 @@ class Terminal:
         if "dirs" in self.args.keys():
             self.args["dirs"] = [os.path.abspath(directory) for directory in self.args["dirs"].split(",")]
 
-        if "data_file" in self.args.keys():
-            self.args["data_file"] = os.path.abspath(self.args["data_file"])
-
-        if "output_file" in self.args.keys():
-            self.args["output_file"] = os.path.abspath(self.args["output_file"])
+        for key in ("data_file", "output_file", "log_file", "plot_file", "input_dir", "output_dir"):
+            if key in self.args.keys():
+                self.args[key] = os.path.abspath(self.args[key])

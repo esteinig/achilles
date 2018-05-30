@@ -1,8 +1,10 @@
 import json
+
 from asclepius.model import Asclepius
 from asclepius.dataset import Dataset
 from asclepius.terminal import Terminal
 
+import asclepius.utils as utils
 
 def main():
 
@@ -14,10 +16,14 @@ def main():
         # Writes trianing and validation data to HDF5 file
         ds = Dataset(data_file=args["data_file"])
 
-        ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_per_class=args["signal_max"],
-                      window_size=args["signal_length"], window_step=args["signal_stride"], normalize=args["normalize"])
+        if args["print"]:
+            ds.print_data_summary()
+        else:
+            ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_per_class=args["signal_max"],
+                          window_size=args["signal_length"], window_step=args["signal_stride"],
+                          normalize=args["normalize"])
 
-        ds.print_data_summary()
+            ds.print_data_summary()
 
     elif args["subparser"] == "train":
 
@@ -34,10 +40,18 @@ def main():
 
         print("Estimated GPU memory for Asclepius model: {} GB".format(memory))
 
-        asclep.train(epochs=args["epochs"], batch_size=args["batch_size"],
-                     workers=args["threads"], run_id=args["run_id"])
+        asclep.train(epochs=args["epochs"], batch_size=args["batch_size"], model_file=args["output_file"],
+                     workers=args["threads"], run_id=args["run_id"], log_interval=args["log_interval"])
 
         asclep.save(args["output_file"])
+
+    elif args["subparser"] == "plot":
+        print(args["plot_file"])
+        utils.plot_batch_loss_accuracy(fname=args["log_file"], outname=args["plot_file"], error=args["error"])
+
+    elif args["subparser"] == "select":
+
+        utils.select_largest_files(input_dir=args["input_dir"], output_dir=args["output_dir"], n=args["n"])
 
 
 def config():

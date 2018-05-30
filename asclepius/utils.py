@@ -1,33 +1,22 @@
 import random
-from textwrap import dedent
+import pandas
 
 from matplotlib import style
 from matplotlib import pyplot as plt
 
+import heapq
+import os
+
+import shutil
+import operator
 
 from keras import callbacks
 
 style.use("ggplot")
 
 
-def print_data_extraction_message(signal_data, files, step, size):
-    windows = signal_data.shape[0]
-    shape = signal_data.shape
-
-    msg = dedent("""
-    Signal data extracted {}:
-
-        Files:                  {}
-        Windows:                {}
-        Window Step:            {}
-        Signals per window:     {}
-
-        """).format(shape, files, windows, step, size)
-
-    print(msg)
-
-
 def percentage_split(seq, percentages) -> iter:
+
     """ Helper function splitting window list into training, testing and evaluation proportions
 
     https://stackoverflow.com/a/14281094
@@ -43,8 +32,75 @@ def percentage_split(seq, percentages) -> iter:
         yield seq[prv:nxt]
         prv = nxt
 
+# TODO: Figure out what's goinf on in calculating average mini-batch loss (cumulative, rolling)
+
+
+def plot_batch_loss_accuracy(fname, outname="plot.pdf", sep="\t", error=False):
+
+    df = pandas.read_csv(fname, sep=sep, names=["batches", "loss", "acc"], index_col=0)
+
+    zero_batch_count = df.index.value_counts()
+    max_batch = max(df.index)
+
+    epoch = 0
+    epochs = []
+    for i in df.index.values:
+        if int(i) == 0:
+           epoch += 1
+
+        epochs.append(epoch)
+
+    print(len(epochs))
+    print(len(df))
+
+    epoch_lines = [max_batch*i for i in range(zero_batch_count[0])]
+
+    df = df.expanding(min_periods=1).mean().reset_index()
+
+    df["epoch"] = epochs
+
+    print(df)
+
+    if error:
+        df["acc"] = 1 - df["acc"]
+
+    batch_size = df.index[1] - df.index[0]
+
+    batch_index = [i for i in range(0, len(df.index)*batch_size, batch_size)]
+
+    print(batch_index)
+
+    df.index = batch_index
+
+    print(df)
+
+    # df.plot()
+    # plt.show()
+    # plt.savefig(outname)
+
+
+def select_largest_files(input_dir, output_dir, n=3000):
+
+    """ Copy n largest files from recurive input directory (e.g. Fast5 files) """
+
+    os.makedirs(output_dir)
+
+    def file_sizes(directory):
+        for path, _, filenames in os.walk(directory):
+            for name in filenames:
+                full_path = os.path.join(path, name)
+                yield full_path, os.path.getsize(full_path)
+
+    big_files = heapq.nlargest(n, file_sizes(input_dir), key=operator.itemgetter(1))
+
+    for file, size in big_files:
+        shutil.copy(file, os.path.join(output_dir, os.path.basename(file)))
+
+    return big_files
+
 
 def plot_signal(signal_windows):
+
     fig, axes = plt.subplots(ncols=2, nrows=2)
     ax1, ax2, ax3, ax4 = axes.ravel()
 
@@ -89,7 +145,7 @@ class BatchLogger(callbacks.Callback):
             except KeyError:
                 acc = "none"
 
-            metrics = "{}\t{}\t{}\n".format(batch, loss, acc)
+            metrics = "{},{},{}\n".format(batch, loss, acc)
 
             with open(self.output_file, "a") as logfile:
                 logfile.write(metrics)

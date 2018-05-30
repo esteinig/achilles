@@ -84,7 +84,7 @@ class Asclepius:
 
         return self.model
 
-    def train(self, batch_size=15, epochs=10, workers=2, run_id="run_1", log_interval=10):
+    def train(self, batch_size=15, epochs=10, model_file="model.h5", workers=2, run_id="run_1", log_interval=10):
 
         # Reads data from HDF5 data file:
         dataset = Dataset(data_file=self.data_file)
@@ -108,8 +108,6 @@ class Asclepius:
         history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers, epochs=epochs,
                                            validation_data=validation_generator, callbacks=[log])
 
-        np.array(history).tofile(run_id+".model")
-
     @staticmethod
     def init_logs(run_id):
 
@@ -119,6 +117,7 @@ class Asclepius:
         # Log file path:
         log_path = os.path.join(run_id, run_id + ".log")
 
+        # TODO: Fix error None type has no group attribute in regex
         if os.path.exists(log_path):
             # Extract trailing number from log file strings:
             log_numbers = [int(re.match('.*?([0-9]+)$', file).group(1))

@@ -1,6 +1,7 @@
 import os
 import h5py
 import operator
+import collections
 import numpy as np
 
 from textwrap import dedent
@@ -61,7 +62,10 @@ class Dataset:
 
                         if total < max_per_type:
                             if input_tensor.shape[0] > max_per_type-total:
-                                input_tensor = input_tensor[:max_per_type-total]
+                                break
+                                # TODO: Check here if this is correctly generating data
+                                # print(total, max_per_type, input_tensor.shape[0], max_per_type-total)
+                                # input_tensor = input_tensor[:int(max_per_type-total)]
                             self.write_chunk(data, input_tensor)
 
                             total += input_tensor.shape[0]
@@ -79,12 +83,22 @@ class Dataset:
 
         with h5py.File(self.data_file, "r") as f:
 
-            print(dedent("""
+            counts = collections.Counter([tuple(item) for item in list(f["training/labels"])])
+
+            msg = dedent("""
                 HDF5 file: {}
                 Training data: {}
                 Training labels: {}
+                
+                Number of training samples per class:
+                
                 """
-            ).format(self.data_file, f["training/data"].shape, f["training/labels"].shape))
+                         ).format(self.data_file, f["training/data"].shape, f["training/labels"].shape)
+
+            for key, count in counts.items():
+                msg += "Encoded class: " + str(key) + " = " + str(count) + "\n"
+
+            print(msg)
 
     @staticmethod
     def write_chunk(dataset, data):
