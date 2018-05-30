@@ -14,7 +14,7 @@ def main():
         # Writes trianing and validation data to HDF5 file
         ds = Dataset(data_file=args["data_file"])
 
-        ds.write_data(args["dirs"], classes=len(args["dirs"]), max_per_class=args["signal_max"],
+        ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_per_class=args["signal_max"],
                       window_size=args["signal_length"], window_step=args["signal_stride"], normalize=args["normalize"])
 
         ds.print_data_summary()
@@ -26,7 +26,7 @@ def main():
 
         asclep.build(signal_length=args["signal_length"], activation=args["activation"],
                      nb_residual_block=args["nb_residual_blocks"], nb_channels=args["nb_channels"],
-                     nb_lstm=args["nb_lstm"], deep=args["deep"], rnn=args["rnn"])
+                     nb_lstm=args["nb_lstm"], minimal=args["minimal"], rnn=args["rnn"])
 
         asclep.compile(optimizer=args["optimizer"], loss=args["loss"])
 
@@ -34,7 +34,8 @@ def main():
 
         print("Estimated GPU memory for Asclepius model: {} GB".format(memory))
 
-        asclep.train(epochs=args["epochs"], batch_size=args["batch_size"], run_id=args["run_id"])
+        asclep.train(epochs=args["epochs"], batch_size=args["batch_size"],
+                     workers=args["threads"], run_id=args["run_id"])
 
         asclep.save(args["output_file"])
 

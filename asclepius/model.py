@@ -1,5 +1,8 @@
 # Keras model of Chiron (Asclepius)
 
+import os
+import re
+import shutil
 import numpy as np
 from keras import backend as K
 from keras import layers, Model
@@ -16,7 +19,7 @@ class Asclepius:
         self.model = None
 
     def build(self, signal_length=4000, activation="sigmoid", nb_channels=256, _nb_classes=2, _lstm_units=200,
-              nb_residual_block=5, nb_lstm=3, rnn=True, deep=False, summary=True):
+              nb_residual_block=5, nb_lstm=3, rnn=True, minimal=False, summary=True):
 
         # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
         # with dimensions (height, width, depth) - since it is a signal sequence:
@@ -34,7 +37,7 @@ class Asclepius:
         # Residual block stack, see config
         x = self.residual_block(inputs, nb_channels, input_shape=shape)
 
-        if deep:
+        if not minimal:
             for i in range(nb_residual_block-1):
                 x = self.residual_block(x, nb_channels)
 
@@ -54,7 +57,7 @@ class Asclepius:
         # then into last layer with standard LSTM output into Dense
 
         if rnn:
-            if deep:
+            if not minimal:
                 for i in range(nb_lstm-1):
                     x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True))(x)  # recurrent_dropout=0.3
             x = layers.Bidirectional(layers.LSTM(_lstm_units))(x)
@@ -89,14 +92,51 @@ class Asclepius:
         training_generator = dataset.get_signal_generator(data_type="training", batch_size=batch_size, shuffle=True)
         validation_generator = dataset.get_signal_generator(data_type="validation", batch_size=batch_size, shuffle=True)
 
-        log = BatchLogger(run_id, log_interval=log_interval)
+        log_file = self.init_logs(run_id=run_id)
+
+        log = BatchLogger(log_file, log_interval=log_interval)
+
+        print("Running on batch size {} for {} epochs with {} worker processes --> run ID: {}"
+              .format(batch_size, epochs, workers, run_id))
+
+        data_shape, label_shape = dataset.get_data_summary("training")
+
+        print("Training data dimensions: {}".format(data_shape))
+        print("Training label dimensions: {}".format(label_shape))
 
         # TODO: Implement TensorBoard
-        history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers,
-                                           batch_size=batch_size, epochs=epochs,
+        history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers, epochs=epochs,
                                            validation_data=validation_generator, callbacks=[log])
 
         np.array(history).tofile(run_id+".model")
+
+    @staticmethod
+    def init_logs(run_id):
+
+        # Make log directory:
+        os.makedirs(run_id, exist_ok=True)
+
+        # Log file path:
+        log_path = os.path.join(run_id, run_id + ".log")
+
+        if os.path.exists(log_path):
+            # Extract trailing number from log file strings:
+            log_numbers = [int(re.match('.*?([0-9]+)$', file).group(1))
+                           for file in os.listdir(run_id) if ".log" in file]
+
+            # Get trailing number
+            if not log_numbers:
+                nb_log = 1
+            else:
+                nb_log = max(log_numbers)+1
+
+            # Move the current log (run_id.log) to consecutively numbered log files:
+            # > run_id/run_id.log.1 (first run after current)
+            # > run_id/run_id.log.2 (second one after current)
+
+            shutil.move(log_path, log_path + "." + str(nb_log))
+
+        return log_path
 
     @staticmethod
     def residual_block(y, nb_channels, input_shape=None, _strides=(1, 1), _project_shortcut=True):

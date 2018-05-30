@@ -89,6 +89,7 @@ class BatchLogger(callbacks.Callback):
             except KeyError:
                 acc = "none"
 
-            metrics = "{}\t{}\t{}".format(batch, loss, acc)
-            with open(self.output_file, "w") as logfile:
+            metrics = "{}\t{}\t{}\n".format(batch, loss, acc)
+
+            with open(self.output_file, "a") as logfile:
                 logfile.write(metrics)

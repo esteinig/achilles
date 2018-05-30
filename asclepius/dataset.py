@@ -21,10 +21,7 @@ class Dataset:
         """ Main function to generate signal window training and validation data generators
         from directories of Fast5 files, generate data in batches """
 
-        dg = DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
-
-        for data_batch, label_batch in dg:
-            print(data_batch.shape, label_batch.shape)
+        return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
 
     def write_data(self, *dirs, classes=2, max_per_class=20000, proportions=(0.7, 0.3),
                    window_size=4000, window_step=400, normalize=True):
@@ -72,6 +69,11 @@ class Dataset:
                     # Writing all training labels to HDF5
                     encoded_labels = to_categorical(np.array([label for _ in range(total)]), classes)
                     self.write_chunk(labels, encoded_labels)
+
+    def get_data_summary(self, data_type):
+
+        with h5py.File(self.data_file, "r") as f:
+            return f[data_type+"/data"].shape, f[data_type+"/labels"].shape
 
     def print_data_summary(self):
 
@@ -186,8 +188,6 @@ class DataGenerator(Sequence):
 
         if self.shuffle:
             np.random.shuffle(self.indices)
-
-        print("Indices generated for data from HDF5 (epoch end):", self.indices)
 
     def __data_generation(self, indices):
 

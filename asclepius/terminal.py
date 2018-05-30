@@ -30,7 +30,7 @@ class Terminal:
 
         train = subparsers.add_parser("train", help="Train Achilles on prepped raw signal data from HDF5.")
 
-        train.add_argument("--data_file", "--file", "-f", required=False, dest="data_file", default="model.h5", type=str,
+        train.add_argument("--data_file", "--file", "-f", required=False, dest="data_file", default="data.h5", type=str,
                           help="HDF5 prepped data file (achilles prep) for streaming batches.")
         train.add_argument("--output_file", "-o", required=False, dest="output_file", default="model.h5", type=str,
                           help="Output trained model to HDF5 file.")
@@ -40,6 +40,13 @@ class Terminal:
         train.add_argument("--signal_length", "-s", required=False, dest="signal_length", default=4000, type=int,
                           help="Length of signal windows over each read from Fast5.")
 
+        train.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=15, type=int,
+                          help="Training mini batch size.")
+        train.add_argument("--threads", "-t", required=False, dest="threads", default=2, type=int,
+                           help="CPU threads to feed batches into generator to fit to model.")
+        train.add_argument("--epochs", "-e", required=False, dest="epochs", default=3, type=int,
+                          help="Training epochs.")
+
         train.add_argument("--activation", "-a", required=False, dest="activation", default="sigmoid", type=str,
                           help="Activation function (default: sigmoid)")
         train.add_argument("--loss", "-l", required=False, dest="loss", default="binary_crossentropy", type=str,
@@ -47,10 +54,6 @@ class Terminal:
         train.add_argument("--optimizer", "-opt", required=False, dest="optimizer", default="adam", type=str,
                           help="Gradient optimizer (default: adam)")
 
-        train.add_argument("--deep", "-d", required=False, action="store_true", dest="deep",
-                          help="Deep architecture for multiple layer model.")
-        train.add_argument("--cnn_only", "-c", required=False, action="store_true", dest="rnn",
-                          help="Deactivate LSTM layers.")
         train.add_argument("--nb_channels", "-ch", required=False, type=int, default=256, dest="nb_channels",
                           help="Number of channels in residual block convolution layers.")
         train.add_argument("--nb_residual_blocks", "-rb", required=False, type=int, default=5, dest="nb_residual_blocks",
@@ -58,10 +61,10 @@ class Terminal:
         train.add_argument("--nb_lstm", "-lstm", required=False, type=int, default=3, dest="nb_lstm",
                           help="Number of bidirectional LSTMs in RNN layers.")
 
-        train.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=15, type=int,
-                          help="Training mini batch size.")
-        train.add_argument("--epochs", "-e", required=False, dest="epochs", default=3, type=int,
-                          help="Training epochs.")
+        train.add_argument("--minimal", "-m", required=False, action="store_true", dest="minimal",
+                           help="Shallow architecture (one layer) for testing model.")
+        train.add_argument("--cnn_only", "-c", required=False, action="store_true", dest="rnn",
+                           help="Deactivate LSTM layers for testing model.")
 
         train.set_defaults(subparser='train')
 
@@ -76,11 +79,11 @@ class Terminal:
 
         # Real paths:
 
-        if self.args["dirs"]:
+        if "dirs" in self.args.keys():
             self.args["dirs"] = [os.path.abspath(directory) for directory in self.args["dirs"].split(",")]
 
-        if self.args["data_file"]:
+        if "data_file" in self.args.keys():
             self.args["data_file"] = os.path.abspath(self.args["data_file"])
 
-        if self.args["output_file"]:
+        if "output_file" in self.args.keys():
             self.args["output_file"] = os.path.abspath(self.args["output_file"])
