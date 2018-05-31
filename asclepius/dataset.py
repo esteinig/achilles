@@ -5,6 +5,8 @@ import random
 import collections
 import numpy as np
 
+from tqdm import tqdm
+
 from textwrap import dedent
 from keras.utils import Sequence
 from skimage.util import view_as_windows
@@ -25,7 +27,7 @@ class Dataset:
 
         return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
 
-    def write_data(self, *dirs, classes=2, max_per_class=20000, proportions=(0.7, 0.3),
+    def write_data(self, *dirs, classes=2, max_per_class=20000, max_windows_per_read=100, proportions=(0.7, 0.3),
                    window_size=4000, window_step=400, normalize=True):
 
         with h5py.File(self.data_file, "w") as f:
@@ -64,27 +66,55 @@ class Dataset:
                     extracted = f.create_dataset(data_type + "/files/" + str(label), shape=(0,), maxshape=(None,),
                                                  dtype="S10")
 
+                    files = files[:int(max_per_type / max_windows_per_read)]
+
                     # Extract the normalized signal windows into nd array(num_windows, window_size)
-                    for fast5 in files:
+                    print("Extracting {} {} signal windows (size: {}, step: {}) from each of {} Fast5 files for label {}"
+                          .format(max_windows_per_read, data_type, window_size, window_step, len(files), label))
+
+                    for fast5 in tqdm(files):
+
                         signal_windows = self.read_signal(fast5, normalize=normalize, window_size=window_size,
                                                           window_step=window_step)
 
-                        print("Extracted {} signal windows from Fast5: {}".format(len(signal_windows),
-                                                                                  os.path.basename(fast5)))
+                        # At the moment get all signal windows from begiining of read:
+                        # TODO: Evaluate what happens when makign window selection random or random index + consecutive
+                        
+                        signal_windows = signal_windows[:max_windows_per_read]
+                        #
+                        # # Random sample of windows for max windows per read
+                        # # must be max_windows_per_read consecutive:
+                        # rand_index = random.randint(0, signal_windows.shape[0])
+                        #
+                        # # print("Extracting overlap windows from index:", rand_index,
+                        # #  "to:", rand_index + max_windows_per_read)
+                        #
+                        # if rand_index + max_windows_per_read <= len(signal_windows):
+                        #     signal_windows = signal_windows[rand_index:rand_index+max_windows_per_read, :]
+                        # else:
+                        #     # If there are fewer signal windows than allowed reads,
+                        #     # take all signal windows
+                        #     if len(signal_windows) < max_windows_per_read:
+                        #         signal_windows = signal_windows
+                        #     else:
+                        #         # Do not repeat random, just take all windows until last one:
+                        #         signal_windows = signal_windows[rand_index:, :]
+
                         # 4D input tensor (nb_samples, 1, signal_length, 1) for Residual Blocks
                         input_tensor = self.transform_signal_to_tensor(signal_windows)
 
-                        if total < max_per_type:
+                        # Fixes error when extracting empty signal arrays from Fast5
+                        if total < max_per_type and signal_windows.size > 0:
                             if input_tensor.shape[0] > max_per_type-total:
                                 break
                                 # TODO: Check here if this is correctly generating data
                                 # print(total, max_per_type, input_tensor.shape[0], max_per_type-total)
                                 # input_tensor = input_tensor[:int(max_per_type-total)]
+
                             self.write_chunk(data, input_tensor)
 
                             total += input_tensor.shape[0]
-
-                        n_files.append(fast5)
+                            n_files.append(fast5)
 
                     # Writing all training labels to HDF5
                     encoded_labels = to_categorical(np.array([label for _ in range(total)]), classes)
