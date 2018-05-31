@@ -1,6 +1,7 @@
 import os
 import h5py
 import operator
+import random
 import collections
 import numpy as np
 
@@ -43,20 +44,33 @@ class Dataset:
                 for label, path in enumerate(dirs):
                     # All Fast5 files in dir:
                     files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith(".fast5")]
-                    # Sort by largest (assume longest):
-                    files_and_sizes = ((path, os.path.getsize(path)) for path in files)
-                    files = sorted(files_and_sizes, key=operator.itemgetter(1))
+
+                    # Randomize:
+                    random.shuffle(files)
+
+                    # # Sort by largest (assume longest):
+                    # files_and_sizes = ((path, os.path.getsize(path)) for path in files)
+                    # files = sorted(files_and_sizes, key=operator.itemgetter(1))
 
                     # Main loop for reading through Fast5 files and extracting overlapping windows of signal
                     # (window_size, window_step) of normalized (pA) signal until limit for proportioned data
                     # set is reached. Write each signal windows to HDF5 (self.output) after transforming to
                     # 4D input tensor to residual blocks in Achilles model.
                     total = 0
+                    n_files = []
+
+                    decoded = f.create_dataset(data_type + "/decoded/" + str(label), shape=(0,), maxshape=(None,))
+
+                    extracted = f.create_dataset(data_type + "/files/" + str(label), shape=(0,), maxshape=(None,),
+                                                 dtype="S10")
+
                     # Extract the normalized signal windows into nd array(num_windows, window_size)
-                    for fast5, _ in files:
+                    for fast5 in files:
                         signal_windows = self.read_signal(fast5, normalize=normalize, window_size=window_size,
                                                           window_step=window_step)
 
+                        print("Extracted {} signal windows from Fast5: {}".format(len(signal_windows),
+                                                                                  os.path.basename(fast5)))
                         # 4D input tensor (nb_samples, 1, signal_length, 1) for Residual Blocks
                         input_tensor = self.transform_signal_to_tensor(signal_windows)
 
@@ -70,9 +84,21 @@ class Dataset:
 
                             total += input_tensor.shape[0]
 
+                        n_files.append(fast5)
+
                     # Writing all training labels to HDF5
                     encoded_labels = to_categorical(np.array([label for _ in range(total)]), classes)
+                    decoded_labels = np.array([label for _ in range(total)])
+                    file_labels = np.array([np.string_(fast5_file) for fast5_file in n_files])
+
+                    # Write categorical (one-hot) encoded 2-dim array (n_labels, n_classes)
+                    # e.g (100, 2) = [[1, 0], [1, 0], [1, 0], [0, 1], [0, 1], [0, 1]]
                     self.write_chunk(labels, encoded_labels)
+                    # Write plain label vectors for each label (0, 0, 0, 1, 1, 1)
+                    self.write_chunk(decoded, decoded_labels)
+                    # Write files per label from which signal windows were extracted:
+                    print(extracted, file_labels.shape)
+                    self.write_chunk(extracted, file_labels)
 
     def get_data_summary(self, data_type):
 
@@ -82,8 +108,6 @@ class Dataset:
     def print_data_summary(self):
 
         with h5py.File(self.data_file, "r") as f:
-
-            counts = collections.Counter([tuple(item) for item in list(f["training/labels"])])
 
             msg = dedent("""
                 HDF5 file: {}
@@ -95,8 +119,14 @@ class Dataset:
                 """
                          ).format(self.data_file, f["training/data"].shape, f["training/labels"].shape)
 
-            for key, count in counts.items():
-                msg += "Encoded class: " + str(key) + " = " + str(count) + "\n"
+            for label in f["training/decoded/"]:
+
+                # Signal window count:
+                window_count = str(f["training/decoded/{label}".format(label=int(label))].shape[0])
+                # File count:
+                file_count = str(f["training/files/{label}".format(label=int(label))].shape[0])
+
+                msg += "Encoded class: {} = {} from {} files\n".format(int(label), window_count, file_count)
 
             print(msg)
 

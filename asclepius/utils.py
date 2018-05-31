@@ -32,9 +32,8 @@ def percentage_split(seq, percentages) -> iter:
         yield seq[prv:nxt]
         prv = nxt
 
-# TODO: Figure out what's goinf on in calculating average mini-batch loss (cumulative, rolling)
 
-
+# TODO: Figure out what's going on in calculating average mini-batch loss - cumulative?
 def plot_batch_loss_accuracy(fname, outname="plot.pdf", sep="\t", error=False):
 
     df = pandas.read_csv(fname, sep=sep, names=["batches", "loss", "acc"], index_col=0)
@@ -74,9 +73,9 @@ def plot_batch_loss_accuracy(fname, outname="plot.pdf", sep="\t", error=False):
 
     print(df)
 
-    # df.plot()
-    # plt.show()
-    # plt.savefig(outname)
+    df.plot()
+    plt.show()
+    plt.savefig(outname)
 
 
 def select_largest_files(input_dir, output_dir, n=3000):

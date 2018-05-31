@@ -25,7 +25,7 @@ def main():
 
             ds.print_data_summary()
 
-    elif args["subparser"] == "train":
+    if args["subparser"] == "train":
 
         # Build model
         asclep = Asclepius(data_file=args["data_file"])
@@ -40,16 +40,16 @@ def main():
 
         print("Estimated GPU memory for Asclepius model: {} GB".format(memory))
 
-        asclep.train(epochs=args["epochs"], batch_size=args["batch_size"], model_file=args["output_file"],
+        asclep.train(epochs=args["epochs"], batch_size=args["batch_size"],
                      workers=args["threads"], run_id=args["run_id"], log_interval=args["log_interval"])
 
         asclep.save(args["output_file"])
 
-    elif args["subparser"] == "plot":
-        print(args["plot_file"])
+    if args["subparser"] == "plot":
+
         utils.plot_batch_loss_accuracy(fname=args["log_file"], outname=args["plot_file"], error=args["error"])
 
-    elif args["subparser"] == "select":
+    if args["subparser"] == "select":
 
         utils.select_largest_files(input_dir=args["input_dir"], output_dir=args["output_dir"], n=args["n"])
 

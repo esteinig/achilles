@@ -84,7 +84,7 @@ class Terminal:
         plot.add_argument("--error", "-e", required=False, action="store_true", dest="error",
                           help="Plot accuracy as error: 1 - accuracy")
 
-        train.set_defaults(subparser='plot')
+        plot.set_defaults(subparser='plot')
 
         select = subparsers.add_parser("select", help="Utility function for selecting largest reads of recursive dir for"
                                                       "generating data and training model")

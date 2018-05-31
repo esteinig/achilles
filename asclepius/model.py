@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import numpy as np
+
 from keras import backend as K
 from keras import layers, Model
 
@@ -84,7 +85,7 @@ class Asclepius:
 
         return self.model
 
-    def train(self, batch_size=15, epochs=10, model_file="model.h5", workers=2, run_id="run_1", log_interval=10):
+    def train(self, batch_size=15, epochs=10, workers=2, run_id="run_1", log_interval=10):
 
         # Reads data from HDF5 data file:
         dataset = Dataset(data_file=self.data_file)
@@ -138,7 +139,7 @@ class Asclepius:
         return log_path
 
     @staticmethod
-    def residual_block(y, nb_channels, input_shape=None, _strides=(1, 1), _project_shortcut=True):
+    def residual_block(y, nb_channels, input_shape=None, _strides=(1, 1), _project_shortcut=True, _leaky=False):
 
         """ Residual block adapted from https://gist.github.com/mjdietzx/5319e42637ed7ef095d430cb5c5e8c64
 
@@ -149,6 +150,7 @@ class Asclepius:
 
         shortcut = y
 
+        # Stack 1
         if input_shape:
             y = layers.Conv2D(nb_channels, input_shape=input_shape, kernel_size=(1, 1),
                               strides=_strides, padding='same')(y)
@@ -156,22 +158,37 @@ class Asclepius:
             y = layers.Conv2D(nb_channels, kernel_size=(1, 1), strides=_strides, padding='same')(y)
 
         y = layers.BatchNormalization()(y)
-        y = layers.LeakyReLU()(y)
 
+        if _leaky:
+            y = layers.LeakyReLU()(y)
+        else:
+            y = layers.Activation('relu')(y)
+
+        # Stack 2
         y = layers.Conv2D(nb_channels, kernel_size=(1, 3), strides=(1, 1), padding='same')(y)
         y = layers.BatchNormalization()(y)
-        y = layers.LeakyReLU()(y)
 
+        if _leaky:
+            y = layers.LeakyReLU()(y)
+        else:
+            y = layers.Activation('relu')(y)
+
+        # Stack 3
         y = layers.Conv2D(nb_channels, kernel_size=(1, 1), strides=(1, 1), padding='same')(y)
         y = layers.BatchNormalization()(y)
 
-        # identity shortcuts used directly when the input and output are of the same dimensions
+        # ... with shortcut for concatenation before ReLU
+        # nb: identity shortcuts used directly when the input and output are of the same dimensions
         if _project_shortcut or _strides != (1, 1):
             shortcut = layers.Conv2D(nb_channels, kernel_size=(1, 1), strides=_strides, padding='same')(shortcut)
             shortcut = layers.BatchNormalization()(shortcut)
 
         y = layers.add([shortcut, y])
-        y = layers.LeakyReLU()(y)
+
+        if _leaky:
+            y = layers.LeakyReLU()(y)
+        else:
+            y = layers.Activation('relu')(y)
 
         return y
 
