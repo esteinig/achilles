@@ -19,6 +19,12 @@ class Terminal:
 
         prep.add_argument("--signal_max_per_class", "-max", "-m", required=False, dest="signal_max", default=40000, type=int,
                            help="Maximum number of signal windows extracted from Fast5 directories per class (dir).")
+
+        prep.add_argument("--max_windows_per_read", "-mw", required=False, dest="window_max", default=100,
+                          type=int, help="Maximum number of signal windows extracted per Fast5 file.")
+        prep.add_argument("--random_windows_per_read", "-rand", "-r", required=False, dest="random",
+                          action="store_true", help="Maximum number of signal windows extracted per Fast5 file.")
+
         prep.add_argument("--signal_length", "-len", "-l", required=False, default=4000, dest="signal_length", type=int,
                            help="Length of signal windows over each read from Fast5.")
         prep.add_argument("--signal_stride", "-s", required=False, default=400, dest="signal_stride", type=int,

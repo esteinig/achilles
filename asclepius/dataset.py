@@ -28,7 +28,7 @@ class Dataset:
         return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
 
     def write_data(self, *dirs, classes=2, max_per_class=20000, max_windows_per_read=100, proportions=(0.7, 0.3),
-                   window_size=4000, window_step=400, normalize=True):
+                   window_size=4000, window_step=400, random_windows_consecutive=True, normalize=True):
 
         with h5py.File(self.data_file, "w") as f:
 
@@ -77,28 +77,28 @@ class Dataset:
                         signal_windows = self.read_signal(fast5, normalize=normalize, window_size=window_size,
                                                           window_step=window_step)
 
-                        # At the moment get all signal windows from begiining of read:
+                        # At the moment get all signal windows from beginning of read:
                         # TODO: Evaluate what happens when makign window selection random or random index + consecutive
-                        
-                        signal_windows = signal_windows[:max_windows_per_read]
-                        #
-                        # # Random sample of windows for max windows per read
-                        # # must be max_windows_per_read consecutive:
-                        # rand_index = random.randint(0, signal_windows.shape[0])
-                        #
-                        # # print("Extracting overlap windows from index:", rand_index,
-                        # #  "to:", rand_index + max_windows_per_read)
-                        #
-                        # if rand_index + max_windows_per_read <= len(signal_windows):
-                        #     signal_windows = signal_windows[rand_index:rand_index+max_windows_per_read, :]
-                        # else:
-                        #     # If there are fewer signal windows than allowed reads,
-                        #     # take all signal windows
-                        #     if len(signal_windows) < max_windows_per_read:
-                        #         signal_windows = signal_windows
-                        #     else:
-                        #         # Do not repeat random, just take all windows until last one:
-                        #         signal_windows = signal_windows[rand_index:, :]
+
+                        if random_windows_consecutive:
+                            rand_index = random.randint(0, signal_windows.shape[0])
+
+                            # print("Extracting overlap windows from index:", rand_index,
+                            #  "to:", rand_index + max_windows_per_read)
+
+                            if rand_index + max_windows_per_read <= len(signal_windows):
+                                signal_windows = signal_windows[rand_index:rand_index+max_windows_per_read, :]
+                            else:
+                                # If there are fewer signal windows than allowed reads,
+                                # take all signal windows
+                                if len(signal_windows) < max_windows_per_read:
+                                    signal_windows = signal_windows
+                                else:
+                                    # Do not repeat random, just take all windows until last one:
+                                    signal_windows = signal_windows[rand_index:, :]
+                        else:
+                            # From beginning of read:
+                            signal_windows = signal_windows[:max_windows_per_read]
 
                         # 4D input tensor (nb_samples, 1, signal_length, 1) for Residual Blocks
                         input_tensor = self.transform_signal_to_tensor(signal_windows)

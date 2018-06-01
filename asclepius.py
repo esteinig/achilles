@@ -21,7 +21,8 @@ def main():
         else:
             ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_per_class=args["signal_max"],
                           window_size=args["signal_length"], window_step=args["signal_stride"],
-                          normalize=args["normalize"])
+                          normalize=args["normalize"], max_windows_per_read=args["window_max"],
+                          random_windows_consecutive=args["random"])
 
             ds.print_data_summary()
 
