@@ -1,7 +1,21 @@
 # Asclepius
 
-Asclepius is a modified Keras implementation of Chiron, an open-source deep neural network architecture that combines CNN residual blocks with bidirectional LSTM cells to basecall streaming raw signal from nanopore seqeuencers. As a student of Chiron, Asclepius is written in the high-level Tensorflow functional library Keras and its implementation is therefore simpler than the pioneering code base. Its purpose is to reliably distinguish human nanopore signal from viral and bacterial signal as it is streamed in real-time. It therefore aspires to provide a fast neural network classifier that can be trained on user data in the same open-source manner as its teacher Chiron, and that can be used in selective seqeuncing with ReadUntil.
+### Data Generator
 
-## Generate Data
+Placeholder
 
-The first step is to generate training and validation data from Fast5 files that contain raw signal. Fast5 files for each class must be located in seperate folders (here for two classes of labeled data). Each signal file (descending by size) is scanned along overlapping windows of default 4000 signal values in step 400. This data is stored in an HDF5 file with addresses `training/data`, `training/labels`, `validation/data`, `validation/labels` in proportions training: 0.7, validation: 0.3 of a maximum default: 20000 of signal array windows. The training and validation data is stored in a 4D array of shape (None, 1, 4000, 1) for input into the residual blocks Conv2D layers where each sample (None) is a sequence of raw signal values of length 4000 (1, 4000) in a single channel (1). Its correpsonding classification labels are stored in categorical format (one-hot encoding) in an 2D array (None, nb_classes)
+### Training Model
+
+Placeholder
+
+### Validation
+
+Placeholder
+
+### Classifier
+
+Placeholder
+
+### Documentation
+
+Placeholder
