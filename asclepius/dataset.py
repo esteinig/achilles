@@ -50,10 +50,6 @@ class Dataset:
                     # Randomize:
                     random.shuffle(files)
 
-                    # # Sort by largest (assume longest):
-                    # files_and_sizes = ((path, os.path.getsize(path)) for path in files)
-                    # files = sorted(files_and_sizes, key=operator.itemgetter(1))
-
                     # Main loop for reading through Fast5 files and extracting overlapping windows of signal
                     # (window_size, window_step) of normalized (pA) signal until limit for proportioned data
                     # set is reached. Write each signal windows to HDF5 (self.output) after transforming to
@@ -79,6 +75,8 @@ class Dataset:
 
                         # At the moment get all signal windows from beginning of read:
                         # TODO: Evaluate what happens when makign window selection random or random index + consecutive
+                        # previous one (random index and n (100) consecutive overlapping windows) works on minimal
+                        # architecture
 
                         if random_windows_consecutive:
                             rand_index = random.randint(0, signal_windows.shape[0])

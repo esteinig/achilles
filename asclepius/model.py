@@ -115,7 +115,7 @@ class Asclepius:
         df = pd.DataFrame(history)
 
         df.to_csv("{}.model.csv".format(run_id))
-        
+
     @staticmethod
     def init_logs(run_id):
 
