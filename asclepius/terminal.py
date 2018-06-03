@@ -71,7 +71,7 @@ class Terminal:
                           help="Number of channels in residual block convolution layers.")
         train.add_argument("--nb_residual_blocks", "-rb", required=False, type=int, default=5, dest="nb_residual_blocks",
                           help="Number of residual blocks in CNN layers.")
-        train.add_argument("--nb_lstm", "-lstm", required=False, type=int, default=3, dest="nb_lstm",
+        train.add_argument("--nb_lstm", "-lstm", required=False, type=int, default=1, dest="nb_lstm",
                           help="Number of bidirectional LSTMs in RNN layers.")
         train.add_argument("--dropout", "-d", required=False, type=float, default=0, dest="dropout",
                            help="Dropout fraction applied to LSTM between 0 and 1 (default: 0.0)")
