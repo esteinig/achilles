@@ -73,7 +73,7 @@ class Terminal:
                           help="Number of residual blocks in CNN layers.")
         train.add_argument("--nb_lstm", "-lstm", required=False, type=int, default=3, dest="nb_lstm",
                           help="Number of bidirectional LSTMs in RNN layers.")
-        train.add_argument("--dropout", "-d", required=False, type=float, default=0, dest="lstm_dropout",
+        train.add_argument("--dropout", "-d", required=False, type=float, default=0, dest="dropout",
                            help="Dropout fraction applied to LSTM between 0 and 1 (default: 0.0)")
 
         train.add_argument("--minimal", "-m", required=False, action="store_true", dest="minimal",
