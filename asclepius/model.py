@@ -8,7 +8,7 @@ import pandas as pd
 
 from keras import backend as K
 from keras import layers, Model
-from keras.callbacks import CSVLogger
+from keras.callbacks import CSVLogger, ModelCheckpoint
 
 from asclepius.utils import BatchLogger
 from asclepius.dataset import Dataset
@@ -97,8 +97,12 @@ class Asclepius:
 
         log_file = self.init_logs(run_id=run_id)
 
+        # Callbacks
         csv = CSVLogger(run_id + ".epochs.log")
         log = BatchLogger(log_file, log_interval=log_interval)
+        chk = ModelCheckpoint("model.checkpoint.val_loss.h5", monitor="val_loss", verbose=0,
+                              save_best_only=False, save_weights_only=False,
+                              mode="auto", period=1)
 
         print("Running on batch size {} for {} epochs with {} worker processes --> run ID: {}"
               .format(batch_size, epochs, workers, run_id))
@@ -110,7 +114,7 @@ class Asclepius:
 
         # TODO: Implement TensorBoard
         history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers, epochs=epochs,
-                                           validation_data=validation_generator, callbacks=[log, csv])
+                                           validation_data=validation_generator, callbacks=[log, csv, chk])
 
         df = pd.DataFrame(history)
 
