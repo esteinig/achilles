@@ -33,7 +33,7 @@ def main():
 
         asclep.build(signal_length=args["signal_length"], activation=args["activation"],
                      nb_residual_block=args["nb_residual_blocks"], nb_channels=args["nb_channels"],
-                     nb_lstm=args["nb_lstm"], minimal=args["minimal"], rnn=args["rnn"])
+                     nb_lstm=args["nb_lstm"], minimal=args["minimal"], rnn=args["rnn"], dropout=args["dropout"])
 
         asclep.compile(optimizer=args["optimizer"], loss=args["loss"])
 

@@ -22,7 +22,7 @@ class Asclepius:
         self.model = None
 
     def build(self, signal_length=4000, activation="sigmoid", nb_channels=256, _nb_classes=2, _lstm_units=200,
-              nb_residual_block=5, nb_lstm=3, rnn=True, minimal=False, summary=True):
+              nb_residual_block=5, nb_lstm=3, rnn=True, minimal=False, dropout=0.0, summary=True):
 
         # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
         # with dimensions (height, width, depth) - since it is a signal sequence:
@@ -60,10 +60,10 @@ class Asclepius:
         # then into last layer with standard LSTM output into Dense
 
         if rnn:
-            if not minimal:
+            if not minimal or nb_lstm > 1:
                 for i in range(nb_lstm-1):
-                    x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True))(x)  # recurrent_dropout=0.3
-            x = layers.Bidirectional(layers.LSTM(_lstm_units))(x)
+                    x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True, dropout=dropout))(x)  # recurrent_dropout=0.3
+            x = layers.Bidirectional(layers.LSTM(_lstm_units, dropout=dropout))(x)
         else:
             # If no RNN layers, flatten shape for Dense
             x = layers.Flatten()(x)
