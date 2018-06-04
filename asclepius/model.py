@@ -3,8 +3,8 @@
 import os
 import re
 import shutil
+import pickle
 import numpy as np
-import pandas as pd
 
 from keras import backend as K
 from keras import layers, Model
@@ -121,9 +121,8 @@ class Asclepius:
         history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers, epochs=epochs,
                                            validation_data=validation_generator, callbacks=[log, csv, chk])
 
-        df = pd.DataFrame(history)
-
-        df.to_csv("{}.model.csv".format(run_id))
+        with open("{}.model.history".format(run_id), "wb") as history_out:
+            pickle.dump(history.history, history_out)
 
     @staticmethod
     def init_logs(run_id):
