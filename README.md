@@ -22,7 +22,7 @@ Asclepius is a neural network model that distinguishes between host, e.g. human,
 
 `asclepius plot --help`
 
-### Util
+### Utils
 
 `asclepius select --help`
 
