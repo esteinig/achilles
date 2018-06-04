@@ -67,7 +67,7 @@ class Terminal:
         train.add_argument("--optimizer", "-opt", required=False, dest="optimizer", default="adam", type=str,
                           help="Gradient optimizer (default: adam)")
 
-        train.add_argument("--nb_residual_blocks", "-rb", required=False, type=int, default=5, dest="nb_residual_blocks",
+        train.add_argument("--nb_residual_blocks", "-rb", required=False, type=int, default=1, dest="nb_residual_blocks",
                           help="Number of residual blocks in CNN layers.")
         train.add_argument("--nb_channels", "-ch", required=False, type=int, default=256, dest="nb_channels",
                           help="Number of channels in residual block convolution layers.")
