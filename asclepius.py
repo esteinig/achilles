@@ -33,16 +33,18 @@ def main():
 
         asclep.build(signal_length=args["signal_length"], activation=args["activation"],
                      nb_residual_block=args["nb_residual_blocks"], nb_channels=args["nb_channels"],
-                     nb_lstm=args["nb_lstm"], minimal=args["minimal"], rnn=args["rnn"], dropout=args["dropout"])
+                     nb_lstm=args["nb_lstm"], dropout=args["dropout"], rc_dropout=args["rc_dropout"])
 
+        # Compile model with loss function and optimizer
         asclep.compile(optimizer=args["optimizer"], loss=args["loss"])
 
+        # Compute estimated memory for dimensions and batch size of model:
         memory = asclep.estimate_memory_usage(batch_size=args["batch_size"])
 
-        print("Estimated GPU memory for Asclepius model: {} GB".format(memory))
+        print("Estimated GPU memory for Asclepius model by layers : {} GB".format(memory))
 
-        asclep.train(epochs=args["epochs"], batch_size=args["batch_size"],
-                     workers=args["threads"], run_id=args["run_id"], log_interval=args["log_interval"])
+        asclep.train(epochs=args["epochs"], batch_size=args["batch_size"], workers=args["threads"],
+                     run_id=args["run_id"], log_interval=args["log_interval"])
 
         asclep.save(args["output_file"])
 

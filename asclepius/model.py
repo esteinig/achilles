@@ -22,7 +22,7 @@ class Asclepius:
         self.model = None
 
     def build(self, signal_length=4000, activation="sigmoid", nb_channels=256, _nb_classes=2, _lstm_units=200,
-              nb_residual_block=5, nb_lstm=3, rnn=True, minimal=False, dropout=0.0, summary=True):
+              nb_residual_block=1, nb_lstm=1, dropout=0.0, rc_dropout=0.0, summary=True):
 
         # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
         # with dimensions (height, width, depth) - since it is a signal sequence:
@@ -38,9 +38,11 @@ class Asclepius:
         ######################
 
         # Residual block stack, see config
+        # There must always be one residual block for input dimensions
+        # by data generator:
         x = self.residual_block(inputs, nb_channels, input_shape=shape)
 
-        if not minimal:
+        if nb_residual_block > 1:
             for i in range(nb_residual_block-1):
                 x = self.residual_block(x, nb_channels)
 
@@ -59,11 +61,14 @@ class Asclepius:
         # Add two Bidirectional LSTM layers where sequences returned,
         # then into last layer with standard LSTM output into Dense
 
-        if rnn:
-            if not minimal or nb_lstm > 1:
+        if nb_lstm > 0:
+            # Deep bidirectional LSTM layers must return sequences for stacking
+            if nb_lstm > 1:
                 for i in range(nb_lstm-1):
-                    x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True, dropout=dropout))(x)  # recurrent_dropout=0.3
-            x = layers.Bidirectional(layers.LSTM(_lstm_units, dropout=dropout))(x)
+                    x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True, dropout=dropout,
+                                                         recurrent_dropout=rc_dropout))(x)
+
+            x = layers.Bidirectional(layers.LSTM(_lstm_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
         else:
             # If no RNN layers, flatten shape for Dense
             x = layers.Flatten()(x)
