@@ -87,15 +87,20 @@ usage: asclepius.py select [-h] [--input_dir INPUT_DIR]
                            [--largest]
 ```
 
+### Training, validation and evaluation data sets
+---
+
+Plaeholder.
+
 ### Performance for human (chromosome 20) and *B. pseudomallei* classification
 ---
 
 #### Architectures
 ---
 
-| Run ID         | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epoch  | Dropout   | Recurrent Dropout |
-| :------------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :-------: | :---------------: |
-| Baseline Drop  |  1        | 1      | 400 x 400 | 237963    | 900         | 16     | 0.2       |  0.2              |
+| Run ID         | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | Dropout   | Recurrent Dropout | Batch Norm |
+| :------------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :-------: | :---------------: | :--------: |
+| Baseline Drop  |  1        | 1      | 400 x 400 | 237963    | 900         | 16/20  | 0.2       |  0.2              |  False     |
 
 
 #### Evaluations
