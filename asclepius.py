@@ -48,6 +48,14 @@ def main():
 
         asclep.save(args["output_file"])
 
+    if args["subparser"] == "evaluate":
+
+        asclep = Asclepius(data_file=args["data_file"])
+
+        asclep.load_model(model_file=args["model_file"])
+
+        asclep.evaluate(batch_size=args["batch_size"], workers=args["threads"], data_path=args["threads"])
+
     if args["subparser"] == "plot":
 
         utils.plot_batch_loss_accuracy(fname=args["log_file"], outname=args["plot_file"], error=args["error"])

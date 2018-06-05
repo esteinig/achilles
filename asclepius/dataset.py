@@ -187,7 +187,8 @@ class Dataset:
         :param fast5        str     path to .fast5 file
         :param normalize    bool    normalize signal by subtracting mean and dividing by standard deviation
         :param window_size  int     run sliding window along signal with size, pass None to return all signal values
-        :param window_step  int     sliding window stride, usually 10% of window_size
+        :param window_step  int     sliding window stride, usually 10% of window_size, but appears good on as well
+                                    on non-overlapping window slides where window_step = window_size
 
         """
 

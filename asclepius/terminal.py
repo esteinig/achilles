@@ -74,15 +74,27 @@ class Terminal:
 
         train.set_defaults(subparser='train')
 
-        plot = subparsers.add_parser("plot", help="Plot loss and accuracy for model runs from logs.")
+        eval = subparsers.add_parser("evaluate", help="Evaluate data with given model file on data paths"
+                                                      "data_path/data and data_path/label in HDF5 file.")
+        eval.add_argument("--data_file", "--file", "-f", required=False, dest="data_file", default="data.h5", type=str,
+                          help="HDF5 prepared data file (asclepius make) for streaming batches into evaluation.")
+        eval.add_argument("--model_file", "--file", "-f", required=False, dest="model_file", default="model.h5", type=str,
+                          help="HDF5 prepped trained model file for loading with Keras (asclepius train).")
+        eval.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=15, type=int,
+                           help="Training mini batch size.")
+        eval.add_argument("--threads", "-t", required=False, dest="threads", default=2, type=int,
+                           help="CPU threads to feed batches into generator to fit to model.")
+        eval.add_argument("--data_path", "--file", "-f", required=False, dest="data_path", default="training", type=str,
+                          help="HDF5 data path for data_path/training and data_path/labels.")
+        eval.set_defaults(subparser='evaluate')
 
+        plot = subparsers.add_parser("plot", help="Plot loss and accuracy for model runs from logs.")
         plot.add_argument("--log_file", "--file", "-f", required=False, dest="log_file", default="test_1.log", type=str,
                           help="Log file from model training run.")
         plot.add_argument("--plot_file", "--plot", "-p", required=False, dest="plot_file", default="test.pdf",
                           type=str, help="Plot of loss and accuracy per batch (default: test.pdf).")
         plot.add_argument("--error", "-e", required=False, action="store_true", dest="error",
                           help="Plot accuracy as error: 1 - accuracy")
-
         plot.set_defaults(subparser='plot')
 
         select = subparsers.add_parser("select", help="Utility function for selecting signal from Fast5 in recursive"

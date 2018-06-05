@@ -8,6 +8,7 @@ import numpy as np
 
 from keras import backend as K
 from keras import layers, Model
+from keras.models import load_model
 from keras.callbacks import CSVLogger, ModelCheckpoint
 
 from asclepius.utils import BatchLogger
@@ -16,7 +17,7 @@ from asclepius.dataset import Dataset
 
 class Asclepius:
 
-    def __init__(self, data_file):
+    def __init__(self, data_file=None):
 
         self.data_file = data_file
         self.model = None
@@ -123,6 +124,36 @@ class Asclepius:
 
         with open("{}.model.history".format(run_id), "wb") as history_out:
             pickle.dump(history.history, history_out)
+
+    def load_model(self, model_file):
+
+        """ Load model from HDF5 output file with model layers and weights """
+
+        self.model = load_model(model_file)
+
+    def evaluate(self, batch_size=10, workers=2, data_path="training"):
+
+        """ Evaluate model against presented dataset """
+
+        dataset = Dataset(data_file=self.data_file)
+
+        # For evaluation get the training generator from the HDF5 data file prepared with asclepius make,
+        # this way different input data can be evaluated (70% of it as split into training) - it is
+        # easier to integrate this right now with the task make, but if user supplied format the data must
+        # be in the paths HDF5 paths: /training/data,/training/labels or /data_path/data, /data_path/labels
+        eval_generator = dataset.get_signal_generator(data_type=data_path, batch_size=batch_size, shuffle=True)
+
+        loss, acc = self.model.evaluate_generator(eval_generator, workers=workers, use_multiprocessing=True)
+
+        msg = "Loss: {} - Accuracy: {}".format(loss, acc)
+
+        print(msg)
+
+    def predict(self):
+
+        """ Predict signal arrays using model test function, might implement in class later"""
+
+        pass
 
     @staticmethod
     def init_logs(run_id):
