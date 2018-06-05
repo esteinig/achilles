@@ -34,7 +34,7 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 
 | Run ID         | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Train. Acc. | Val. Acc. | Epoch  | Dropout  |
 | :------------: | :-------: | :----: | :-------: | :-------: | :---------: | :---------: | :-------: | :----: | :------: |
-| Baseline Drop  |  1        | 1      | 400 x 400 | 237963    | 900         | 88.81%      | 88.97%    | 16     | 0.2      |
+| Baseline Drop  |  1        | 1      | 400 x 400 | 237963    | 900         | 88.81 %     | 88.97 %   | 16     | 0.2      |
 
 
 ### Documentation
