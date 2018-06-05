@@ -71,6 +71,8 @@ class Terminal:
                            help="Dropout fraction applied to LSTM between 0 and 1 (default: 0.0)")
         train.add_argument("--recurrent_dropout", "--rc_dropout", "-r", required=False, type=float, default=0,
                            dest="rc_dropout", help="Dropout fraction applied to LSTM between 0 and 1 (default: 0.0)")
+        train.add_argument("--batch_norm", "-bn", required=False, action='store_true',
+                           dest="batch_norm", help="Instead of dropout, apply standard batch normalization to LSTMs")
 
         train.set_defaults(subparser='train')
 
@@ -78,13 +80,13 @@ class Terminal:
                                                       "data_path/data and data_path/label in HDF5 file.")
         eval.add_argument("--data_file", "--file", "-f", required=False, dest="data_file", default="data.h5", type=str,
                           help="HDF5 prepared data file (asclepius make) for streaming batches into evaluation.")
-        eval.add_argument("--model_file", "--file", "-f", required=False, dest="model_file", default="model.h5", type=str,
+        eval.add_argument("--model_file", "--model", "-m", required=False, dest="model_file", default="model.h5", type=str,
                           help="HDF5 prepped trained model file for loading with Keras (asclepius train).")
         eval.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=15, type=int,
                            help="Training mini batch size.")
         eval.add_argument("--threads", "-t", required=False, dest="threads", default=2, type=int,
                            help="CPU threads to feed batches into generator to fit to model.")
-        eval.add_argument("--data_path", "--file", "-f", required=False, dest="data_path", default="training", type=str,
+        eval.add_argument("--data_path", "-d", required=False, dest="data_path", default="training", type=str,
                           help="HDF5 data path for data_path/training and data_path/labels.")
         eval.set_defaults(subparser='evaluate')
 

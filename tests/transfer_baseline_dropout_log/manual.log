@@ -1,0 +1,98 @@
+paperspace@psmiiglag:~/asclepius$ python asclepius.py train --data_file data.20.nn.rand100.400.400.200k.h5 -s 400 --run_id asclepius_human20_minimal_200_baseline_dropout --activation softmax --nb_residual_blocks 1 -t 6 --batch_size 900 -e 20 --dropout 0.2 --rc_dropout 0.2
+Using TensorFlow backend.
+2018-06-04 17:28:01.385981: I tensorflow/core/platform/cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2
+2018-06-04 17:28:01.488204: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:898] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2018-06-04 17:28:01.488560: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1344] Found device 0 with properties: 
+name: Quadro M4000 major: 5 minor: 2 memoryClockRate(GHz): 0.7725
+pciBusID: 0000:00:05.0
+totalMemory: 7.93GiB freeMemory: 7.54GiB
+2018-06-04 17:28:01.488582: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1423] Adding visible gpu devices: 0
+2018-06-04 17:28:01.765136: I tensorflow/core/common_runtime/gpu/gpu_device.cc:911] Device interconnect StreamExecutor with strength 1 edge matrix:
+2018-06-04 17:28:01.765189: I tensorflow/core/common_runtime/gpu/gpu_device.cc:917]      0 
+2018-06-04 17:28:01.765198: I tensorflow/core/common_runtime/gpu/gpu_device.cc:930] 0:   N 
+2018-06-04 17:28:01.765514: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1041] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 7292 MB memory) -> physical GPU (device: 0, name: Quadro M4000, pci bus id: 0000:00:05.0, compute capability: 5.2)
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_1 (InputLayer)            (None, 1, 400, 1)    0                                            
+__________________________________________________________________________________________________
+conv2d_1 (Conv2D)               (None, 1, 400, 256)  512         input_1[0][0]                    
+__________________________________________________________________________________________________
+batch_normalization_1 (BatchNor (None, 1, 400, 256)  1024        conv2d_1[0][0]                   
+__________________________________________________________________________________________________
+activation_1 (Activation)       (None, 1, 400, 256)  0           batch_normalization_1[0][0]      
+__________________________________________________________________________________________________
+conv2d_2 (Conv2D)               (None, 1, 400, 256)  196864      activation_1[0][0]               
+__________________________________________________________________________________________________
+batch_normalization_2 (BatchNor (None, 1, 400, 256)  1024        conv2d_2[0][0]                   
+__________________________________________________________________________________________________
+activation_2 (Activation)       (None, 1, 400, 256)  0           batch_normalization_2[0][0]      
+__________________________________________________________________________________________________
+conv2d_4 (Conv2D)               (None, 1, 400, 256)  512         input_1[0][0]                    
+__________________________________________________________________________________________________
+conv2d_3 (Conv2D)               (None, 1, 400, 256)  65792       activation_2[0][0]               
+__________________________________________________________________________________________________
+batch_normalization_4 (BatchNor (None, 1, 400, 256)  1024        conv2d_4[0][0]                   
+__________________________________________________________________________________________________
+batch_normalization_3 (BatchNor (None, 1, 400, 256)  1024        conv2d_3[0][0]                   
+__________________________________________________________________________________________________
+add_1 (Add)                     (None, 1, 400, 256)  0           batch_normalization_4[0][0]      
+                                                                 batch_normalization_3[0][0]      
+__________________________________________________________________________________________________
+activation_3 (Activation)       (None, 1, 400, 256)  0           add_1[0][0]                      
+__________________________________________________________________________________________________
+reshape_1 (Reshape)             (None, 400, 256)     0           activation_3[0][0]               
+__________________________________________________________________________________________________
+bidirectional_1 (Bidirectional) (None, 400)          731200      reshape_1[0][0]                  
+__________________________________________________________________________________________________
+dense_1 (Dense)                 (None, 2)            802         bidirectional_1[0][0]            
+==================================================================================================
+Total params: 999,778
+Trainable params: 997,730
+Non-trainable params: 2,048
+__________________________________________________________________________________________________
+Estimated GPU memory for Asclepius model by layers : 7.818 GB
+Running on batch size 900 for 20 epochs with 6 worker processes --> run ID: asclepius_human20_minimal_200_baseline_dropout
+Training data dimensions: (237963, 1, 400, 1)
+Training label dimensions: (237963, 2)
+Epoch 1/20
+264/264 [==============================] - 1477s 6s/step - loss: 0.5339 - acc: 0.7450 - val_loss: 0.5138 - val_acc: 0.7561
+Epoch 2/20
+264/264 [==============================] - 1461s 6s/step - loss: 0.4960 - acc: 0.7687 - val_loss: 0.4990 - val_acc: 0.7682
+Epoch 3/20
+264/264 [==============================] - 1453s 6s/step - loss: 0.4701 - acc: 0.7852 - val_loss: 0.4760 - val_acc: 0.7824
+Epoch 4/20
+264/264 [==============================] - 1457s 6s/step - loss: 0.4451 - acc: 0.7975 - val_loss: 0.4435 - val_acc: 0.7962
+Epoch 5/20
+264/264 [==============================] - 1455s 6s/step - loss: 0.4152 - acc: 0.8122 - val_loss: 0.4349 - val_acc: 0.7984
+Epoch 6/20
+264/264 [==============================] - 1455s 6s/step - loss: 0.3920 - acc: 0.8244 - val_loss: 0.3790 - val_acc: 0.8305
+Epoch 7/20
+264/264 [==============================] - 1455s 6s/step - loss: 0.3724 - acc: 0.8342 - val_loss: 0.3706 - val_acc: 0.8330
+Epoch 8/20
+264/264 [==============================] - 1455s 6s/step - loss: 0.3516 - acc: 0.8455 - val_loss: 0.3491 - val_acc: 0.8462
+Epoch 9/20
+264/264 [==============================] - 1455s 6s/step - loss: 0.3356 - acc: 0.8534 - val_loss: 0.3347 - val_acc: 0.8537
+Epoch 10/20
+264/264 [==============================] - 1454s 6s/step - loss: 0.3206 - acc: 0.8605 - val_loss: 0.3301 - val_acc: 0.8516
+Epoch 11/20
+264/264 [==============================] - 1455s 6s/step - loss: 0.3081 - acc: 0.8671 - val_loss: 0.3037 - val_acc: 0.8665
+Epoch 12/20
+264/264 [==============================] - 1456s 6s/step - loss: 0.2950 - acc: 0.8744 - val_loss: 0.2861 - val_acc: 0.8756
+Epoch 13/20
+264/264 [==============================] - 1455s 6s/step - loss: 0.2865 - acc: 0.8777 - val_loss: 0.3037 - val_acc: 0.8686
+Epoch 14/20
+264/264 [==============================] - 1462s 6s/step - loss: 0.2776 - acc: 0.8821 - val_loss: 0.2737 - val_acc: 0.8818
+Epoch 15/20
+264/264 [==============================] - 1466s 6s/step - loss: 0.2703 - acc: 0.8855 - val_loss: 0.2807 - val_acc: 0.8802
+Epoch 16/20
+264/264 [==============================] - 1467s 6s/step - loss: 0.2646 - acc: 0.8881 - val_loss: 0.2590 - val_acc: 0.8897
+Epoch 17/20
+264/264 [==============================] - 1466s 6s/step - loss: 0.2559 - acc: 0.8925 - val_loss: 0.2614 - val_acc: 0.8883
+Epoch 18/20
+264/264 [==============================] - 1465s 6s/step - loss: 0.2514 - acc: 0.8949 - val_loss: 0.2664 - val_acc: 0.8876
+Epoch 19/20
+264/264 [==============================] - 1465s 6s/step - loss: 0.2468 - acc: 0.8963 - val_loss: 0.2683 - val_acc: 0.8849
+Epoch 20/20
+264/264 [==============================] - 1467s 6s/step - loss: 0.2430 - acc: 0.8988 - val_loss: 0.3236 - val_acc: 0.8560
+

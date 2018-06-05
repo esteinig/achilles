@@ -11,7 +11,7 @@ def main():
     # Terminal input
     args = Terminal().args
 
-    if args["subparser"] == "prep":
+    if args["subparser"] == "make":
         # Prepping data for batch-wise input into Achilles
         # Writes trianing and validation data to HDF5 file
         ds = Dataset(data_file=args["data_file"])
@@ -52,9 +52,17 @@ def main():
 
         asclep = Asclepius(data_file=args["data_file"])
 
+        print("Loading model...")
         asclep.load_model(model_file=args["model_file"])
 
-        asclep.evaluate(batch_size=args["batch_size"], workers=args["threads"], data_path=args["threads"])
+        print("Evaluating model...")
+        asclep.evaluate(batch_size=args["batch_size"], workers=args["threads"], data_path=args["data_path"])
+
+    if args["subparser"] == "predict":
+
+        # Options here: predict file (random, beginning, watch dir for new files and predict, ReadUntil API
+
+        pass
 
     if args["subparser"] == "plot":
 

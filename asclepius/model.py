@@ -23,7 +23,7 @@ class Asclepius:
         self.model = None
 
     def build(self, signal_length=4000, activation="softmax", nb_channels=256, _nb_classes=2, _lstm_units=200,
-              nb_residual_block=1, nb_lstm=1, dropout=0.0, rc_dropout=0.0, summary=True):
+              nb_residual_block=1, nb_lstm=1, dropout=0.0, rc_dropout=0.0, batch_norm=False, summary=True):
 
         # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
         # with dimensions (height, width, depth) - since it is a signal sequence:
@@ -50,9 +50,9 @@ class Asclepius:
         # Reshape the output layer of residual blocks from 4D to 3D,
         # have changed this from (1, signal_length * _nb_channels, 1)
         # which crashed the LSTM with OOM to (1, signal_length, _nb_channels)
-        # which might work?
+        # which should be the correct encoding for LSTM input from the COnv2D layers
 
-        # Check dimensins here!
+        # Check dimensions here!
         x = layers.Reshape((1 * signal_length, nb_channels))(x)
 
         ######################
@@ -69,7 +69,12 @@ class Asclepius:
                     x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True, dropout=dropout,
                                                          recurrent_dropout=rc_dropout))(x)
 
-            x = layers.Bidirectional(layers.LSTM(_lstm_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
+            if batch_norm:
+                x = layers.Bidirectional(layers.LSTM(_lstm_units, activation=None, dropout=0, recurrent_dropout=0))(x)
+                x = layers.BatchNormalization()(x)
+            else:
+                x = layers.Bidirectional(layers.LSTM(_lstm_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
+
         else:
             # If no RNN layers, flatten shape for Dense
             x = layers.Flatten()(x)
@@ -149,11 +154,15 @@ class Asclepius:
 
         print(msg)
 
-    def predict(self):
+    def predict(self, fast5, nb_windows=10, window_size=400, window_step=400, random=False, batch_size=10):
 
         """ Predict signal arrays using model test function, might implement in class later"""
 
-        pass
+        # Read Fast5 and extract windows from signal array:
+
+        # Select random or beginning conscutive windows
+
+        self.model.predict()
 
     @staticmethod
     def init_logs(run_id):
