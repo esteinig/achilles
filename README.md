@@ -11,33 +11,44 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 
 `asclepius make --help`
 
+Command line arguments and text for generating training data.
+
 #### Training 
 
 `asclepius train --help`
+
+Command line arguments and text for compiling and training model.
 
 #### Evaluation
 
 `asclepius evaluate --help`
 
+Command line arguments and text for evaluation of trained models.
+
 #### Prediction
 
 `asclepius predict --help`
+
+Command line arguments and text for signal prediction.
 
 #### Plots
 
 `asclepius plot --help`
 
+Command line arguments and text for summarizing and plotting run logs.
+
 #### Utils
 
 `asclepius select --help`
 
+Command line arguments and text for other utilities in Asclepius.
 
 ### Performance for human and *B. pseudomallei*
 ---
 
 | Run ID         | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Train. Acc. | Val. Acc. | Epoch  | Dropout  |
 | :------------: | :-------: | :----: | :-------: | :-------: | :---------: | :---------: | :-------: | :----: | :------: |
-| Baseline Drop  |  1        | 1      | 400 x 400 | 237963    | 900         | 88.81 %     | 88.97 %   | 16     | 0.2      |
+| Baseline Drop  |  1        | 1      | 400 x 400 | 237963    | 900         | 88.81%      | 88.97%    | 16     | 0.2      |
 
 ---
 
