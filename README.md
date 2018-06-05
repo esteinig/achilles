@@ -9,6 +9,37 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 
 [asclepius.readthedocs.io](https://asclepius.readthedocs.io)
 
+### Training, validation and evaluation data sets
+---
+
+Training data sets
+
+* `Training data`: 133782, 104181 (bp, chr20) from 2800 Fast5 (70%, validation 30%), 400 x 400, not normalized (see below)
+
+Evaluation data sets:
+
+* `Chromosome 20` (same as training) 6731, 5104 (bp, chr20) from 140 Fast5, 400 x 400, not normalized
+* `Chromosome 11` (for generalization) - 6731, 5104 (bp, chr11) from 140 Fast5, 400 x 400, not normalized
+
+### Performance for human (chromosome 20) and *B. pseudomallei* classification
+---
+
+#### Architectures
+---
+
+| Run ID         | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | Dropout   | Recurrent Dropout | Batch Norm |
+| :------------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :-------: | :---------------: | :--------: |
+| Baseline Drop  |  1        | 1      | 400 x 400 | 237963    | 900         | 16/20  | 0.2       |  0.2              |  False     |
+
+
+#### Evaluations
+---
+
+
+| Run ID         | Train. Acc. | Val. Acc.  | Eval. Acc | Chr11 Acc.  |   
+| :------------: | :----------:| :--------: | :-------: | :---------: |
+| Baseline Drop  |  88.81 %    | 88.97 %    | 83.11 %   | 87.6%       |
+
 ### Terminal
 ---
 
@@ -53,7 +84,6 @@ usage: asclepius.py evaluate [-h] [--data_file DATA_FILE]
                              [--model_file MODEL_FILE]
                              [--batch_size BATCH_SIZE] [--threads THREADS]
                              [--data_path DATA_PATH]
-
 ```
 
 
@@ -86,28 +116,3 @@ usage: asclepius.py select [-h] [--input_dir INPUT_DIR]
                            [--output_dir OUTPUT_DIR] [--nb_fast5 N]
                            [--largest]
 ```
-
-### Training, validation and evaluation data sets
----
-
-Plaeholder.
-
-### Performance for human (chromosome 20) and *B. pseudomallei* classification
----
-
-#### Architectures
----
-
-| Run ID         | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | Dropout   | Recurrent Dropout | Batch Norm |
-| :------------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :-------: | :---------------: | :--------: |
-| Baseline Drop  |  1        | 1      | 400 x 400 | 237963    | 900         | 16/20  | 0.2       |  0.2              |  False     |
-
-
-#### Evaluations
----
-
-
-| Run ID         | Train. Acc. | Val. Acc.  | Eval. Acc | Chr11 Acc.  |   
-| :------------: | :----------:| :--------: | :-------: | :---------: |
-| Baseline Drop  |  88.81 %    | 88.97 %    | 83.11 %   | 87.6%       |
-
