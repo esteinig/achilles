@@ -4,6 +4,9 @@ Asclepius is a neural network model that distinguishes between host (human) and 
 
 This is a sort of minimal Keras implementation / adaptation of the open-source [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron), and all credit for the architecture of the model is due to Haotian Teng and Lachlan Coin, and the co-authors of [Chiron published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989). It differs in several components, like current minimal model depth (1 residual block, one bidirectional LSTM) or using recurrent dropout instead of recurrent batch normalization, which was not readily available in Keras. It also gets rid of the CTC decoder and outputs with a simple fully-connected (binary) layer and softmax activation, to predict outcome (human, pathogen) in the current Asclepius model configuration.
 
+### Terminal
+---
+
 ### Data Generator
 
 `asclepius make --help`
@@ -36,6 +39,7 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 | :------------: | :-------: | :----: | :-------: | :-------: | :---------: | :---------: | :-------: | :----: | :------: |
 | Baseline Drop  |  1        | 1      | 400 x 400 | 237963    | 900         | 88.81 %     | 88.97 %   | 16     | 0.2      |
 
+---
 
 ### Documentation
 
