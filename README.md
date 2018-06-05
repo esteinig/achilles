@@ -43,7 +43,7 @@ Command line arguments and text for summarizing and plotting run logs.
 
 Command line arguments and text for other utilities in Asclepius.
 
-### Performance for human (chromosome 20) and *B. pseudomallei* signals
+### Performance for human (chromosome 20) and *B. pseudomallei* classification
 ---
 
 #### Architectures
