@@ -76,7 +76,7 @@ class Dataset:
                         # At the moment get all signal windows from beginning of read:
                         # TODO: Evaluate what happens when makign window selection random or random index + consecutive
                         # previous one (random index and n (100) consecutive overlapping windows) works on minimal
-                        # architecture
+                        # architecture, seems to be better with non-overlapping 400 x 400 on validation accuracy?
 
                         if random_windows_consecutive:
                             rand_index = random.randint(0, signal_windows.shape[0])
@@ -274,19 +274,3 @@ class DataGenerator(Sequence):
             labels = np.take(file_labels, indices, axis=0)
 
             return data, labels
-
-
-def test():
-
-    """ Local dataset test function on Windows """
-
-    dir1 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir1"
-    dir2 = r"C:\Users\jc225327\PycharmProjects\asclepius\dir2"
-
-    ds = Dataset(data_file="../data.h5")
-
-    ds.write_data(dir1, dir2, classes=2, max_per_class=200000, window_size=4000,
-                  window_step=400, normalize=True)
-
-    ds.print_data_summary()
-    ds.get_signal_generator()

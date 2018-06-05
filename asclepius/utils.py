@@ -1,6 +1,6 @@
 import random
 import pandas
-
+import numpy as np
 from matplotlib import style
 from matplotlib import pyplot as plt
 
@@ -78,9 +78,9 @@ def plot_batch_loss_accuracy(fname, outname="plot.pdf", sep="\t", error=False):
     plt.savefig(outname)
 
 
-def select_largest_files(input_dir, output_dir, n=3000):
+def select_fast5(input_dir, output_dir, n=3000, largest_files=True):
 
-    """ Copy n largest files from recurive input directory (e.g. Fast5 files) """
+    """ Copy n largest files from recursive input directory (e.g. Fast5 files) """
 
     os.makedirs(output_dir)
 
@@ -90,12 +90,17 @@ def select_largest_files(input_dir, output_dir, n=3000):
                 full_path = os.path.join(path, name)
                 yield full_path, os.path.getsize(full_path)
 
-    big_files = heapq.nlargest(n, file_sizes(input_dir), key=operator.itemgetter(1))
-
-    for file, size in big_files:
+    if largest_files:
+        files = heapq.nlargest(n, file_sizes(input_dir), key=operator.itemgetter(1))
+    else:
+        # Defaul mode random_files:
+        files_and_sizes = [item for item in file_sizes(input_dir)]
+        # Assumes that there are > n files
+        files = np.random.shuffle(files_and_sizes)[:n]
+    for file, size in files:
         shutil.copy(file, os.path.join(output_dir, os.path.basename(file)))
 
-    return big_files
+    return files
 
 
 def plot_signal(signal_windows):

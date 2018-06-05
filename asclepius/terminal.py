@@ -8,23 +8,20 @@ class Terminal:
 
         parser = argparse.ArgumentParser()
 
-        subparsers = parser.add_subparsers(help='Tasks for config of Achilles model')
+        subparsers = parser.add_subparsers(help='Tasks for configuration of Asclepius model')
 
-        prep = subparsers.add_parser("prep", help="Generate dataset from Fast5 raw signal for training.")
+        prep = subparsers.add_parser("make", help="Generate dataset from Fast5 raw signal for training.")
 
         prep.add_argument("--dirs", "-d", required=False, dest="dirs", default="dir1,dir2", type=str,
                           help="Class directories with Fast5 files (max: 2)")
         prep.add_argument("--data_file", "-o", required=False, dest="data_file", default="data.h5", type=str,
                           help="Output HDF5 containing training and validation signal data")
-
         prep.add_argument("--signal_max_per_class", "-max", "-m", required=False, dest="signal_max", default=40000, type=int,
                            help="Maximum number of signal windows extracted from Fast5 directories per class (dir).")
-
         prep.add_argument("--max_windows_per_read", "-mw", required=False, dest="window_max", default=100,
                           type=int, help="Maximum number of signal windows extracted per Fast5 file.")
         prep.add_argument("--random_windows_per_read", "-rand", "-r", required=False, dest="random",
                           action="store_true", help="Maximum number of signal windows extracted per Fast5 file.")
-
         prep.add_argument("--signal_length", "-len", "-l", required=False, default=4000, dest="signal_length", type=int,
                            help="Length of signal windows over each read from Fast5.")
         prep.add_argument("--signal_stride", "-s", required=False, default=400, dest="signal_stride", type=int,
@@ -37,7 +34,7 @@ class Terminal:
         prep.add_argument("--print", "-p", required=False, action="store_true", dest="print",
                           help="Print summary of data file")
 
-        prep.set_defaults(subparser='prep')
+        prep.set_defaults(subparser='make')
 
         train = subparsers.add_parser("train", help="Train Achilles on prepped raw signal data from HDF5.")
 
@@ -47,10 +44,8 @@ class Terminal:
                           help="Output trained model to HDF5 file.")
         train.add_argument("--run_id", "-i", required=False, dest="run_id", default="run_test", type=str,
                           help="Training run ID.")
-
         train.add_argument("--signal_length", "-s", required=False, dest="signal_length", default=4000, type=int,
                           help="Length of signal windows over each read from Fast5.")
-
         train.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=15, type=int,
                           help="Training mini batch size.")
         train.add_argument("--threads", "-t", required=False, dest="threads", default=2, type=int,
@@ -59,7 +54,6 @@ class Terminal:
                           help="Training epochs.")
         train.add_argument("--log_interval", "-log", required=False, dest="log_interval", default=1, type=int,
                            help="Log loss and accuracy every batch (default: 1).")
-
         train.add_argument("--activation", "-a", required=False, dest="activation", default="sigmoid", type=str,
                           help="Activation function (default: sigmoid)")
         train.add_argument("--loss", "-l", required=False, dest="loss", default="binary_crossentropy", type=str,
@@ -73,7 +67,6 @@ class Terminal:
                           help="Number of channels in residual block convolution layers.")
         train.add_argument("--nb_lstm", "-lstm", required=False, type=int, default=1, dest="nb_lstm",
                           help="Number of bidirectional LSTMs in RNN layers.")
-
         train.add_argument("--dropout", "-d", required=False, type=float, default=0, dest="dropout",
                            help="Dropout fraction applied to LSTM between 0 and 1 (default: 0.0)")
         train.add_argument("--recurrent_dropout", "--rc_dropout", "-r", required=False, type=float, default=0,
@@ -84,22 +77,24 @@ class Terminal:
         plot = subparsers.add_parser("plot", help="Plot loss and accuracy for model runs from logs.")
 
         plot.add_argument("--log_file", "--file", "-f", required=False, dest="log_file", default="test_1.log", type=str,
-                           help="Log file from model training run.")
+                          help="Log file from model training run.")
         plot.add_argument("--plot_file", "--plot", "-p", required=False, dest="plot_file", default="test.pdf",
-                           type=str, help="Plot of loss and accuracy per batch (default: test.pdf).")
+                          type=str, help="Plot of loss and accuracy per batch (default: test.pdf).")
         plot.add_argument("--error", "-e", required=False, action="store_true", dest="error",
                           help="Plot accuracy as error: 1 - accuracy")
 
         plot.set_defaults(subparser='plot')
 
-        select = subparsers.add_parser("select", help="Utility function for selecting largest reads of recursive dir for"
-                                                      "generating data and training model")
+        select = subparsers.add_parser("select", help="Utility function for selecting signal from Fast5 in recursive"
+                                                      " directory structure for generating data and training model")
         select.add_argument("--input_dir", "--in", "-i", required=False, dest="input_dir", default="dir1", type=str,
-                          help="Recursive directory of passing Fast5 file for sorting by file size.")
+                            help="Recursive directory of passing Fast5 file for sorting by file size.")
         select.add_argument("--output_dir", "--out", "-o", required=False, dest="output_dir", default="largest",
-                          type=str, help="Output file to copy largest Fast5 into.")
-        select.add_argument("--number_of_fast5", "--number", "-n", required=False, dest="n", default=3000,
-                          type=int, help="Number of largest Fast5 to copy.")
+                            type=str, help="Output file to copy largest Fast5 into.")
+        select.add_argument("--nb_fast5", "-n", required=False, dest="n", default=3000, type=int,
+                            help="Number of largest Fast5 to copy.")
+        select.add_argument("--largest", "-l", required=False, dest="largest",  action="store_true",
+                            help="Number of largest Fast5 to copy.")
 
         select.set_defaults(subparser='select')
 

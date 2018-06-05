@@ -54,7 +54,8 @@ def main():
 
     if args["subparser"] == "select":
 
-        utils.select_largest_files(input_dir=args["input_dir"], output_dir=args["output_dir"], n=args["n"])
+        utils.select_fast5(input_dir=args["input_dir"], output_dir=args["output_dir"], n=args["n"],
+                           largest_files=[args["largest"]])
 
 
 def config():
