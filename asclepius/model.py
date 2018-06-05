@@ -72,6 +72,7 @@ class Asclepius:
             if batch_norm:
                 x = layers.Bidirectional(layers.LSTM(_lstm_units, activation=None, dropout=0, recurrent_dropout=0))(x)
                 x = layers.BatchNormalization()(x)
+                x = layers.Activation("tanh")(x)
             else:
                 x = layers.Bidirectional(layers.LSTM(_lstm_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
 
