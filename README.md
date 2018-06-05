@@ -36,9 +36,9 @@ Evaluation data sets:
 ---
 
 
-| Run ID         | Train. Acc. | Val. Acc.  | Eval. Acc | Chr11 Acc.  |   
-| :------------: | :----------:| :--------: | :-------: | :---------: |
-| Baseline Drop  |  88.81 %    | 88.97 %    | 83.11 %   | 87.6%       |
+| Run ID         | Train. Acc. | Val. Acc.  | Chr20 Acc. | Chr11 Acc.  |   
+| :------------: | :----------:| :--------: | :--------: | :---------: |
+| Baseline Drop  |  88.81%     | 88.97%     | 83.11%     | 87.6%       |
 
 ### Terminal
 ---
