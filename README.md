@@ -14,12 +14,14 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 
 Training data sets
 
-* `Training data`: 133782, 104181 (bp, chr20) from 2800 Fast5 (70%, validation 30%), 400 x 400, not normalized (see below)
+* `Training data`: 133782, 104181 (bp, chr20) from 2800 Fast5 (70%, validation 30%), 400 x 400, not normalized, random 100
 
 Evaluation data sets:
 
-* `Chromosome 20` (same as training) 6731, 5104 (bp, chr20) from 140 Fast5, 400 x 400, not normalized
-* `Chromosome 11` (for generalization) - 6731, 5104 (bp, chr11) from 140 Fast5, 400 x 400, not normalized
+* `Chromosome 20` (same as training) 6731, 5104 (bp, chr20) from 140 Fast5, 400 x 400, not normalized, random 100
+* `Chromosome 11` (for generalization) - 6731, 5104 (bp, chr11) from 140 Fast5, 400 x 400, not normalized, random 100
+* `Chromosome 20` (same as training) 6731, 5104 (bp, chr20) from 140 Fast5, 400 x 400, not normalized, starting 100
+* `Chromosome 11` (for generalization) - 6731, 5104 (bp, chr11) from 140 Fast5, 400 x 400, not normalized, starting 100
 
 ### Performance for human (chromosome 20) and *B. pseudomallei* classification
 ---
