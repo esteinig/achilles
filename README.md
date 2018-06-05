@@ -9,7 +9,7 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 
 [asclepius.readthedocs.io](https://asclepius.readthedocs.io)
 
-### Performance for human (chromosome 20) and *B. pseudomallei* classification
+### Performance for classification as human (chromosome 20) or *B. pseudomallei*
 ---
 
 #### Architectures
