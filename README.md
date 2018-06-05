@@ -7,27 +7,27 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 ### Terminal
 ---
 
-### Data Generator
+#### Data Generator
 
 `asclepius make --help`
 
-### Training 
+#### Training 
 
 `asclepius train --help`
 
-### Evaluation
+#### Evaluation
 
 `asclepius evaluate --help`
 
-### Prediction
+#### Prediction
 
 `asclepius predict --help`
 
-### Plots
+#### Plots
 
 `asclepius plot --help`
 
-### Utils
+#### Utils
 
 `asclepius select --help`
 
@@ -42,6 +42,7 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 ---
 
 ### Documentation
+---
 
 [asclepius.readthedocs.io](https://asclepius.readthedocs.io)
 
