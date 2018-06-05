@@ -33,8 +33,7 @@ def main():
 
         asclep.build(signal_length=args["signal_length"], activation=args["activation"],
                      nb_residual_block=args["nb_residual_blocks"], nb_channels=args["nb_channels"],
-                     nb_lstm=args["nb_lstm"], dropout=args["dropout"], rc_dropout=args["rc_dropout"],
-                     batch_norm=args["batch_norm"])
+                     nb_lstm=args["nb_lstm"], dropout=args["dropout"], rc_dropout=args["rc_dropout"])
 
         # Compile model with loss function and optimizer
         asclep.compile(optimizer=args["optimizer"], loss=args["loss"])

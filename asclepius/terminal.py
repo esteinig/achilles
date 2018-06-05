@@ -71,8 +71,6 @@ class Terminal:
                            help="Dropout fraction applied to LSTM between 0 and 1 (default: 0.0)")
         train.add_argument("--recurrent_dropout", "--rc_dropout", "-r", required=False, type=float, default=0,
                            dest="rc_dropout", help="Dropout fraction applied to LSTM between 0 and 1 (default: 0.0)")
-        train.add_argument("--batch_norm", "-bn", required=False, action='store_true',
-                           dest="batch_norm", help="Instead of dropout, apply standard batch normalization to LSTMs")
 
         train.set_defaults(subparser='train')
 

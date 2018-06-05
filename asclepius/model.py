@@ -23,7 +23,7 @@ class Asclepius:
         self.model = None
 
     def build(self, signal_length=4000, activation="softmax", nb_channels=256, _nb_classes=2, _lstm_units=200,
-              nb_residual_block=1, nb_lstm=1, dropout=0.0, rc_dropout=0.0, batch_norm=False, summary=True):
+              nb_residual_block=1, nb_lstm=1, dropout=0.0, rc_dropout=0.0, summary=True):
 
         # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
         # with dimensions (height, width, depth) - since it is a signal sequence:
@@ -69,11 +69,6 @@ class Asclepius:
                     x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True, dropout=dropout,
                                                          recurrent_dropout=rc_dropout))(x)
 
-            if batch_norm:
-                x = layers.Bidirectional(layers.LSTM(_lstm_units, activation=None, dropout=0, recurrent_dropout=0))(x)
-                x = layers.BatchNormalization()(x)
-                x = layers.Activation("tanh")(x)
-            else:
                 x = layers.Bidirectional(layers.LSTM(_lstm_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
 
         else:
