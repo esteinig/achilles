@@ -9,18 +9,6 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 
 [asclepius.readthedocs.io](https://asclepius.readthedocs.io)
 
-### Training, validation and evaluation data sets
----
-
-Training data sets
-
-* `Training data`: 133782, 104181 (bp, chr20) from 2800 Fast5 (70%, validation 30%), 400 x 400, not normalized, random
-
-Evaluation data sets:
-
-* `Chromosome 20` (same as training) 6731, 5104 (bp, chr20) from 140 Fast5, 400 x 400, not normalized, random
-* `Chromosome 11` (for generalization) - 6731, 5104 (bp, chr11) from 140 Fast5, 400 x 400, not normalized, random
-
 ### Performance for human (chromosome 20) and *B. pseudomallei* classification
 ---
 
@@ -39,6 +27,19 @@ Evaluation data sets:
 | Run ID         | Train. Acc. | Val. Acc.  | Chr20 Acc. | Chr11 Acc.  |   
 | :------------: | :----------:| :--------: | :--------: | :---------: |
 | Baseline Drop  |  88.81%     | 88.97%     | 83.11%     | 87.6%       |
+
+
+#### Training, validation and evaluation data sets
+---
+
+Training data sets
+
+* `Training`: 133782, 104181 (bp, chr20) from 2800 Fast5 (70%, validation 30%), 400 x 400, not normalized, random
+
+Evaluation data sets:
+
+* `Chromosome 20` (same as training) 6731, 5104 (bp, chr20) from 140 Fast5, 400 x 400, not normalized, random
+* `Chromosome 11` (for generalization) - 6731, 5104 (bp, chr11) from 140 Fast5, 400 x 400, not normalized, random
 
 ### Terminal
 ---
