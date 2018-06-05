@@ -28,15 +28,16 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 
 `asclepius select --help`
 
-### Documentation
-
-[asclepius.readthedocs.io](https://asclepius.readthedocs.io)
-
 
 ### Performance for human and *B. pseudomallei*
+---
 
 | Run ID         | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Train. Acc. | Val. Acc. | Epoch  | Dropout  |
 | :------------: | :-------: | :----: | :-------: | :-------: | :---------: | :---------: | :-------: | :----: | :------: |
 | Baseline Drop  |  1        | 1      | 400 x 400 | 237963    | 900         | 88.81%      | 88.97%    | 16     | 0.2      |
 
+
+### Documentation
+
+[asclepius.readthedocs.io](https://asclepius.readthedocs.io)
 
