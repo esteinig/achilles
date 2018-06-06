@@ -17,7 +17,7 @@ This is a proof-of-concept for a pathogen detector based on a scenario where we 
 #### Architectures
 ---
 
-| Run ID          | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | Dropout   | Recurrent Dropout | |
+| Run ID          | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | Dropout   | Recurrent Dropout | 
 | :-------------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :-------: | :---------------: |
 | Baseline Drop1  |  1        | 1      | 400 x 400 | 237963    | 900         | 16/20  | 0.2       |  0.2              |
 | Baseline Drop2  |  1        | 1      | 400 x 400 | 237963    | 900         | 39/40  | 0.3       |  0.3              |
