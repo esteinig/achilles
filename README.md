@@ -12,7 +12,7 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 ### Performance for classification of human (chromosome 20) and *B. pseudomallei*
 ---
 
-This is a proof-of-concept for a pathogen detector based on a scenario where we sequence the [environmental bacterium and biothreat agent *B. pseudomallei*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4746747/) in a host contaminant background of human DNA (raw nanopore signal) for MinION 1D R9.4. This architecture can be modified for different pathogen detection scenarios (i.e. different host backgrounds or more complex microbial communities) and by extending the open-source architecture based on Chiron, the detector can be trained de novo and on data suitable to specific local problems. This section on performance also looks at evaluating generalization of learning from a tiny fraction of chromosome 20 to accurately classify human signal from other chromosomes. In the evaluaton data, we also swap pathogen signals to assess generalization to other bacterial or viral pathogens and threshold the taxonomic distances, at which classification breaks down. This is all kinds of cool, because we are in the broadest sense trying to teach an AI what a human genome in signal space looks like.
+This is a proof-of-concept for a pathogen detector based on raw nanopore signal from the [environmental bacterium and biothreat agent *B. pseudomallei*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4746747/) in host contaminant background of human DNA on MinION 1D R9.4. This architecture can be modified for different pathogen detection scenarios i.e. different host backgrounds or more complex microbial communities. By extending the open-source architecture based on Chiron, the detector can be trained de novo and on data suitable to specific local problems. This section on performance also looks at evaluating generalization of learning from a tiny fraction of chromosome 20 to accurately classify human signal from other chromosomes. In the evaluaton data, we also swap pathogen signals to assess generalization to other bacterial or viral pathogens and threshold the taxonomic distances, at which classification breaks down. This is all kinds of cool, because we are in the broadest sense trying to teach an AI what a human genome in signal space looks like.
 
 #### Architectures
 ---
@@ -22,15 +22,14 @@ This is a proof-of-concept for a pathogen detector based on a scenario where we 
 | Baseline Drop1  |  1        | 1      | 400 x 400 | 237963    | 900         | 16/20  | 0.2       |  0.2              |
 | Baseline Drop2  |  1        | 1      | 400 x 400 | 237963    | 900         | 39/40  | 0.3       |  0.3              |
 
-
 #### Evaluations
 ---
 
 
 | Run ID          | Train. Acc. | Val. Acc.  | Chr20 Acc. | Chr11 Acc.  |   
 | :-------------: | :----------:| :--------: | :--------: | :---------: |
-| Baseline Drop1  |  88.81%     | 88.97%     | 83.11%     | 87.6%       |
-| Baseline Drop2  |  91.29%     | 90.43%     |            |             |
+| Baseline Drop1  |  88.81%     | 88.97%     | 83.11%     | 87.60%       |
+| Baseline Drop2  |  91.29%     | 90.43%     | 85.79%     | 89.93%      |
 
 
 #### Training, validation and evaluation data sets
