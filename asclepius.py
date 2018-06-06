@@ -6,14 +6,17 @@ from asclepius.terminal import Terminal
 
 import asclepius.utils as utils
 
+
 def main():
 
     # Terminal input
     args = Terminal().args
 
     if args["subparser"] == "make":
-        # Prepping data for batch-wise input into Achilles
-        # Writes trianing and validation data to HDF5 file
+
+        # Generate data for batch-wise input into Achilles,
+        # write training and validation data to HDF5 file
+
         ds = Dataset(data_file=args["data_file"])
 
         if args["print"]:
