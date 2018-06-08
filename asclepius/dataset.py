@@ -1,17 +1,13 @@
 import os
 import h5py
-import operator
 import random
-import collections
 import numpy as np
 
 from tqdm import tqdm
-
+from asclepius.utils import read_signal
 from textwrap import dedent
 from keras.utils import Sequence
-from skimage.util import view_as_windows
 from keras.utils.np_utils import to_categorical
-from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
 
 
 class Dataset:
@@ -70,8 +66,8 @@ class Dataset:
 
                     for fast5 in tqdm(files):
 
-                        signal_windows = self.read_signal(fast5, normalize=normalize, window_size=window_size,
-                                                          window_step=window_step)
+                        signal_windows = read_signal(fast5, normalize=normalize, window_size=window_size,
+                                                     window_step=window_step)
 
                         # At the moment get all signal windows from beginning of read:
                         # TODO: Evaluate what happens when makign window selection random or random index + consecutive
@@ -178,34 +174,6 @@ class Dataset:
 
         # Return 4D array (samples, 1, width, 1)
         return np.array([[[[signal] for signal in data]] for data in vector[:]])
-
-    @staticmethod
-    def read_signal(fast5: str, normalize: bool = True, window_size: int = 4000, window_step: int = 400) -> np.array:
-
-        """ Read scaled raw signal in pA (float) from Fast5 using ONT API
-
-        :param fast5        str     path to .fast5 file
-        :param normalize    bool    normalize signal by subtracting mean and dividing by standard deviation
-        :param window_size  int     run sliding window along signal with size, pass None to return all signal values
-        :param window_step  int     sliding window stride, usually 10% of window_size, but appears good on as well
-                                    on non-overlapping window slides where window_step = window_size
-
-        """
-
-        fast5 = Fast5File(fname=fast5)
-
-        # Scale for array of float(pA values)
-        signal = fast5.get_raw_data(scale=True)
-
-        if normalize:
-            signal = (signal - signal.mean()) / signal.std()
-
-        # Overlapping windows (n, size)
-
-        if window_size:
-            return view_as_windows(signal, window_size, window_step)
-        else:
-            return signal
 
 
 class DataGenerator(Sequence):

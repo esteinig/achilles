@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import glob
 
 class Terminal:
 
@@ -88,6 +89,23 @@ class Terminal:
                           help="HDF5 data path for data_path/training and data_path/labels.")
         eval.set_defaults(subparser='evaluate')
 
+        pred = subparsers.add_parser("predict", help="Run prediction on Fast5 signal file")
+        pred.add_argument("--input_files", "--input", "-i", required=False, dest="input_files", default="read.fast5",
+                          type=str, help="Fast5 files for prediction.", nargs="+")
+        pred.add_argument("--model_file", "--model", "-m", required=False, dest="model_file", default="model.h5",
+                          type=str, help="HDF5 prepped trained model file for prediction.")
+        pred.add_argument("--windows", "-w", required=False, dest="windows", default=10, type=int,
+                          help="Number of consecutive windows to extract for prediction.")
+        pred.add_argument("--windows_size", "--size", required=False, dest="window_size", default=400, type=int,
+                          help="Window size to extract for prediction.")
+        pred.add_argument("--window_step", "--step", required=False, dest="window_step", default=400, type=int,
+                          help="Number of consecutive windows to extract for prediction.")
+        pred.add_argument("--window_random", "--random", required=False, action="store_true",
+                          help="Number of consecutive windows to extract for prediction.")
+        pred.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=1, type=int,
+                          help="Prediction mini batch size.")
+        pred.set_defaults(subparser='predict')
+
         plot = subparsers.add_parser("plot", help="Plot loss and accuracy for model runs from logs.")
         plot.add_argument("--log_file", "--file", "-f", required=False, dest="log_file", default="test_1.log", type=str,
                           help="Log file from model training run.")
@@ -127,3 +145,6 @@ class Terminal:
         for key in ("data_file", "output_file", "log_file", "plot_file", "input_dir", "output_dir"):
             if key in self.args.keys():
                 self.args[key] = os.path.abspath(self.args[key])
+
+        if "input_files" in self.args.keys():
+            self.args["input_files"] = [os.path.abspath(file) for file in self.args["input_files"]]

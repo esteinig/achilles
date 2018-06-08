@@ -4,6 +4,11 @@ import numpy as np
 from matplotlib import style
 from matplotlib import pyplot as plt
 
+
+from skimage.util import view_as_windows
+from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
+
+
 import heapq
 import os
 
@@ -153,3 +158,44 @@ class BatchLogger(callbacks.Callback):
 
             with open(self.output_file, "a") as logfile:
                 logfile.write(metrics)
+
+
+def transform_signal_to_tensor(vector):
+
+    """ Transform data (nb_windows,window_size) to (nb_windows, 1, window_size, 1)
+    for input into Conv2D layer: (samples, height, width, channels),
+
+    TODO: this is slow, is there a better way?
+
+    """
+
+    # Return 4D array (samples, 1, width, 1)
+    return np.array([[[[signal] for signal in data]] for data in vector[:]])
+
+
+def read_signal(fast5: str, normalize: bool = False, window_size: int = 4000, window_step: int = 400) -> np.array:
+
+    """ Read scaled raw signal in pA (float) from Fast5 using ONT API
+
+    :param fast5        str     path to .fast5 file
+    :param normalize    bool    normalize signal by subtracting mean and dividing by standard deviation
+    :param window_size  int     run sliding window along signal with size, pass None to return all signal values
+    :param window_step  int     sliding window stride, usually 10% of window_size, but appears good on as well
+                                on non-overlapping window slides where window_step = window_size
+
+    """
+
+    fast5 = Fast5File(fname=fast5)
+
+    # Scale for array of float(pA values)
+    signal = fast5.get_raw_data(scale=True)
+
+    if normalize:
+        signal = (signal - signal.mean()) / signal.std()
+
+    # Overlapping windows (n, size)
+
+    if window_size:
+        return view_as_windows(signal, window_size, window_step)
+    else:
+        return signal

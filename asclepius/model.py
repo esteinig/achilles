@@ -150,7 +150,7 @@ class Asclepius:
 
         print(msg)
 
-    def predict(self, fast5, nb_windows=10, window_size=400, window_step=400, random=False, batch_size=10):
+    def predict(self, signals, batch_size=10):
 
         """ Predict signal arrays using model test function, might implement in class later"""
 
@@ -158,7 +158,7 @@ class Asclepius:
 
         # Select random or beginning conscutive windows
 
-        self.model.predict()
+        return self.model.predict(x=signals, batch_size=batch_size)
 
     @staticmethod
     def init_logs(run_id):

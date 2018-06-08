@@ -1,10 +1,10 @@
 import json
+import asclepius.utils as utils
 
 from asclepius.model import Asclepius
 from asclepius.dataset import Dataset
 from asclepius.terminal import Terminal
-
-import asclepius.utils as utils
+from asclepius.predictor import predict
 
 
 def main():
@@ -65,7 +65,19 @@ def main():
 
         # Options here: predict file (random, beginning, watch dir for new files and predict, ReadUntil API
 
-        pass
+        model = Asclepius()
+
+        model.load_model(args["model_file"])
+
+        # Is it faster to predict by file or aggregate into batches
+        # and predict bacth-wise - probably for live sequencing, it needs
+        # to be by file, for retrospective / simulation as batches.
+        for file in args["input_files"]:
+            prediction = predict(fast5=file, model=model, window_max=args["windows"], window_size=args["window_size"],
+                                 window_step=args["window_step"], batch_size=args["batch_size"],
+                                 random=args["window_random"])
+
+            print(prediction)
 
     if args["subparser"] == "plot":
 
