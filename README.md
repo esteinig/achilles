@@ -17,20 +17,21 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 #### Architectures
 ---
 
-| Run ID          | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | Dropout   | Recurrent Dropout | 
-| :-------------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :-------: | :---------------: |
-| Baseline Drop1  |  1        | 1      | 400 x 400 | 237963    | 900         | 16/20  | 0.2       |  0.2              |
-| Baseline Drop2  |  1        | 1      | 400 x 400 | 237963    | 900         | 39/40  | 0.3       |  0.3              |
+| Run ID      | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | Dropout   | Recurrent Dropout | 
+| :---------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :-------: | :---------------: |
+| Mini Drop1  |  1        | 1      | 400 x 400 | 237963    | 900         | 16/20  | 0.2       |  0.2              |
+| Mini Drop2  |  1        | 1      | 400 x 400 | 237963    | 900         | 39/40  | 0.3       |  0.3              |
+| Deep Drop1  |  3        | 3      | 400 x 400 | 237963    | 900         | 39/40  | 0.2       |  0.2              |
 
 #### Evaluations
 ---
 
 
-| Run ID          | Train. Acc. | Val. Acc.  | Chr20 Acc. | Chr11 Acc.  |   
-| :-------------: | :----------:| :--------: | :--------: | :---------: |
-| Baseline Drop1  |  88.81%     | 88.97%     | 83.11%     | 87.60%       |
-| Baseline Drop2  |  91.29%     | 90.43%     | 85.79%     | 89.93%      |
-
+| Run ID      | Train. Acc. | Val. Acc.  | Chr20 Acc. | Chr11 Acc.  |   
+| :---------: | :----------:| :--------: | :--------: | :---------: |
+| Mini Drop1  |  88.81%     | 88.97%     | 83.11%     | 87.60%      |
+| Mini Drop2  |  91.29%     | 90.43%     | 85.79%     | 89.93%      |
+| Deep Drop1  |  91.29%     | 90.43%     | 85.79%     | 89.93%      |
 
 #### Training, validation and evaluation data sets
 ---
