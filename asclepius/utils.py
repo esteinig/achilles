@@ -191,8 +191,6 @@ def read_signal(fast5: str, normalize: bool = False, window_size: int = 4000, wi
     if normalize:
         signal = (signal - signal.mean()) / signal.std()
 
-    # Overlapping windows (n, size)
-
     if window_size:
         return view_as_windows(signal, window_size, window_step)
     else:

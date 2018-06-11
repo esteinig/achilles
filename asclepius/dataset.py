@@ -1,6 +1,7 @@
 import os
 import h5py
 import random
+import logging
 import numpy as np
 
 from tqdm import tqdm
@@ -23,106 +24,156 @@ class Dataset:
 
         return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
 
-    def write_data(self, *dirs, classes=2, max_per_class=20000, max_windows_per_read=100, proportions=(0.7, 0.3),
-                   window_size=4000, window_step=400, random_windows_consecutive=True, normalize=True):
+    def write_data(self, *dirs, classes=2, max_windows_per_class=20000, max_windows_per_read=100,
+                   window_size=4000, window_step=400, random_consecutive_windows=True, normalize=False):
 
         with h5py.File(self.data_file, "w") as f:
 
-            # Save data, labels in /training and /validation HDF5
-            for i, data_type in enumerate(("training", "validation")):
-                # Proportion of training / validation data signal window limit:
-                max_per_type = max_per_class*proportions[i]
-                # HDF5 file dataset creation:
-                data = f.create_dataset(data_type + "/data", shape=(0, 1, window_size, 1),
-                                        maxshape=(None, 1, window_size, 1))
-                labels = f.create_dataset(data_type + "/labels", shape=(0, classes),
-                                          maxshape=(None, classes))
+            # Each input directory corresponds to label (0, 1)
+            for label, path in enumerate(dirs):
 
-                # each dir corresponds to label (0, 1)
-                for label, path in enumerate(dirs):
-                    # All Fast5 files in dir:
-                    files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith(".fast5")]
+                # Create data paths for storing all extracted data:
+                data, labels, decoded, extracted = \
+                    self.create_data_paths(file=f, window_size=window_size, classes=classes)
 
-                    # Randomize:
-                    random.shuffle(files)
+                # All Fast5 files in directory:
+                files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith(".fast5")]
 
-                    # Main loop for reading through Fast5 files and extracting overlapping windows of signal
-                    # (window_size, window_step) of normalized (pA) signal until limit for proportioned data
-                    # set is reached. Write each signal windows to HDF5 (self.output) after transforming to
-                    # 4D input tensor to residual blocks in Achilles model.
-                    total = 0
-                    n_files = []
+                # Randomize:
+                random.shuffle(files)
 
-                    decoded = f.create_dataset(data_type + "/decoded/" + str(label), shape=(0,), maxshape=(None,))
+                # Main loop for reading through Fast5 files and extracting windows (slices) of signal
+                # (window_size, window_step) of normalized (pA) signal until limit for proportioned data
+                # set is reached. Write each signal windows to HDF5 (self.output) after transforming to
+                # 4D input tensor to residual blocks in Achilles model.
+                total = 0
+                n_files = []
 
-                    extracted = f.create_dataset(data_type + "/files/" + str(label), shape=(0,), maxshape=(None,),
-                                                 dtype="S10")
+                # Logging message:
+                class_summary = "Extracting {} signal windows (size: {}, step: {}) from each of {} " \
+                                "Fast5 files for label {}".format(max_windows_per_read, window_size,
+                                                                  window_step, len(files), label)
+                logging.debug(class_summary)
 
-                    files = files[:int(max_per_type / max_windows_per_read)]
+                # The progress bar is just a feature for reference, this loop will be stopped as soon
+                # as the maximum number of signal arrays per class is reached (progress bar is therefore not
+                # accurate but just looks good and gives the user an overestimate of when extraction is finished.
+                with tqdm(total=max_windows_per_class) as pbar:
 
-                    # Extract the normalized signal windows into nd array(num_windows, window_size)
-                    print("Extracting {} {} signal windows (size: {}, step: {}) from each of {} Fast5 files for label {}"
-                          .format(max_windows_per_read, data_type, window_size, window_step, len(files), label))
-
-                    for fast5 in tqdm(files):
+                    for fast5 in files:
 
                         signal_windows = read_signal(fast5, normalize=normalize, window_size=window_size,
                                                      window_step=window_step)
 
-                        # At the moment get all signal windows from beginning of read:
-                        # TODO: Evaluate what happens when makign window selection random or random index + consecutive
-                        # previous one (random index and n (100) consecutive overlapping windows) works on minimal
-                        # architecture, seems to be better with non-overlapping 400 x 400 on validation accuracy?
-
-                        if random_windows_consecutive:
+                        # TODO: Evaluate what happens when constructing data from beginning of read (probably not good
+                        # TODO: as it captures the adapters) - at the moment use random index + consecutive windows
+                        if random_consecutive_windows:
                             rand_index = random.randint(0, signal_windows.shape[0])
-
-                            # print("Extracting overlap windows from index:", rand_index,
-                            #  "to:", rand_index + max_windows_per_read)
 
                             if rand_index + max_windows_per_read <= len(signal_windows):
                                 signal_windows = signal_windows[rand_index:rand_index+max_windows_per_read, :]
                             else:
-                                # If there are fewer signal windows than allowed reads,
-                                # take all signal windows
-                                if len(signal_windows) < max_windows_per_read:
-                                    signal_windows = signal_windows
-                                else:
-                                    # Do not repeat random, just take all windows until last one:
-                                    signal_windows = signal_windows[rand_index:, :]
+                                # If there are fewer signal windows in the file than max_windows_per_read, take all
+                                # windows from this file, as to not bias for longer reads, then continue:
+                                signal_windows = signal_windows[:]
                         else:
                             # From beginning of read:
                             signal_windows = signal_windows[:max_windows_per_read]
 
-                        # 4D input tensor (nb_samples, 1, signal_length, 1) for Residual Blocks
-                        input_tensor = self.transform_signal_to_tensor(signal_windows)
+                        # Proceed if the maximum number of windows per class has not been reached,
+                        # and if there are windows extracted from the Fast5:
+                        if total < max_windows_per_class and signal_windows.size > 0:
 
-                        # Fixes error when extracting empty signal arrays from Fast5
-                        if total < max_per_type and signal_windows.size > 0:
-                            if input_tensor.shape[0] > max_per_type-total:
-                                break
-                                # TODO: Check here if this is correctly generating data
-                                # print(total, max_per_type, input_tensor.shape[0], max_per_type-total)
-                                # input_tensor = input_tensor[:int(max_per_type-total)]
+                            # If the number of extracted signal windows exceeds the difference between
+                            # current total and max_windows_per_class is reached, cut off the signal window
+                            # array and write it to file, to complete the loop for generating data for this label:
+                            if signal_windows.size > max_windows_per_class-total:
+                                signal_windows = signal_windows[:max_windows_per_class-total]
 
+                            # 4D input tensor (nb_samples, 1, signal_length, 1) for input to Residual Blocks
+                            input_tensor = self.transform_signal_to_tensor(signal_windows)
+
+                            # Write this tensor to file instead of storing in memory
+                            # otherwise might raise OOM:
                             self.write_chunk(data, input_tensor)
 
-                            total += input_tensor.shape[0]
+                            # Operations for update to total number of windows processed for this label,
+                            # tracking files from which signal is extracted, and updating progress bar:
+                            nb_windows = input_tensor.shape[0]
+                            total += nb_windows
                             n_files.append(fast5)
+                            pbar.update(nb_windows)
 
-                    # Writing all training labels to HDF5
-                    encoded_labels = to_categorical(np.array([label for _ in range(total)]), classes)
-                    decoded_labels = np.array([label for _ in range(total)])
-                    file_labels = np.array([np.string_(fast5_file) for fast5_file in n_files])
+                            # If the maximum number of signals for this class (label) has
+                            # been reached, break the Fast5-file loop and proceed to writing
+                            # label stored in memory (al at once)
+                            if total == max_windows_per_class:
+                                break
 
-                    # Write categorical (one-hot) encoded 2-dim array (n_labels, n_classes)
-                    # e.g (100, 2) = [[1, 0], [1, 0], [1, 0], [0, 1], [0, 1], [0, 1]]
-                    self.write_chunk(labels, encoded_labels)
-                    # Write plain label vectors for each label (0, 0, 0, 1, 1, 1)
-                    self.write_chunk(decoded, decoded_labels)
-                    # Write files per label from which signal windows were extracted:
-                    print(extracted, file_labels.shape)
-                    self.write_chunk(extracted, file_labels)
+                # Writing all training labels to HDF5
+
+                # Categorical (one-hot) encoding:
+                encoded_labels = to_categorical(np.array([label for _ in range(total)]), classes)
+                self.write_chunk(labels, encoded_labels)
+
+                # The following is only for dataset summary and not relevant to training / validation splits...
+
+                # Decoded (label-based) encoding for dataset summary:
+                decoded_labels = np.array([label for _ in range(total)])
+                self.write_chunk(decoded, decoded_labels)
+
+                # Fast5 file paths from which signal arrays were extracted for dataset summary:
+                file_labels = np.array([np.string_(fast5_file) for fast5_file in n_files])
+                self.write_chunk(extracted, file_labels)
+
+    def training_validation_split(self, val=0.3):
+
+        """ This function takes a complete data set generated with write_data,
+        randomizes the data and splits it into training and validation under the paths
+        training/data, training/label, validation/data, validation/label """
+
+        fname, fext = os.path.splitext(self.data_file)
+
+        fname_tv = fname + ".tv" + fext
+
+        with h5py.File(self.data_file, "r") as data_file:
+            
+
+
+    @staticmethod
+    def create_data_paths(file, window_size=400, classes=2):
+
+        # HDF5 file dataset creation:
+        data = file.create_dataset("data/data", shape=(0, 1, window_size, 1), maxshape=(None, 1, window_size, 1))
+        labels = file.create_dataset("data/labels", shape=(0, classes), maxshape=(None, classes))
+
+        # For data set summary only:
+        decoded = file.create_dataset("data/decoded", shape=(0,), maxshape=(None,))
+        extracted = file.create_dataset("data/extracted", shape=(0,), maxshape=(None,), dtype="S10")
+
+        return data, labels, decoded, extracted
+
+    @staticmethod
+    def create_training_validation_paths(file, window_size=400, classes=2):
+
+        data_paths = {
+            "training": [],
+            "validation": []
+        }
+
+        for data_type in data_paths.keys():
+
+            # HDF5 file dataset creation:
+            data = file.create_dataset(data_type + "/data", shape=(0, 1, window_size, 1),
+                                       maxshape=(None, 1, window_size, 1))
+
+            labels = file.create_dataset(data_type + "/labels", shape=(0, classes),
+                                         maxshape=(None, classes))
+
+            data_paths[data_type] += [data, labels]
+
+        return data_paths["training"][0], data_paths["training"][1],\
+               data_paths["validation"][0], data_paths["validation"][1]
 
     def get_data_summary(self, data_type):
 

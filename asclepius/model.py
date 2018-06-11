@@ -99,6 +99,7 @@ class Asclepius:
         # Reads data from HDF5 data file:
         dataset = Dataset(data_file=self.data_file)
 
+        # Get training and validation data generators
         training_generator = dataset.get_signal_generator(data_type="training", batch_size=batch_size, shuffle=True)
         validation_generator = dataset.get_signal_generator(data_type="validation", batch_size=batch_size, shuffle=True)
 
@@ -132,16 +133,14 @@ class Asclepius:
 
         self.model = load_model(model_file)
 
-    def evaluate(self, batch_size=10, workers=2, data_path="training"):
+    def evaluate(self, batch_size=10, workers=2, data_path="data"):
 
         """ Evaluate model against presented dataset """
 
         dataset = Dataset(data_file=self.data_file)
 
-        # For evaluation get the training generator from the HDF5 data file prepared with asclepius make,
-        # this way different input data can be evaluated (70% of it as split into training) - it is
-        # easier to integrate this right now with the task make, but if user supplied format the data must
-        # be in the paths HDF5 paths: /training/data,/training/labels or /data_path/data, /data_path/labels
+        # For evaluation, do not perform training-validation split of data at dataset generation, so
+        # you can get the evaluation generator on the complete data path: "data"
         eval_generator = dataset.get_signal_generator(data_type=data_path, batch_size=batch_size, shuffle=True)
 
         loss, acc = self.model.evaluate_generator(eval_generator, workers=workers, use_multiprocessing=True)

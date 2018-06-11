@@ -84,7 +84,7 @@ class Terminal:
                            help="Training mini batch size.")
         eval.add_argument("--threads", "-t", required=False, dest="threads", default=2, type=int,
                            help="CPU threads to feed batches into generator to fit to model.")
-        eval.add_argument("--data_path", "-d", required=False, dest="data_path", default="training", type=str,
+        eval.add_argument("--data_path", "-d", required=False, dest="data_path", default="data", type=str,
                           help="HDF5 data path for data_path/training and data_path/labels.")
         eval.set_defaults(subparser='evaluate')
 
