@@ -165,14 +165,12 @@ class Dataset:
     @staticmethod
     def transform_signal_to_tensor(vector):
 
-        """ Transform data (nb_windows,window_size) to (nb_windows, 1, window_size, 1)
+        """ Transform data (nb_windows, window_size) to (nb_windows, 1, window_size, 1)
         for input into Conv2D layer: (samples, height, width, channels),
-
-        TODO: this is slow, is there a better way?
-
         """
 
         # Return 4D array (samples, 1, width, 1)
+        # TODO: This can be done better, look at numpy.reshape
         return np.array([[[[signal] for signal in data]] for data in vector[:]])
 
 
