@@ -19,13 +19,45 @@ class Dataset:
 
     def get_signal_generator(self, data_type="training", batch_size=15, shuffle=True):
 
-        """ Main function to generate signal window training and validation data generators
-        from directories of Fast5 files, generate data in batches """
+        """Access function to generate signal window training and validation data generators
+        from directories of Fast5 files, generate data in batches
+
+        :param data_type:
+        :param batch_size:
+        :param shuffle:
+        :return:
+        """
 
         return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
 
     def write_data(self, *dirs, classes=2, max_windows_per_class=20000, max_windows_per_read=100,
                    window_size=4000, window_step=400, random_consecutive_windows=True, normalize=False):
+
+        """ Primary function to extract windows (slices) at random indices in the arrays that hold
+        nanopore signal values in the (shuffled) sequencing files (.fast5) located in directories that contain
+        the files for each class (label). Signal arrays are sliced by consecutive windows of window_size and
+        window_step and a maximum of max_windows_per_read of random signal windows can be read from a single file.
+        (until max_windows_per_class are reached). If the signal array is smaller than the maximum number of possible
+        slices, the whole array is extracted so as not to bias for selecting longer reads.
+
+        This is followed by reshaping each slice into an nd-array of dimensions  (nb_slices, 1, window_size, 1)
+        for input to the residual blocks in the model. The sliced signal array is then written chunk-wise (append)
+        to the path 'data/data' (nb_slices, 1, window_size, 1) and its corresponding labels one-hot encoded
+        to the path to 'data/labels' (nb_slices, nb_classes).
+
+        For summary purposes, the file paths for all files from which signal slices were extracted are stored
+        in 'data/files' and integer encoded labels are kept in 'data/decoded'
+
+        :param dirs:
+        :param classes:
+        :param max_windows_per_class:
+        :param max_windows_per_read:
+        :param window_size:
+        :param window_step:
+        :param random_consecutive_windows:
+        :param normalize:
+        :return:
+        """
 
         with h5py.File(self.data_file, "w") as f:
 
@@ -48,29 +80,29 @@ class Dataset:
                 # 4D input tensor to residual blocks in Achilles model.
                 total = 0
                 n_files = []
-
                 # Logging message:
                 class_summary = "Extracting {} signal windows (size: {}, step: {}) from each of {} " \
                                 "Fast5 files for label {}".format(max_windows_per_read, window_size,
                                                                   window_step, len(files), label)
                 logging.debug(class_summary)
-
                 # The progress bar is just a feature for reference, this loop will be stopped as soon
                 # as the maximum number of signal arrays per class is reached (progress bar is therefore not
                 # accurate but just looks good and gives the user an overestimate of when extraction is finished.
                 with tqdm(total=max_windows_per_class) as pbar:
-
                     for fast5 in files:
 
+                        # Slice whole signal array into windows. May be more efficient to index first:
                         signal_windows = read_signal(fast5, normalize=normalize, window_size=window_size,
                                                      window_step=window_step)
 
                         # TODO: Evaluate what happens when constructing data from beginning of read (probably not good
                         # TODO: as it captures the adapters) - at the moment use random index + consecutive windows
                         if random_consecutive_windows:
+                            # Select a random index to extract signal windows
                             rand_index = random.randint(0, signal_windows.shape[0])
-
+                            # If max_windows_per_read can be extracted...
                             if rand_index + max_windows_per_read <= len(signal_windows):
+                                # ...extract them:
                                 signal_windows = signal_windows[rand_index:rand_index+max_windows_per_read, :]
                             else:
                                 # If there are fewer signal windows in the file than max_windows_per_read, take all
@@ -83,7 +115,6 @@ class Dataset:
                         # Proceed if the maximum number of windows per class has not been reached,
                         # and if there are windows extracted from the Fast5:
                         if total < max_windows_per_class and signal_windows.size > 0:
-
                             # If the number of extracted signal windows exceeds the difference between
                             # current total and max_windows_per_class is reached, cut off the signal window
                             # array and write it to file, to complete the loop for generating data for this label:
@@ -101,8 +132,8 @@ class Dataset:
                             # tracking files from which signal is extracted, and updating progress bar:
                             nb_windows = input_tensor.shape[0]
                             total += nb_windows
-                            n_files.append(fast5)
                             pbar.update(nb_windows)
+                            n_files.append(fast5)
 
                             # If the maximum number of signals for this class (label) has
                             # been reached, break the Fast5-file loop and proceed to writing
@@ -110,35 +141,29 @@ class Dataset:
                             if total == max_windows_per_class:
                                 break
 
-                # Writing all training labels to HDF5
-
-                # Categorical (one-hot) encoding:
+                # Writing all training labels to HDF5, as categorical (one-hot) encoding:
                 encoded_labels = to_categorical(np.array([label for _ in range(total)]), classes)
                 self.write_chunk(labels, encoded_labels)
-
-                # The following is only for dataset summary and not relevant to training / validation splits...
 
                 # Decoded (label-based) encoding for dataset summary:
                 decoded_labels = np.array([label for _ in range(total)])
                 self.write_chunk(decoded, decoded_labels)
-
                 # Fast5 file paths from which signal arrays were extracted for dataset summary:
                 file_labels = np.array([np.string_(fast5_file) for fast5_file in n_files])
                 self.write_chunk(extracted, file_labels)
 
-    def training_validation_split(self, val=0.3):
+    def training_validation_split(self, validation: float=0.3, shuffle: bool=True):
 
         """ This function takes a complete data set generated with write_data,
         randomizes the data and splits it into training and validation under the paths
-        training/data, training/label, validation/data, validation/label """
+        training/data, training/label, validation/data, validation/label
+        Work with attributes in HDF5.
 
-        fname, fext = os.path.splitext(self.data_file)
+        :param validation   proportion of data to be split into validation set
+        :param shuffle      randomize indices of data in data/data and data/labels
+        """
 
-        fname_tv = fname + ".tv" + fext
-
-        with h5py.File(self.data_file, "r") as data_file:
-            
-
+        pass
 
     @staticmethod
     def create_data_paths(file, window_size=400, classes=2):
@@ -149,7 +174,7 @@ class Dataset:
 
         # For data set summary only:
         decoded = file.create_dataset("data/decoded", shape=(0,), maxshape=(None,))
-        extracted = file.create_dataset("data/extracted", shape=(0,), maxshape=(None,), dtype="S10")
+        extracted = file.create_dataset("data/files", shape=(0,), maxshape=(None,), dtype="S10")
 
         return data, labels, decoded, extracted
 
