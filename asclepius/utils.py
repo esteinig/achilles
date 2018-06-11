@@ -4,10 +4,8 @@ import numpy as np
 from matplotlib import style
 from matplotlib import pyplot as plt
 
-
 from skimage.util import view_as_windows
 from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
-
 
 import heapq
 import os

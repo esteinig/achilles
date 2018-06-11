@@ -22,7 +22,7 @@ class Asclepius:
         self.data_file = data_file
         self.model = None
 
-    def build(self, signal_length=4000, activation="softmax", nb_channels=256, _nb_classes=2, _lstm_units=200,
+    def build(self, signal_length=400, activation="softmax", nb_channels=256, _nb_classes=2, _lstm_units=200,
               nb_residual_block=1, nb_lstm=1, dropout=0.0, rc_dropout=0.0, summary=True):
 
         # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
