@@ -8,7 +8,7 @@ class Terminal:
 
         parser = argparse.ArgumentParser()
 
-        subparsers = parser.add_subparsers(help='Tasks for configuration of Asclepius model')
+        subparsers = parser.add_subparsers(help='Tasks for configuration of Achilles model')
 
         prep = subparsers.add_parser("make", help="Generate dataset from Fast5 raw signal for training.")
 
@@ -16,21 +16,22 @@ class Terminal:
                           help="Class directories with Fast5 files (max: 2)")
         prep.add_argument("--data_file", "-o", required=False, dest="data_file", default="data.h5", type=str,
                           help="Output HDF5 containing training and validation signal data")
-        prep.add_argument("--signal_max_per_class", "-max", "-m", required=False, dest="signal_max", default=40000, type=int,
-                           help="Maximum number of signal windows extracted from Fast5 directories per class (dir).")
+        prep.add_argument("--log_file", "-log", required=False, dest="log_file", default="data.log", type=str,
+                          help="Log file for generating training data.")
+        prep.add_argument("--max_windows_per_class", "-max", "-m", required=False, dest="signal_max", default=1000, type=int,
+                          help="Maximum number of signal windows extracted from Fast5 directories per class (dir).")
         prep.add_argument("--max_windows_per_read", "-mw", required=False, dest="window_max", default=100,
                           type=int, help="Maximum number of signal windows extracted per Fast5 file.")
-        prep.add_argument("--random_windows_per_read", "-rand", "-r", required=False, dest="random",
+        prep.add_argument("--random_consecutive_windows", "-rand", "-r", required=False, dest="random",
                           action="store_true", help="Maximum number of signal windows extracted per Fast5 file.")
-        prep.add_argument("--signal_length", "-len", "-l", required=False, default=4000, dest="signal_length", type=int,
+        prep.add_argument("--signal_length", "-len", "-l", required=False, default=400, dest="signal_length", type=int,
                            help="Length of signal windows over each read from Fast5.")
         prep.add_argument("--signal_stride", "-s", required=False, default=400, dest="signal_stride", type=int,
                            help="Length of stride for signal windows over each read from Fast5.")
-
-        # TODO: Try without normalization!
         prep.add_argument("--normalize", "-norm", "-n", required=False, action="store_true", dest="normalize",
                            help="Normalize signal values to pA floats (subtract mean, divide by std)")
-
+        prep.add_argument("--validation", "-val", "-v", required=False, default=0.3, dest="validation", type=float,
+                          help="Proportion of data to randomly split into validation set.")
         prep.add_argument("--print", "-p", required=False, action="store_true", dest="print",
                           help="Print summary of data file")
 

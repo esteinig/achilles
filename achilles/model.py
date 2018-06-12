@@ -11,11 +11,12 @@ from keras import layers, Model
 from keras.models import load_model
 from keras.callbacks import CSVLogger, ModelCheckpoint
 
-from asclepius.utils import BatchLogger
-from asclepius.dataset import Dataset
+from keras import callbacks
+
+from achilles.dataset import Dataset
 
 
-class Asclepius:
+class Achilles:
 
     def __init__(self, data_file=None):
 
@@ -262,3 +263,37 @@ class Asclepius:
         gbytes = np.round(total_memory / (1024.0 ** 3), 3)
 
         return gbytes
+
+
+class BatchLogger(callbacks.Callback):
+
+    """
+    A Logger that log average performance per `display` steps.
+    """
+
+    def __init__(self, output_file="metrics.log", log_interval=10):
+
+        super().__init__()
+
+        self.output_file = output_file
+        self.log_interval = log_interval
+
+    def on_batch_end(self, batch, logs={}):
+
+        if batch % self.log_interval == 0:
+
+            try:
+                loss = logs["loss"]
+            except KeyError:
+                loss = "error"
+
+            try:
+                acc = logs["acc"]
+            except KeyError:
+                acc = "none"
+
+            metrics = "{},{},{}\n".format(batch, loss, acc)
+
+            with open(self.output_file, "a") as logfile:
+                logfile.write(metrics)
+

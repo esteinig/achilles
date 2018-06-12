@@ -5,7 +5,8 @@ import logging
 import numpy as np
 
 from tqdm import tqdm
-from asclepius.utils import read_signal
+from sklearn.model_selection import train_test_split
+from achilles.utils import read_signal, chunker
 from textwrap import dedent
 from keras.utils import Sequence
 from keras.utils.np_utils import to_categorical
@@ -13,9 +14,11 @@ from keras.utils.np_utils import to_categorical
 
 class Dataset:
 
-    def __init__(self, data_file="data.h5"):
+    def __init__(self, data_file="data.h5", log_file="data.log"):
 
         self.data_file = data_file
+
+        logging.basicConfig(filename=log_file, level=logging.DEBUG)
 
     def get_signal_generator(self, data_type="training", batch_size=15, shuffle=True):
 
@@ -31,7 +34,7 @@ class Dataset:
         return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
 
     def write_data(self, *dirs, classes=2, max_windows_per_class=20000, max_windows_per_read=100,
-                   window_size=4000, window_step=400, random_consecutive_windows=True, normalize=False):
+                   window_size=400, window_step=400, random_consecutive_windows=True, normalize=False):
 
         """ Primary function to extract windows (slices) at random indices in the arrays that hold
         nanopore signal values in the (shuffled) sequencing files (.fast5) located in directories that contain
@@ -46,7 +49,7 @@ class Dataset:
         to the path to 'data/labels' (nb_slices, nb_classes).
 
         For summary purposes, the file paths for all files from which signal slices were extracted are stored
-        in 'data/files' and integer encoded labels are kept in 'data/decoded'
+        in 'data/files' and integer encoded labels are kept in 'data/decoded' of the HDF5 (self.data_file)
 
         :param dirs:
         :param classes:
@@ -59,14 +62,16 @@ class Dataset:
         :return:
         """
 
+        print("Generating data set for input to Achilles...\n")
+
         with h5py.File(self.data_file, "w") as f:
+
+            # Create data paths for storing all extracted data:
+            data, labels, decoded, extracted = \
+                self.create_data_paths(file=f, window_size=window_size, classes=classes)
 
             # Each input directory corresponds to label (0, 1)
             for label, path in enumerate(dirs):
-
-                # Create data paths for storing all extracted data:
-                data, labels, decoded, extracted = \
-                    self.create_data_paths(file=f, window_size=window_size, classes=classes)
 
                 # All Fast5 files in directory:
                 files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith(".fast5")]
@@ -81,7 +86,7 @@ class Dataset:
                 total = 0
                 n_files = []
                 # Logging message:
-                class_summary = "Extracting {} signal windows (size: {}, step: {}) from each of {} " \
+                class_summary = "Extracting {} signal windows (size: {}, step: {}) over a random selection of {} " \
                                 "Fast5 files for label {}".format(max_windows_per_read, window_size,
                                                                   window_step, len(files), label)
                 logging.debug(class_summary)
@@ -89,6 +94,7 @@ class Dataset:
                 # as the maximum number of signal arrays per class is reached (progress bar is therefore not
                 # accurate but just looks good and gives the user an overestimate of when extraction is finished.
                 with tqdm(total=max_windows_per_class) as pbar:
+                    pbar.set_description("Extracting label {}".format(label))
                     for fast5 in files:
 
                         # Slice whole signal array into windows. May be more efficient to index first:
@@ -141,6 +147,10 @@ class Dataset:
                             if total == max_windows_per_class:
                                 break
 
+                    if total < max_windows_per_class:
+                        logging.debug("Extracted {} windows (< {}) for label {}"
+                                      .format(total, max_windows_per_class, label))
+
                 # Writing all training labels to HDF5, as categorical (one-hot) encoding:
                 encoded_labels = to_categorical(np.array([label for _ in range(total)]), classes)
                 self.write_chunk(labels, encoded_labels)
@@ -148,22 +158,71 @@ class Dataset:
                 # Decoded (label-based) encoding for dataset summary:
                 decoded_labels = np.array([label for _ in range(total)])
                 self.write_chunk(decoded, decoded_labels)
+
                 # Fast5 file paths from which signal arrays were extracted for dataset summary:
-                file_labels = np.array([np.string_(fast5_file) for fast5_file in n_files])
+                file_labels = np.array([fast5_file.encode("utf8") for fast5_file in n_files])
                 self.write_chunk(extracted, file_labels)
 
-    def training_validation_split(self, validation: float=0.3, shuffle: bool=True):
+        self.print_data_summary(data_file=self.data_file)
+
+    def training_validation_split(self, validation: float=0.3, window_size: int=400, classes: int=2,
+                                  max_windows_per_read: int=100):
 
         """ This function takes a complete data set generated with write_data,
-        randomizes the data and splits it into training and validation under the paths
+        randomizes the indices and splits it into training and validation under the paths
         training/data, training/label, validation/data, validation/label
         Work with attributes in HDF5.
 
-        :param validation   proportion of data to be split into validation set
-        :param shuffle      randomize indices of data in data/data and data/labels
+        :param validation               proportion of data to be split into validation set
+        :param window_size              window (slice) size for writing data to training file in chunks
+        :param classes                  number of classes (labels)
+        :param max_windows_per_read     maximum number of windows for reading and writing in chunks
         """
 
-        pass
+        # Generate new file name for splitting data randomly into training and
+        # validation data for input to Achilles (data_file + _training.h5)
+
+        fname, fext = os.path.splitext(self.data_file)
+        outfile = fname + "_training" + fext
+
+        print("Splitting data into training and validation sets...\n")
+        with h5py.File(self.data_file, "r") as data_file:
+            # Randomize the indices from data/data:
+            random_indices = np.arange(data_file["data/data"].shape[0])
+
+            training_indices, validation_indices = train_test_split(random_indices, test_size=validation,
+                                                                    random_state=None, shuffle=True)
+
+            print("Sample of randomized training   indices:", training_indices[:5])
+            print("Sample of randomized validation indices:", validation_indices[:5], "\n")
+
+            if set(training_indices).intersection(validation_indices):
+                logging.debug("Training and validation data are overlapping after splitting.")
+                raise ValueError("Training and validation data are overlapping after splitting.")
+
+            with h5py.File(outfile, "w") as out:
+                train_x, train_y, val_x, val_y = self.create_training_validation_paths(file=out,
+                                                                                       window_size=window_size,
+                                                                                       classes=classes)
+
+                # Read and write the training / validation data by chunks of indices that
+                # correspond to the max_windows_per_read parameter (minimum memory for processing)
+
+                with tqdm(total=len(training_indices)) as pbar:
+                    pbar.set_description("Writing training   data")
+                    for i_train_chunk in chunker(training_indices, max_windows_per_read):
+                        self.write_chunk(train_x, np.take(data_file["data/data"], i_train_chunk, axis=0))
+                        self.write_chunk(train_y, np.take(data_file["data/labels"], i_train_chunk, axis=0))
+                        pbar.update(len(i_train_chunk))
+
+                with tqdm(total=len(validation_indices)) as pbar:
+                    pbar.set_description("Writing validation data")
+                    for i_val_chunk in chunker(validation_indices, max_windows_per_read):
+                        self.write_chunk(val_x, np.take(data_file["data/data"], i_val_chunk, axis=0))
+                        self.write_chunk(val_y, np.take(data_file["data/labels"], i_val_chunk, axis=0))
+                        pbar.update(len(i_val_chunk))
+
+                self.print_data_summary(data_file=outfile)
 
     @staticmethod
     def create_data_paths(file, window_size=400, classes=2):
@@ -173,8 +232,10 @@ class Dataset:
         labels = file.create_dataset("data/labels", shape=(0, classes), maxshape=(None, classes))
 
         # For data set summary only:
+        dt = h5py.special_dtype(vlen=str)
+
         decoded = file.create_dataset("data/decoded", shape=(0,), maxshape=(None,))
-        extracted = file.create_dataset("data/files", shape=(0,), maxshape=(None,), dtype="S10")
+        extracted = file.create_dataset("data/files", shape=(0,), maxshape=(None,), dtype=dt)
 
         return data, labels, decoded, extracted
 
@@ -200,33 +261,42 @@ class Dataset:
         return data_paths["training"][0], data_paths["training"][1],\
                data_paths["validation"][0], data_paths["validation"][1]
 
-    def get_data_summary(self, data_type):
+    @staticmethod
+    def print_data_summary(data_file):
 
-        with h5py.File(self.data_file, "r") as f:
-            return f[data_type+"/data"].shape, f[data_type+"/labels"].shape
+        with h5py.File(data_file, "r") as f:
 
-    def print_data_summary(self):
+            if "data/data" in f.keys():
+                msg = dedent("""
+                    Data file: {}
+                    
+                    Dimensions:
+                    
+                    Data:       {}
+                    Labels:     {}
+                    Fast5:      {}
+                                
+                    """).format(data_file, f["data/data"].shape, f["data/labels"].shape, f["data/files"].shape)
 
-        with h5py.File(self.data_file, "r") as f:
+            elif "training/data" in f.keys() and "validation/data" in f.keys():
+                msg = dedent("""
+                    Data file: {}
 
-            msg = dedent("""
-                HDF5 file: {}
-                Training data: {}
-                Training labels: {}
-                
-                Number of training samples per class:
-                
-                """
-                         ).format(self.data_file, f["training/data"].shape, f["training/labels"].shape)
+                    Training Dimensions:
 
-            for label in f["training/decoded/"]:
+                    Data:       {}
+                    Labels:     {}
+                    
+                    Validation Dimensions:
+                    
+                    Data:       {}
+                    Labels:     {}
 
-                # Signal window count:
-                window_count = str(f["training/decoded/{label}".format(label=int(label))].shape[0])
-                # File count:
-                file_count = str(f["training/files/{label}".format(label=int(label))].shape[0])
-
-                msg += "Encoded class: {} = {} from {} files\n".format(int(label), window_count, file_count)
+                    """).format(data_file, f["training/data"].shape, f["training/labels"].shape,
+                                f["validation/data"].shape, f["validation/labels"].shape)
+            else:
+                logging.debug("Could not access either data/data or training/data + validation/data in HDF5.")
+                raise KeyError("Could not access either data/data or training/data + validation/data in HDF5.")
 
             print(msg)
 
@@ -317,3 +387,11 @@ class DataGenerator(Sequence):
             labels = np.take(file_labels, indices, axis=0)
 
             return data, labels
+
+
+def test_write_data():
+
+    ds = Dataset("../test.h5")
+
+    ds.write_data("../dir1", "../dir2")
+
