@@ -86,9 +86,6 @@ class Dataset:
                 total = 0
                 n_files = []
 
-                # Logging message:
-                print("Extracting windows from start:", windows_from_start)
-
                 # The progress bar is just a feature for reference, this loop will be stopped as soon
                 # as the maximum number of signal arrays per class is reached (progress bar is therefore not
                 # accurate but just looks good and gives the user an overestimate of when extraction is finished.
