@@ -22,8 +22,8 @@ class Terminal:
                           help="Maximum number of signal windows extracted from Fast5 directories per class (dir).")
         prep.add_argument("--max_windows_per_read", "-mw", required=False, dest="window_max", default=100,
                           type=int, help="Maximum number of signal windows extracted per Fast5 file.")
-        prep.add_argument("--windows_from_start", "--start", "-s", required=False, dest="window_start",
-                          action="store_true", help="Extract consecutive windows from beginnign of read.")
+        prep.add_argument("--windows_from_start", "--start", required=False, dest="window_start",
+                          action="store_true", help="Extract consecutive windows from start of read.")
         prep.add_argument("--window_length", "-len", "-l", required=False, default=400, dest="signal_length", type=int,
                            help="Length of signal windows.")
         prep.add_argument("--window_step", "-s", required=False, default=400, dest="signal_stride", type=int,

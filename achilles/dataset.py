@@ -57,7 +57,7 @@ class Dataset:
         :param max_windows_per_read:
         :param window_size:
         :param window_step:
-        :param random_consecutive_windows:
+        :param windows_from_start:
         :param normalize:
         :return:
         """
@@ -85,11 +85,10 @@ class Dataset:
                 # 4D input tensor to residual blocks in Achilles model.
                 total = 0
                 n_files = []
+
                 # Logging message:
-                class_summary = "Extracting {} signal windows (size: {}, step: {}) over a random selection of {} " \
-                                "Fast5 files for label {}".format(max_windows_per_read, window_size,
-                                                                  window_step, len(files), label)
-                logging.debug(class_summary)
+                print("Extracting windows from start:", windows_from_start)
+
                 # The progress bar is just a feature for reference, this loop will be stopped as soon
                 # as the maximum number of signal arrays per class is reached (progress bar is therefore not
                 # accurate but just looks good and gives the user an overestimate of when extraction is finished.
