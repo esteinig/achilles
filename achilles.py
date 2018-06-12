@@ -24,7 +24,7 @@ def main():
             ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_windows_per_class=args["signal_max"],
                           window_size=args["signal_length"], window_step=args["signal_stride"],
                           normalize=args["normalize"], max_windows_per_read=args["window_max"],
-                          random_consecutive_windows=args["random"])
+                          windows_from_start=args["window_start"])
 
             if args["validation"] > 0:
                 ds.training_validation_split(validation=args["validation"], window_size=args["signal_length"],

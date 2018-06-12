@@ -22,8 +22,8 @@ class Terminal:
                           help="Maximum number of signal windows extracted from Fast5 directories per class (dir).")
         prep.add_argument("--max_windows_per_read", "-mw", required=False, dest="window_max", default=100,
                           type=int, help="Maximum number of signal windows extracted per Fast5 file.")
-        prep.add_argument("--random_consecutive_windows", "-rand", "-r", required=False, dest="random",
-                          action="store_true", help="Maximum number of signal windows extracted per Fast5 file.")
+        prep.add_argument("--windows_from_start", "--start", "-s", required=False, dest="window_start",
+                          action="store_true", help="Extract consecutive windows from beginnign of read.")
         prep.add_argument("--window_length", "-len", "-l", required=False, default=400, dest="signal_length", type=int,
                            help="Length of signal windows.")
         prep.add_argument("--window_step", "-s", required=False, default=400, dest="signal_stride", type=int,
@@ -47,7 +47,7 @@ class Terminal:
                           help="Output trained model to HDF5 file.")
         train.add_argument("--run_id", "-i", required=False, dest="run_id", default="run_test", type=str,
                           help="Training run ID.")
-        train.add_argument("--signal_length", "-s", required=False, dest="signal_length", default=400, type=int,
+        train.add_argument("--signal_length", "--length", "-s", required=False, dest="signal_length", default=400, type=int,
                           help="Length of signal windows over each read from Fast5.")
         train.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=15, type=int,
                           help="Training mini batch size.")

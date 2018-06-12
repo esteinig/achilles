@@ -34,7 +34,7 @@ class Dataset:
         return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
 
     def write_data(self, *dirs, classes=2, max_windows_per_class=20000, max_windows_per_read=100,
-                   window_size=400, window_step=400, random_consecutive_windows=True, normalize=False):
+                   window_size=400, window_step=400, windows_from_start=False, normalize=False):
 
         """ Primary function to extract windows (slices) at random indices in the arrays that hold
         nanopore signal values in the (shuffled) sequencing files (.fast5) located in directories that contain
@@ -103,7 +103,7 @@ class Dataset:
 
                         # TODO: Evaluate what happens when constructing data from beginning of read (probably not good
                         # TODO: as it captures the adapters) - at the moment use random index + consecutive windows
-                        if random_consecutive_windows:
+                        if not windows_from_start:
                             # Select a random index to extract signal windows
                             rand_index = random.randint(0, signal_windows.shape[0])
                             # If max_windows_per_read can be extracted...
