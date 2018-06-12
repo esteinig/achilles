@@ -28,7 +28,7 @@ def main():
 
             if args["validation"] > 0:
                 ds.training_validation_split(validation=args["validation"], window_size=args["signal_length"],
-                                             classes=len(args["dirs"]))
+                                             classes=len(args["dirs"]), chunk_size=args["chunk_size"])
 
     if args["subparser"] == "train":
 

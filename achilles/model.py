@@ -70,7 +70,7 @@ class Achilles:
                     x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True, dropout=dropout,
                                                          recurrent_dropout=rc_dropout))(x)
 
-                x = layers.Bidirectional(layers.LSTM(_lstm_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
+            x = layers.Bidirectional(layers.LSTM(_lstm_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
 
         else:
             # If no RNN layers, flatten shape for Dense
@@ -115,11 +115,6 @@ class Achilles:
 
         print("Running on batch size {} for {} epochs with {} worker processes --> run ID: {}"
               .format(batch_size, epochs, workers, run_id))
-
-        data_shape, label_shape = dataset.get_data_summary("training")
-
-        print("Training data dimensions: {}".format(data_shape))
-        print("Training label dimensions: {}".format(label_shape))
 
         # TODO: Implement TensorBoard
         history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers, epochs=epochs,

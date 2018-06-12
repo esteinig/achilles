@@ -33,7 +33,8 @@ def percentage_split(seq, percentages):
         prv = nxt
 
 
-def chunker(seq, size):
+def chunk(seq, size):
+
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
@@ -54,8 +55,13 @@ def select_fast5(input_dir, output_dir, n=3000, largest_files=False):
     else:
         # Default mode random_files:
         files_and_sizes = [item for item in file_sizes(input_dir)]
+
+        indices = np.arange(len(files_and_sizes))
+        # Shuffle indices for random files:
+        np.random.shuffle(indices)
         # Assumes that there are > n files
-        files = np.random.shuffle(files_and_sizes)[:n]
+        files = [files_and_sizes[i] for i in indices[:n]]
+
     for file, size in files:
         shutil.copy(file, os.path.join(output_dir, os.path.basename(file)))
 

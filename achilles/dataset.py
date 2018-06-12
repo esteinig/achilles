@@ -6,7 +6,7 @@ import numpy as np
 
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
-from achilles.utils import read_signal, chunker
+from achilles.utils import read_signal, chunk
 from textwrap import dedent
 from keras.utils import Sequence
 from keras.utils.np_utils import to_categorical
@@ -166,7 +166,7 @@ class Dataset:
         self.print_data_summary(data_file=self.data_file)
 
     def training_validation_split(self, validation: float=0.3, window_size: int=400, classes: int=2,
-                                  max_windows_per_read: int=100):
+                                  chunk_size: int=1000):
 
         """ This function takes a complete data set generated with write_data,
         randomizes the indices and splits it into training and validation under the paths
@@ -176,7 +176,7 @@ class Dataset:
         :param validation               proportion of data to be split into validation set
         :param window_size              window (slice) size for writing data to training file in chunks
         :param classes                  number of classes (labels)
-        :param max_windows_per_read     maximum number of windows for reading and writing in chunks
+        :param chunk_size               maximum number of windows for reading and writing in chunks
         """
 
         # Generate new file name for splitting data randomly into training and
@@ -210,14 +210,14 @@ class Dataset:
 
                 with tqdm(total=len(training_indices)) as pbar:
                     pbar.set_description("Writing training   data")
-                    for i_train_chunk in chunker(training_indices, max_windows_per_read):
+                    for i_train_chunk in chunk(training_indices, chunk_size):
                         self.write_chunk(train_x, np.take(data_file["data/data"], i_train_chunk, axis=0))
                         self.write_chunk(train_y, np.take(data_file["data/labels"], i_train_chunk, axis=0))
                         pbar.update(len(i_train_chunk))
 
                 with tqdm(total=len(validation_indices)) as pbar:
                     pbar.set_description("Writing validation data")
-                    for i_val_chunk in chunker(validation_indices, max_windows_per_read):
+                    for i_val_chunk in chunk(validation_indices, chunk_size):
                         self.write_chunk(val_x, np.take(data_file["data/data"], i_val_chunk, axis=0))
                         self.write_chunk(val_y, np.take(data_file["data/labels"], i_val_chunk, axis=0))
                         pbar.update(len(i_val_chunk))

@@ -24,14 +24,16 @@ class Terminal:
                           type=int, help="Maximum number of signal windows extracted per Fast5 file.")
         prep.add_argument("--random_consecutive_windows", "-rand", "-r", required=False, dest="random",
                           action="store_true", help="Maximum number of signal windows extracted per Fast5 file.")
-        prep.add_argument("--signal_length", "-len", "-l", required=False, default=400, dest="signal_length", type=int,
-                           help="Length of signal windows over each read from Fast5.")
-        prep.add_argument("--signal_stride", "-s", required=False, default=400, dest="signal_stride", type=int,
-                           help="Length of stride for signal windows over each read from Fast5.")
+        prep.add_argument("--window_length", "-len", "-l", required=False, default=400, dest="signal_length", type=int,
+                           help="Length of signal windows.")
+        prep.add_argument("--window_step", "-s", required=False, default=400, dest="signal_stride", type=int,
+                           help="Length of step for signal windows.")
         prep.add_argument("--normalize", "-norm", "-n", required=False, action="store_true", dest="normalize",
                            help="Normalize signal values to pA floats (subtract mean, divide by std)")
         prep.add_argument("--validation", "-val", "-v", required=False, default=0.3, dest="validation", type=float,
                           help="Proportion of data to randomly split into validation set.")
+        prep.add_argument("--chunk_size", "--chunk", "-c", required=False, default=1000, dest="chunk_size", type=int,
+                          help="Chunk size for writing training and validation data when splitting dataset.")
         prep.add_argument("--print", "-p", required=False, action="store_true", dest="print",
                           help="Print summary of data file")
 
@@ -45,7 +47,7 @@ class Terminal:
                           help="Output trained model to HDF5 file.")
         train.add_argument("--run_id", "-i", required=False, dest="run_id", default="run_test", type=str,
                           help="Training run ID.")
-        train.add_argument("--signal_length", "-s", required=False, dest="signal_length", default=4000, type=int,
+        train.add_argument("--signal_length", "-s", required=False, dest="signal_length", default=400, type=int,
                           help="Length of signal windows over each read from Fast5.")
         train.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=15, type=int,
                           help="Training mini batch size.")
@@ -118,13 +120,13 @@ class Terminal:
         select = subparsers.add_parser("select", help="Utility function for selecting signal from Fast5 in recursive"
                                                       " directory structure for generating data and training model")
         select.add_argument("--input_dir", "--in", "-i", required=False, dest="input_dir", default="dir1", type=str,
-                            help="Recursive directory of passing Fast5 file for sorting by file size.")
+                            help="Recursive directory of Fast5 files to select from randomly.")
         select.add_argument("--output_dir", "--out", "-o", required=False, dest="output_dir", default="largest",
                             type=str, help="Output file to copy largest Fast5 into.")
         select.add_argument("--nb_fast5", "-n", required=False, dest="n", default=3000, type=int,
-                            help="Number of largest Fast5 to copy.")
+                            help="Number of Fast5 files to copy.")
         select.add_argument("--largest", "-l", required=False, dest="largest",  action="store_true",
-                            help="Number of largest Fast5 to copy.")
+                            help="Select largest Fast5 files instead of random files.")
 
         select.set_defaults(subparser='select')
 
