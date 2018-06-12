@@ -57,8 +57,8 @@ class Terminal:
                           help="Training epochs.")
         train.add_argument("--log_interval", "-log", required=False, dest="log_interval", default=1, type=int,
                            help="Log loss and accuracy every batch (default: 1).")
-        train.add_argument("--activation", "-a", required=False, dest="activation", default="sigmoid", type=str,
-                          help="Activation function (default: sigmoid)")
+        train.add_argument("--activation", "-a", required=False, dest="activation", default="softmax", type=str,
+                          help="Activation function (default: softmax)")
         train.add_argument("--loss", "-l", required=False, dest="loss", default="binary_crossentropy", type=str,
                           help="Loss function (default: binary_crossentropy)")
         train.add_argument("--optimizer", "-opt", required=False, dest="optimizer", default="adam", type=str,
