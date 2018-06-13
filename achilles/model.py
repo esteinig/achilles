@@ -13,6 +13,7 @@ from keras.callbacks import CSVLogger, ModelCheckpoint
 
 from keras import callbacks
 
+from achilles.utils import timeit
 from achilles.dataset import Dataset
 
 
@@ -129,6 +130,7 @@ class Achilles:
 
         self.model = load_model(model_file)
 
+    @timeit
     def evaluate(self, batch_size=10, workers=2, data_path="data"):
 
         """ Evaluate model against presented dataset """
@@ -141,7 +143,7 @@ class Achilles:
 
         loss, acc = self.model.evaluate_generator(eval_generator, workers=workers, use_multiprocessing=True)
 
-        msg = "Loss: {} - Accuracy: {}".format(loss, acc)
+        msg = "Loss: {} --- Accuracy: {}%".format(loss, acc)
 
         print(msg)
 

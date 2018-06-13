@@ -1,4 +1,5 @@
 import random
+import time
 import numpy as np
 from matplotlib import style
 from matplotlib import pyplot as plt
@@ -125,3 +126,14 @@ def read_signal(fast5: str, normalize: bool = False, window_size: int = 4000, wi
         return view_as_windows(signal, window_size, window_step)
     else:
         return signal
+
+
+def timeit(func):
+    """ Timing decorator for functions and methods """
+    def timed(*args, **kw):
+        start_time = time.time()
+        result = func(*args, **kw)
+        minutes, seconds = divmod(time.time()-start_time, 60)
+        print("Execution time:", minutes, "minutes")
+        return result
+    return timed
