@@ -42,10 +42,10 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 
 **Evaluation data sets for generalizing over human genome**:
 
+* 150,000 (Burkholderia), 150,000 (Human)
+* 400 x 400, not normalized, random select + random consecutive scan
+
 * random selection of terminal chromosome 20 (part5)
 * random selection of terminal chromosome 11 (part9)
 * random selection of centrist chromosome 14 (part4)
-
-* 150,000 (Burkholderia), 150,000 (Human)
-* 400 x 400, not normalized, random select + random consecutive scan
 
