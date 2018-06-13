@@ -17,9 +17,9 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 #### Architectures
 ---
 
-| Run ID    | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   | Recurrent Dropout | Parameters | 
-| :-------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :------------: | :---------------: | :--------: |
-| minimal_1 |  1        | 1      | 400 x 400 | 300000    | 800         | 16/40  | 0.2            | 0.2               | 999,778    |
+| Run ID    | ResBlocks | BLSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   | Recurrent Dropout | Parameters | 
+| :-------: | :-------: | :-----: | :-------: | :-------: | :---------: | :----: | :------------: | :---------------: | :--------: |
+| minimal_1 |  1        | 1       | 400 x 400 | 300000    | 800         | 16/40  | 0.2            | 0.2               | 999,778    |
 
 #### Evaluations (Accuracy)
 ---
