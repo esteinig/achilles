@@ -12,16 +12,14 @@ This is a sort of minimal Keras implementation / adaptation of the open-source [
 ### Performance for classification of human (chromosome 20) and *B. pseudomallei*
 ---
 
-This is a proof-of-concept for a pathogen detector based on raw nanopore signal from the [environmental bacterium and biothreat agent *B. pseudomallei*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4746747/) in host contaminant background of human DNA on MinION 1D R9.4. This architecture can be modified for different pathogen detection scenarios i.e. different host backgrounds or more complex microbial communities. By extending the open-source architecture based on Chiron, the detector can be trained de novo and on data suitable to specific local problems. This section on performance also looks at evaluating generalization of learning from a tiny fraction of chromosome 20 to accurately classify human signal from other chromosomes. In the evaluaton data, we also swap pathogen signals to assess generalization to other bacterial or viral pathogens and threshold the taxonomic distances, at which classification breaks down. This is all kinds of cool, because we are in the broadest sense trying to teach an AI what a human genome in signal space looks like.
+This is a proof-of-concept for a pathogen detector based on raw nanopore signal from the [environmental bacterium and biothreat agent *B. pseudomallei*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4746747/) in host contaminant background of human DNA on MinION 1D R9.4. This architecture can be modified for different pathogen detection scenarios i.e. different host backgrounds or more complex microbial communities. By extending the open-source architecture based on Chiron, the detector can be trained *de novo* and on data suitable to specific local problems. This section on performance also looks at evaluating generalization of learning from a tiny fraction of chromosome 20 to accurately classify human signal from other chromosomes. In the evaluaton data, we also swap pathogen signals to assess generalization to other bacterial or viral pathogens and threshold the taxonomic distances, at which classification breaks down. This is all kinds of cool, because we are in the broadest sense trying to teach an AI what a human genome in signal space looks like.
 
 #### Architectures
 ---
 
-| Run ID   | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | Dropout   | Recurrent Dropout | 
-| :------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :-------: | :---------------: |
-| Mini D1  |  1        | 1      | 400 x 400 | 237963    | 900         | 16/20  | 0.2       |  0.2              |
-| Mini D2  |  1        | 1      | 400 x 400 | 237963    | 900         | 39/40  | 0.3       |  0.3              |
-| Deep D1  |  3        | 3      | 400 x 400 | 237963    | 900         | 39/40  | 0.2       |  0.2              |
+| Run ID   | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   | Recurrent Dropout | Parameters | 
+| :------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :------------: | :---------------: | :--------: |
+| Mini D1  |  1        | 1      | 400 x 400 | 300000    | 800         | 16/40  | 0.2            | 0.2               | 999,778    |
 
 #### Evaluations
 ---
@@ -30,33 +28,14 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 | Run ID   | Train. Acc. | Val. Acc.  | Chr20 Acc. | Chr11 Acc.  |   
 | :------: | :----------:| :--------: | :--------: | :---------: |
 | Mini D1  |  88.81%     | 88.97%     | 83.11%     | 87.60%      |
-| Mini D2  |  91.29%     | 90.43%     | 85.79%     | 89.93%      |
-| Deep D1  |  93.67%     | 92.24%     | -          | -           |
+
 
 #### Training, validation and evaluation data sets
 ---
 
-Training data sets
+Training data set for detection of *B. psuedomallei* in human background:
 
-`Training`: 
-
-* 133782 (burkholderia), 104181 (chromosome 20)
-* 2800 Fast5 
-* 70% training, 30% validation,
-* 400 x 400, not normalized, random scanning
-
-Evaluation data sets:
-
-`Chromosome 20`: (same as training)
-
-* 6731 (burkholderia), 5104 (chromosome 20)
-* 2800 Fast5 
-* 70% training, 30% validation,
-* 400 x 400, not normalized, random select + scanning
-
-`Chromosome 11`: (for generalization) 
-
-* 6731 (burkholderia), 5104 (chromosome 20)
-* 2800 Fast5 
-* 70% training, 30% validation,
-* 400 x 400, not normalized, random select + scanning
+* 150,000 (burkholderia), 150,000 (chromosome 20)
+* 2762 Fast5
+* 70% training, 30% validation
+* 400 x 400, not normalized, random select + random consecutive scan
