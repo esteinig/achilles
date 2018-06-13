@@ -17,25 +17,35 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 #### Architectures
 ---
 
-| Run ID   | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   | Recurrent Dropout | Parameters | 
-| :------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :------------: | :---------------: | :--------: |
-| Mini D1  |  1        | 1      | 400 x 400 | 300000    | 800         | 16/40  | 0.2            | 0.2               | 999,778    |
+| Run ID    | ResBlocks | LSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   | Recurrent Dropout | Parameters | 
+| :-------: | :-------: | :----: | :-------: | :-------: | :---------: | :----: | :------------: | :---------------: | :--------: |
+| minimal_1 |  1        | 1      | 400 x 400 | 300000    | 800         | 16/40  | 0.2            | 0.2               | 999,778    |
 
-#### Evaluations
+#### Evaluations (Accuracy)
 ---
 
 
-| Run ID   | Train. Acc. | Val. Acc.  | Chr20 Acc. | Chr11 Acc.  |   
-| :------: | :----------:| :--------: | :--------: | :---------: |
-| Mini D1  |  88.81%     | 88.97%     | 83.11%     | 87.60%      |
+| Run ID     | Training | Validation | Chr20    | Chr11   | Chr14   |
+| :--------: | :-------:| :--------: | :------: | :-----: | :-----: | 
+| minimal_1  |  88.81%  | 88.97%     | 83.11%   | 87.60%  | -       |
 
 
 #### Training, validation and evaluation data sets
 ---
 
-Training data set for detection of *B. psuedomallei* in human background:
+**Training data set for detection of *B. pseudomallei* in [human background](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md)**:
 
-* 150,000 (burkholderia), 150,000 (chromosome 20)
+* 150,000 (Burkholderia), 150,000 (terminal chromosome 20)
 * 2762 Fast5
 * 70% training, 30% validation
 * 400 x 400, not normalized, random select + random consecutive scan
+
+**Evaluation data sets for generalizing over human genome**:
+
+* random selection of terminal chromosome 20 (part5)
+* random selection of terminal chromosome 11 (part9)
+* random selection of centrist chromosome 14 (part4)
+
+* 150,000 (Burkholderia), 150,000 (Human)
+* 400 x 400, not normalized, random select + random consecutive scan
+
