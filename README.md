@@ -22,9 +22,10 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 #### Architectures
 ---
 
-| Run ID    | ResBlocks | BLSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   | Recurrent Dropout | Parameters | 
-| :-------: | :-------: | :-----: | :-------: | :-------: | :---------: | :----: | :------------: | :---------------: | :--------: |
-| minimal_1 |  1        | 1       | 400 x 400 | 300000    | 800         | 16/40  | 0.2            | 0.2               | 999,778    |
+| Run ID    | ResBlocks | BLSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   |  Parameters | Dataset |
+| :-------: | :-------: | :-----: | :-------: | :-------: | :---------: | :----: | :------------: |  :--------: | :-----: |
+| minimal_1 |  1        | 1       | 400 x 400 | 300000    | 800         | 38/40  | 0.2            |  999,778    | Chr20   |
+| minimal_2 |  1        | 1       | 400 x 400 | 300000    | 800         | 38/40  | 0.2            |  999,778    | Chr14   |
 
 #### Evaluations (Accuracy)
 ---
@@ -32,8 +33,8 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 
 | Run ID     | Training | Validation | Chr20    | Chr11   | Chr14   |
 | :--------: | :-------:| :--------: | :------: | :-----: | :-----: | 
-| minimal_1  |  88.81%  | 88.97%     | 83.11%   | 87.60%  | -       |
-
+| minimal_1  |  90.78%  | 90.59%     |          |         |         |
+| minimal_2  |  90.78%  | 90.59%     |          |         |         |
 
 #### Training, validation and evaluation data sets
 ---
