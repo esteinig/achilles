@@ -39,19 +39,23 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 #### Training, validation and evaluation data sets
 ---
 
-**Training data set for detection of *B. pseudomallei* in [human background](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md)**:
+**Training data set for detection of *B. pseudomallei* in [human background](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md)** DNA from the `nanopore-wgs-consortium/NA12878` genome project:
 
-* 150,000 (Burkholderia), 150,000 (terminal chromosome 20)
+* 150,000 (Burkholderia), 150,000 ([terminal chromosome 20](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar), [central chromosome 14](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar))
 * 2762 Fast5
 * 70% training, 30% validation
 * 400 x 400, not normalized, random select + random consecutive scan
+
+Example command line task to generate training data:
+
+`achilles make --dirs bp,human_chr14 --data_file training.chr14.h5 --log_file training.chr14.log -l 400 -s 400 -m 150000`
 
 **Evaluation data sets for generalizing over human genome**:
 
 * 150,000 (Burkholderia), 150,000 (Human)
 * 400 x 400, not normalized, random select + random consecutive scan
 
-* random selection of terminal chromosome 20 (part5)
-* random selection of terminal chromosome 11 (part9)
-* random selection of centrist chromosome 14 (part4)
+* random selection of terminal [chromosome 20 (part5)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar)
+* random selection of terminal [chromosome 11 (part9)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr11.part09.tar)
+* random selection of central [chromosome 14 (part4)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar)
 
