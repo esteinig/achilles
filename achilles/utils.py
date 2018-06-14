@@ -89,7 +89,7 @@ def select_random_windows(signal_windows, n=4):
     return [signal_windows[random.randrange(len(signal_windows))][:] for _ in range(n)]
 
 
-def transform_signal_to_tensor(vector):
+def transform_signal_to_tensor(array):
 
     """ Transform data (nb_windows,window_size) to (nb_windows, 1, window_size, 1)
     for input into Conv2D layer: (samples, height, width, channels),
@@ -98,8 +98,9 @@ def transform_signal_to_tensor(vector):
 
     """
 
-    # Return 4D array (samples, 1, width, 1)
-    return np.array([[[[signal] for signal in data]] for data in vector[:]])
+    # Rshape 2D array (samples, width) to 4D array (samples, 1, width, 1)
+    return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
+
 
 
 def read_signal(fast5: str, normalize: bool = False, window_size: int = 4000, window_step: int = 400) -> np.array:
@@ -134,6 +135,6 @@ def timeit(func):
         start_time = time.time()
         result = func(*args, **kw)
         minutes, seconds = divmod(time.time()-start_time, 60)
-        print("Execution time:", minutes, "minutes")
+        print("Runtime:", round(minutes, 2), "minutes")
         return result
     return timed

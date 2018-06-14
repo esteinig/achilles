@@ -312,7 +312,8 @@ class Dataset:
         """
 
         # Return 4D array (samples, 1, width, 1)
-        # TODO: This can be done better, look at numpy.reshape
+        # TODO: This can be done better, look at numpy.reshape:
+        # return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
         return np.array([[[[signal] for signal in data]] for data in vector[:]])
 
 

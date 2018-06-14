@@ -1,7 +1,16 @@
 import numpy
+import pandas
 
 from achilles.model import Achilles
 from achilles.utils import read_signal, transform_signal_to_tensor
+
+def evaluate(datasets: list, models: list, meta_data=None, plot=True):
+
+    results = {}
+
+    for model in models:
+        for dataset in datasets:
+                    
 
 
 def predict(fast5: str, model: Achilles, window_max: int = 10, window_size: int = 400, window_step: int = 400,
