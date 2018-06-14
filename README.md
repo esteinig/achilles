@@ -29,7 +29,7 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 | Run ID     | Training | Validation | Chr20    | Chr11   | Chr14   |
 | :--------: | :-------:| :--------: | :------: | :-----: | :-----: | 
 | minimal_1  |  90.78%  | 90.59%     |          |         |         |
-| minimal_2  |  90.78%  | 90.59%     |          |         |         |
+| minimal_2  |  91.78%  | 91.26%     |          |         |         |
 
 #### Training, validation and evaluation data sets
 ---
