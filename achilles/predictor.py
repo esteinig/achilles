@@ -1,16 +1,45 @@
 import numpy
 import pandas
 
+from achilles.dataset import Dataset
 from achilles.model import Achilles
 from achilles.utils import read_signal, transform_signal_to_tensor
 
-def evaluate(datasets: list, models: list, meta_data=None, plot=True):
+
+def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2, data_path: str="data",
+             meta_data: dict=None, write: str="") -> pandas.DataFrame:
 
     results = {}
 
     for model in models:
-        for dataset in datasets:
-                    
+        results[model] = {}
+
+        achilles = Achilles()
+        achilles.load_model(model_file=model)
+
+        for file in data_files:
+            ds = Dataset(data_file=file)
+            eval_gen = ds.get_signal_generator(data_type=data_path, batch_size=batch_size, shuffle=True)
+
+            seconds, acc, loss = model.evaluate(eval_generator=eval_gen, workers=workers)
+
+            results[model][file] = {
+                "seconds": seconds,
+                "accuracy": acc,
+                "loss": loss
+            }
+
+    # Multi-index dataframe Model / File
+    df = pandas.DataFrame.from_dict({(i, j): results[i][j] for i in results.keys() for j in results[i].keys()},
+                                    orient="index").reset_index()
+
+    # Inplace is necessary for underlying objects:
+    df.rename(columns={'level_0': 'model', 'level_1': 'dataset'}, inplace=True)
+
+    if write:
+        df.to_csv(write)
+
+    return df
 
 
 def predict(fast5: str, model: Achilles, window_max: int = 10, window_size: int = 400, window_step: int = 400,

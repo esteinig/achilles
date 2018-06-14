@@ -134,7 +134,9 @@ def timeit(func):
     def timed(*args, **kw):
         start_time = time.time()
         result = func(*args, **kw)
-        minutes, seconds = divmod(time.time()-start_time, 60)
-        print("Runtime:", round(minutes, 2), "minutes")
-        return result
+        seconds = round(time.time()-start_time, 2)
+        print("Runtime:", seconds, "seconds")
+        # Flatten output if the output of a function is a tuple with multiple items:
+        return [num for item in [seconds, result]
+                for num in (item if isinstance(item, tuple) else (item,))]
     return timed

@@ -131,21 +131,13 @@ class Achilles:
         self.model = load_model(model_file)
 
     @timeit
-    def evaluate(self, batch_size=10, workers=2, data_path="data"):
+    def evaluate(self, eval_generator, workers=2):
 
         """ Evaluate model against presented dataset """
 
-        dataset = Dataset(data_file=self.data_file)
-
-        # For evaluation, do not perform training-validation split of data at dataset generation, so
-        # you can get the evaluation generator on the complete data path: "data"
-        eval_generator = dataset.get_signal_generator(data_type=data_path, batch_size=batch_size, shuffle=True)
-
         loss, acc = self.model.evaluate_generator(eval_generator, workers=workers, use_multiprocessing=True)
 
-        msg = "Loss: {} --- Accuracy: {}%".format(loss, acc)
-
-        print(msg)
+        return loss, acc
 
     def predict(self, signals, batch_size=10):
 
