@@ -39,7 +39,7 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 #### Training, validation and evaluation data sets
 ---
 
-**Training data set for detection of *B. pseudomallei* in [human background](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md)** DNA from the `nanopore-wgs-consortium/NA12878` genome project:
+**Training data set for detection of *B. pseudomallei* in [human background](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md) DNA from the `nanopore-wgs-consortium/NA12878` genome project**:
 
 * 150,000 (Burkholderia), 150,000 ([terminal chromosome 20](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar), [central chromosome 14](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar))
 * 2762 Fast5
