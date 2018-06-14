@@ -46,10 +46,6 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 * 70% training, 30% validation
 * 400 x 400, not normalized, random select + random consecutive scan
 
-Example command line task to generate training data:
-
-`achilles make --dirs bp,human_chr14 --data_file training.chr14.h5 -l 400 -s 400 -m 150000`
-
 **Evaluation data sets for generalizing over human genome**:
 
 * 150,000 (Burkholderia), 150,000 (Human)
@@ -58,4 +54,9 @@ Example command line task to generate training data:
 * random selection of terminal [chromosome 20 (part5)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar)
 * random selection of terminal [chromosome 11 (part9)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr11.part09.tar)
 * random selection of central [chromosome 14 (part4)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar)
+
+
+**Example command line task to generate training and evaluation data**:
+
+`achilles make --dirs bp,human_chr14 --data_file training.chr14.h5 -l 400 -s 400 -m 150000`
 
