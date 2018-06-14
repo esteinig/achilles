@@ -48,7 +48,7 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 
 Example command line task to generate training data:
 
-`achilles make --dirs bp,human_chr14 --data_file training.chr14.h5 --log_file training.chr14.log -l 400 -s 400 -m 150000`
+`achilles make --dirs bp,human_chr14 --data_file training.chr14.h5 -l 400 -s 400 -m 150000`
 
 **Evaluation data sets for generalizing over human genome**:
 
