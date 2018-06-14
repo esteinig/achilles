@@ -1,3 +1,8 @@
+
+<p align="center">
+  <img src="logo.png"></img>
+</p>
+
 # Achilles
 
 Achilles is a neural network model that distinguishes between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *B. pseudomallei*). The model trains currently on a small number of reads reads (~ 3000 reads). Issues are tracked on Github. Next steps are to reduce overfitting and deepening the network for generalisation over the human genome and diverse bacterial or viral pathogens. Patient sample simulations (i.e. pathogen DNA in contaminant human DNA) and real-time sequencing runs of MRSA genomes are planned for release. We will extend the architecture to multi-label classifications (i.e. human, bacterial, viral) for rapid pathogen identification from complex mixtures in the future.
@@ -17,9 +22,10 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 #### Architectures
 ---
 
-| Run ID    | ResBlocks | BLSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   | Recurrent Dropout | Parameters | 
-| :-------: | :-------: | :-----: | :-------: | :-------: | :---------: | :----: | :------------: | :---------------: | :--------: |
-| minimal_1 |  1        | 1       | 400 x 400 | 300000    | 800         | 16/40  | 0.2            | 0.2               | 999,778    |
+| Run ID    | ResBlocks | BLSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   |  Parameters | Dataset |
+| :-------: | :-------: | :-----: | :-------: | :-------: | :---------: | :----: | :------------: |  :--------: | :-----: |
+| minimal_1 |  1        | 1       | 400 x 400 | 300000    | 800         | 38/40  | 0.2            |  999,778    | Chr20   |
+| minimal_2 |  1        | 1       | 400 x 400 | 300000    | 800         | 38/40  | 0.2            |  999,778    | Chr14   |
 
 #### Evaluations (Accuracy)
 ---
@@ -27,15 +33,15 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 
 | Run ID     | Training | Validation | Chr20    | Chr11   | Chr14   |
 | :--------: | :-------:| :--------: | :------: | :-----: | :-----: | 
-| minimal_1  |  88.81%  | 88.97%     | 83.11%   | 87.60%  | -       |
-
+| minimal_1  |  90.78%  | 90.59%     |          |         |         |
+| minimal_2  |  90.78%  | 90.59%     |          |         |         |
 
 #### Training, validation and evaluation data sets
 ---
 
-**Training data set for detection of *B. pseudomallei* in [human background](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md)**:
+**Training data set for detection of *B. pseudomallei* in [human background](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md) DNA from the `nanopore-wgs-consortium/NA12878` genome project**:
 
-* 150,000 (Burkholderia), 150,000 (terminal chromosome 20)
+* 150,000 (Burkholderia), 150,000 ([terminal chromosome 20](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar), [central chromosome 14](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar))
 * 2762 Fast5
 * 70% training, 30% validation
 * 400 x 400, not normalized, random select + random consecutive scan
@@ -45,7 +51,12 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 * 150,000 (Burkholderia), 150,000 (Human)
 * 400 x 400, not normalized, random select + random consecutive scan
 
-* random selection of terminal chromosome 20 (part5)
-* random selection of terminal chromosome 11 (part9)
-* random selection of centrist chromosome 14 (part4)
+* random selection of terminal [chromosome 20 (part5)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar)
+* random selection of terminal [chromosome 11 (part9)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr11.part09.tar)
+* random selection of central [chromosome 14 (part4)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar)
+
+
+**Example command line task to generate training and evaluation data**:
+
+`achilles make --dirs bp,human_chr14 --data_file training.chr14.h5 -l 400 -s 400 -m 150000`
 
