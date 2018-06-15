@@ -26,10 +26,10 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 ---
 
 
-| Run ID     | Training | Validation | Chr20    | Chr14   | Chr11   |
-| :--------: | :-------:| :--------: | :------: | :-----: | :-----: | 
-| minimal_1  |  90.78%  | 90.59%     | 89.37%   | 87.04%  | 86.50%  |
-| minimal_2  |  91.78%  | 91.26%     | 85.42%   | 88.30%  | 84.03%  |
+| Run ID     | Training | Validation | Chr20    | Chr14   | Chr11   | Mixed  |
+| :--------: | :-------:| :--------: | :------: | :-----: | :-----: | :----: |
+| minimal_1  |  90.78%  | 90.59%     | 89.37%   | 87.04%  | 86.50%  | 87.97% |
+| minimal_2  |  91.78%  | 91.26%     | 85.42%   | 88.30%  | 84.03%  | 86.27% |
 
 #### Training, validation and evaluation data sets
 ---
@@ -45,10 +45,11 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 
 * 150,000 (Burkholderia), 150,000 (Human)
 * 400 x 400, not normalized, random consecutive scan
+
 * random selection (same as training) of terminal [chromosome 20 (part5)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar) Fast5
 * random selection of terminal [chromosome 11 (part9)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr11.part09.tar) Fast5
 * random selection  (same as training) of central [chromosome 14 (part4)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar) Fast5
-
+* mixed random selection of chromosomes (11, 14, 20)
 
 **Example command line task to generate training and evaluation data**:
 
