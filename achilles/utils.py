@@ -102,7 +102,6 @@ def transform_signal_to_tensor(array):
     return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
 
 
-
 def read_signal(fast5: str, normalize: bool = False, window_size: int = 4000, window_step: int = 400) -> np.array:
 
     """ Read scaled raw signal in pA (float) from Fast5 using ONT API
@@ -135,7 +134,7 @@ def timeit(func):
         start_time = time.time()
         result = func(*args, **kw)
         seconds = round(time.time()-start_time, 2)
-        print("Runtime:", seconds, "seconds")
+        # print("Runtime:", seconds, "seconds")
         # Flatten output if the output of a function is a tuple with multiple items:
         return [num for item in [seconds, result]
                 for num in (item if isinstance(item, tuple) else (item,))]

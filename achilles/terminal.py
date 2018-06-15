@@ -79,16 +79,19 @@ class Terminal:
 
         eval = subparsers.add_parser("evaluate", help="Evaluate data with given model file on data paths"
                                                       "data_path/data and data_path/label in HDF5 file.")
-        eval.add_argument("--data_file", "--file", "-f", required=False, dest="data_file", default="data.h5", type=str,
-                          help="HDF5 prepared data file (asclepius make) for streaming batches into evaluation.")
-        eval.add_argument("--model_file", "--model", "-m", required=False, dest="model_file", default="model.h5", type=str,
-                          help="HDF5 prepped trained model file for loading with Keras (asclepius train).")
-        eval.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=15, type=int,
+
+        eval.add_argument("--data_files", "--file", "-f", required=True, dest="data_files", type=str,
+                          help="HDF5 prepared data files for evaluation.")
+        eval.add_argument("--model_files", "--model", "-m", required=True, dest="model_files", type=str,
+                          help="HDF5 trained model files for evaluation.")
+        eval.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=100, type=int,
                            help="Training mini batch size.")
         eval.add_argument("--threads", "-t", required=False, dest="threads", default=2, type=int,
                            help="CPU threads to feed batches into generator to fit to model.")
         eval.add_argument("--data_path", "-d", required=False, dest="data_path", default="data", type=str,
                           help="HDF5 data path for data_path/training and data_path/labels.")
+        eval.add_argument("--output_file", "--out", "-o", required=False, dest="output_file", default="evaluation.csv",
+                          type=str, help="CSV output paths for evaluations")
         eval.set_defaults(subparser='evaluate')
 
         pred = subparsers.add_parser("predict", help="Run prediction on Fast5 signal file")
@@ -141,12 +144,16 @@ class Terminal:
 
         # Real paths:
 
-        if "dirs" in self.args.keys():
-            self.args["dirs"] = [os.path.abspath(directory) for directory in self.args["dirs"].split(",")]
+        # For input lists (comma-separated)
+        for key in ("dirs", "data_files", "model_files"):
+            if key in self.args.keys():
+                self.args[key] = [os.path.abspath(directory) for directory in self.args[key].split(",")]
 
+        # For input strings:
         for key in ("data_file", "output_file", "log_file", "plot_file", "input_dir", "output_dir"):
             if key in self.args.keys():
                 self.args[key] = os.path.abspath(self.args[key])
 
+        # For nargs:
         if "input_files" in self.args.keys():
             self.args["input_files"] = [os.path.abspath(file) for file in self.args["input_files"]]

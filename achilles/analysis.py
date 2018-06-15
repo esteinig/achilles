@@ -21,13 +21,21 @@ def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2
             ds = Dataset(data_file=file)
             eval_gen = ds.get_signal_generator(data_type=data_path, batch_size=batch_size, shuffle=True)
 
-            seconds, acc, loss = model.evaluate(eval_generator=eval_gen, workers=workers)
+            seconds, loss, acc = achilles.evaluate(eval_generator=eval_gen, workers=workers)
 
             results[model][file] = {
                 "seconds": seconds,
-                "accuracy": acc,
-                "loss": loss
+                "accuracy": round(acc, 4),
+                "loss": round(loss, 4)
             }
+
+            print("""
+            Model:      {}
+            Data:       {}
+            Loss:       {}  
+            Accuracy:   {} %
+            Time:       {} seconds
+            """.format(model, file, loss, acc*100, seconds))
 
     # Multi-index dataframe Model / File
     df = pandas.DataFrame.from_dict({(i, j): results[i][j] for i in results.keys() for j in results[i].keys()},
@@ -40,6 +48,11 @@ def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2
         df.to_csv(write)
 
     return df
+
+
+def evaluate_predictions():
+
+    pass
 
 
 def predict(fast5: str, model: Achilles, window_max: int = 10, window_size: int = 400, window_step: int = 400,

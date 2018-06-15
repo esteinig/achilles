@@ -4,7 +4,8 @@ import achilles.utils as utils
 from achilles.model import Achilles
 from achilles.dataset import Dataset
 from achilles.terminal import Terminal
-from achilles.predictor import predict
+
+from achilles.analysis import predict, evaluate
 
 
 def main():
@@ -54,13 +55,8 @@ def main():
 
     if args["subparser"] == "evaluate":
 
-        achilles = Achilles(data_file=args["data_file"])
-
-        print("Loading model...")
-        achilles.load_model(model_file=args["model_file"])
-
-        print("Evaluating model...")
-        achilles.evaluate(batch_size=args["batch_size"], workers=args["threads"], data_path=args["data_path"])
+        evaluate(data_files=args["data_files"], models=args["model_files"], batch_size=args["batch_size"],
+                 workers=args["threads"], data_path=args["data_path"], write=args["output_file"])
 
     if args["subparser"] == "predict":
 
