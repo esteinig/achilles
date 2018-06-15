@@ -9,11 +9,6 @@ Achilles is a neural network model that distinguishes between nanopore signals f
 
 This is a sort of minimal Keras implementation / adaptation of the open-source [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron), and all credit for the architecture of the model is due to Haotian Teng and Lachlan Coin, and the co-authors of [Chiron published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989). It differs in several components, like current minimal model depth (1 residual block, one bidirectional LSTM) or using recurrent dropout instead of recurrent batch normalization, which was not readily available in Keras. It also gets rid of the CTC decoder and outputs with a simple fully-connected (binary) layer and Softmax activation in the current model configuration.
 
-### Documentation
----
-
-[asclepius.readthedocs.io](https://asclepius.readthedocs.io)
-
 ### Performance for classification of human (chromosome 20) and *B. pseudomallei*
 ---
 
@@ -34,7 +29,7 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 | Run ID     | Training | Validation | Chr20    | Chr11   | Chr14   |
 | :--------: | :-------:| :--------: | :------: | :-----: | :-----: | 
 | minimal_1  |  90.78%  | 90.59%     |          |         |         |
-| minimal_2  |  90.78%  | 90.59%     |          |         |         |
+| minimal_2  |  91.78%  | 91.26%     |          |         |         |
 
 #### Training, validation and evaluation data sets
 ---
@@ -60,3 +55,7 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 
 `achilles make --dirs bp,human_chr14 --data_file training.chr14.h5 -l 400 -s 400 -m 150000`
 
+### Documentation
+---
+
+[asclepius.readthedocs.io](https://asclepius.readthedocs.io)
