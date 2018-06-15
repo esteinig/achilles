@@ -94,7 +94,9 @@ class Terminal:
                           type=str, help="CSV output paths for evaluations")
         eval.set_defaults(subparser='evaluate')
 
+        # Prediction
         pred = subparsers.add_parser("predict", help="Run prediction on Fast5 signal file")
+
         pred.add_argument("--input_files", "--input", "-i", required=False, dest="input_files", default="read.fast5",
                           type=str, help="Fast5 files for prediction.", nargs="+")
         pred.add_argument("--model_file", "--model", "-m", required=False, dest="model_file", default="model.h5",
@@ -107,7 +109,7 @@ class Terminal:
                           help="Number of consecutive windows to extract for prediction.")
         pred.add_argument("--window_random", "--random", required=False, action="store_true",
                           help="Number of consecutive windows to extract for prediction.")
-        pred.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=1, type=int,
+        pred.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=10, type=int,
                           help="Prediction mini batch size.")
         pred.set_defaults(subparser='predict')
 

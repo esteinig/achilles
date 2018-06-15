@@ -3,7 +3,7 @@ import pandas
 
 from achilles.dataset import Dataset
 from achilles.model import Achilles
-from achilles.utils import read_signal, transform_signal_to_tensor
+from achilles.utils import read_signal, transform_signal_to_tensor, timeit
 
 
 def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2, data_path: str="data",
@@ -21,7 +21,7 @@ def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2
             ds = Dataset(data_file=file)
             eval_gen = ds.get_signal_generator(data_type=data_path, batch_size=batch_size, shuffle=True)
 
-            seconds, loss, acc = achilles.evaluate(eval_generator=eval_gen, workers=workers)
+            loss, acc, seconds = achilles.evaluate(eval_generator=eval_gen, workers=workers)
 
             results[model][file] = {
                 "seconds": seconds,
@@ -55,24 +55,33 @@ def evaluate_predictions():
     pass
 
 
-def predict(fast5: str, model: Achilles, window_max: int = 10, window_size: int = 400, window_step: int = 400,
-            batch_size: int = 10, random: bool = False) -> numpy.array:
+def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400, window_step: int = 400,
+            batch_size: int = 10, window_random: bool = False) -> numpy.array:
 
-    """ Predict from Fast5 using loaded model, either from begiining of signal or randomly sampled """
+    """ Predict from Fast5 using loaded model, either from beginning of signal or randomly sampled """
 
-    # This can be memory consuming and may be too slow to load all windows
-    # and then select first or random (signal_max)
-    signal_windows = read_signal(fast5, window_size=window_size, window_step=window_step)
+    achilles = Achilles()
+    achilles.load_model(model_file=model)
 
-    if random:
-        numpy.random.shuffle(signal_windows)
+    for file in fast5:
+        # This can be memory consuming and may be too slow to load all windows
+        # and then select first or random (signal_max) - need test for None, to get all windows:
+        signal_windows, total_windows = read_signal(file, window_size=window_size, window_step=window_step,
+                                                    normalize=False, window_random=window_random,
+                                                    window_recover=False, window_max=window_max)
 
-    # Select first
-    signal_windows = signal_windows[:window_max]
+        if signal_windows is not None:
+            nb_windows = len(signal_windows)
+            # Select first
+            signal_tensors = transform_signal_to_tensor(signal_windows)
+            # Predict with instance of model, batch size is
+            # the number of windows extracted for prediction for now:
+            # Test if cumulative sum of probabilities is bettert han average?
+            prediction = achilles.predict(signal_tensors, batch_size=batch_size).mean(axis=0)
+        else:
+            nb_windows, prediction = "-", "-"
 
-    signal_tensors = transform_signal_to_tensor(signal_windows)
+        # name = os.path.basename(file)
+        stdout = "{}\t{}\t{}\t{}\t".format(prediction, nb_windows, total_windows, file)
 
-    # Predict with instance of model, batch size is
-    # the number of windows extracted for prediction for now:
-
-    return model.predict(signal_tensors, batch_size=batch_size).mean(axis=0)
+        print(stdout)

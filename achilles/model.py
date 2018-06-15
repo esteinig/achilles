@@ -145,8 +145,7 @@ class Achilles:
 
         # Read Fast5 and extract windows from signal array:
 
-        # Select random or beginning conscutive windows
-
+        # Select random or beginning consecutive windows
         return self.model.predict(x=signals, batch_size=batch_size)
 
     @staticmethod

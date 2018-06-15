@@ -25,7 +25,7 @@ def main():
             ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_windows_per_class=args["signal_max"],
                           window_size=args["signal_length"], window_step=args["signal_stride"],
                           normalize=args["normalize"], max_windows_per_read=args["window_max"],
-                          windows_from_start=args["window_start"])
+                          window_random=args["window_random"], window_recover=True)
 
             if args["validation"] > 0:
                 ds.training_validation_split(validation=args["validation"], window_size=args["signal_length"],
@@ -60,21 +60,9 @@ def main():
 
     if args["subparser"] == "predict":
 
-        # Options here: predict file (random, beginning, watch dir for new files and predict, ReadUntil API)
-
-        model = Achilles()
-
-        model.load_model(args["model_file"])
-
-        # Is it faster to predict by file or aggregate into batches
-        # and predict bacth-wise - probably for live sequencing, it needs
-        # to be by file, for retrospective / simulation as batches.
-        for file in args["input_files"]:
-            prediction = predict(fast5=file, model=model, window_max=args["windows"], window_size=args["window_size"],
-                                 window_step=args["window_step"], batch_size=args["batch_size"],
-                                 random=args["window_random"])
-
-            print(prediction)
+        predict(fast5=args["input_files"], model=args["model_file"], window_max=args["windows"],
+                window_size=args["window_size"], window_step=args["window_step"],
+                batch_size=args["batch_size"], window_random=args["window_random"])
 
     if args["subparser"] == "plot":
 

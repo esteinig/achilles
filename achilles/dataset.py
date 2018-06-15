@@ -34,7 +34,7 @@ class Dataset:
         return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
 
     def write_data(self, *dirs, classes=2, max_windows_per_class=20000, max_windows_per_read=100,
-                   window_size=400, window_step=400, windows_from_start=False, normalize=False):
+                   window_size=400, window_step=400, window_random=True, window_recover=True, normalize=False):
 
         """ Primary function to extract windows (slices) at random indices in the arrays that hold
         nanopore signal values in the (shuffled) sequencing files (.fast5) located in directories that contain
@@ -95,24 +95,8 @@ class Dataset:
 
                         # Slice whole signal array into windows. May be more efficient to index first:
                         signal_windows = read_signal(fast5, normalize=normalize, window_size=window_size,
-                                                     window_step=window_step)
-
-                        # TODO: Evaluate what happens when constructing data from beginning of read (probably not good
-                        # TODO: as it captures the adapters) - at the moment use random index + consecutive windows
-                        if not windows_from_start:
-                            # Select a random index to extract signal windows
-                            rand_index = random.randint(0, signal_windows.shape[0])
-                            # If max_windows_per_read can be extracted...
-                            if rand_index + max_windows_per_read <= len(signal_windows):
-                                # ...extract them:
-                                signal_windows = signal_windows[rand_index:rand_index+max_windows_per_read, :]
-                            else:
-                                # If there are fewer signal windows in the file than max_windows_per_read, take all
-                                # windows from this file, as to not bias for longer reads, then continue:
-                                signal_windows = signal_windows[:]
-                        else:
-                            # From beginning of read:
-                            signal_windows = signal_windows[:max_windows_per_read]
+                                                     window_step=window_step, window_max=max_windows_per_read,
+                                                     window_random=window_random, window_recover=window_recover)
 
                         # Proceed if the maximum number of windows per class has not been reached,
                         # and if there are windows extracted from the Fast5:

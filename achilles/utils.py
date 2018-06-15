@@ -1,8 +1,10 @@
 import random
-import time
+import datetime
 import numpy as np
 from matplotlib import style
 from matplotlib import pyplot as plt
+
+from itertools import tee, islice
 
 from skimage.util import view_as_windows
 from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
@@ -102,15 +104,38 @@ def transform_signal_to_tensor(array):
     return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
 
 
-def read_signal(fast5: str, normalize: bool = False, window_size: int = 4000, window_step: int = 400) -> np.array:
+def timeit(mili=False):
+    def decorator(func):
+        """ Timing decorator for functions and methods """
+        def timed(*args, **kw):
+            start_time = datetime.datetime.now()
+            result = func(*args, **kw)
+            time_delta = datetime.datetime.now()-start_time
+            seconds = time_delta.total_seconds()
+            if mili:
+                seconds = int(seconds * 1000)  # Miliseconds
+            # print("Runtime:", seconds, "seconds")
+            # Flatten output if the output of a function is a tuple with multiple items
+            # if this is the case, seconds are at index -1
+            return [num for item in [result, seconds]
+                    for num in (item if isinstance(item, tuple) else (item,))]
+        return timed
+    return decorator
+
+
+def read_signal(fast5: str, normalize: bool = False, window_size: int = 400, window_step: int = 400, window_max=10,
+                window_random: bool=True, window_recover: bool=True) -> np.array:
 
     """ Read scaled raw signal in pA (float) from Fast5 using ONT API
 
-    :param fast5        str     path to .fast5 file
-    :param normalize    bool    normalize signal by subtracting mean and dividing by standard deviation
-    :param window_size  int     run sliding window along signal with size, pass None to return all signal values
-    :param window_step  int     sliding window stride, usually 10% of window_size, but appears good on as well
-                                on non-overlapping window slides where window_step = window_size
+    :param fast5            str     path to .fast5 file
+    :param normalize        bool    normalize signal by subtracting mean and dividing by standard deviation
+    :param window_size      int     run sliding window along signal with size, pass None to return all signal values
+    :param window_step      int     sliding window stride, usually 10% of window_size, but appears good on as well
+                                    on non-overlapping window slides where window_step = window_size
+    :param window_max       int
+    :param window_random    bool
+    :param window_recover   bool
 
     """
 
@@ -122,20 +147,40 @@ def read_signal(fast5: str, normalize: bool = False, window_size: int = 4000, wi
     if normalize:
         signal = (signal - signal.mean()) / signal.std()
 
-    if window_size:
-        return view_as_windows(signal, window_size, window_step)
+    signal_windows = view_as_windows(signal, window_size, window_step)
+
+    # Select a random index to extract signal slices, subtract window_max
+    # to generate a suitable index for desired size, if the maximum possible
+    # index with the slice size is >= 0 (when number of windows >= slice size)
+    # then proceed to either randomly take a slice or from start:
+    nb_windows = len(signal_windows)
+    max_index = nb_windows - window_max
+
+    if max_index >= 0:
+        if window_random:
+            # If max_windows_per_read can be extracted...select random index:
+            rand_index = random.randint(0, max_index)
+            # ... and extract them:
+            signal_windows = signal_windows[rand_index:rand_index + window_max, :]
+        else:
+            signal_windows = signal_windows[:window_max]
     else:
-        return signal
+        # If there are fewer signal windows in the file than window_max...
+        if window_recover:
+            # If recovery is on, take all windows from this file,
+            # as to not bias for longer reads in the sampling process for
+            # generating training data:
+            signal_windows = signal_windows[:]
+        else:
+            # Otherwise, return None and skip read, this is more
+            # useful in live prediction if a read has not enough
+            # window_max) signal values written to it yet
+            signal_windows = None
+
+    return signal_windows, nb_windows
 
 
-def timeit(func):
-    """ Timing decorator for functions and methods """
-    def timed(*args, **kw):
-        start_time = time.time()
-        result = func(*args, **kw)
-        seconds = round(time.time()-start_time, 2)
-        # print("Runtime:", seconds, "seconds")
-        # Flatten output if the output of a function is a tuple with multiple items:
-        return [num for item in [seconds, result]
-                for num in (item if isinstance(item, tuple) else (item,))]
-    return timed
+# Test this out instead of view_as_windows:
+def window(it, size=3):
+    yield from zip(*[islice(it, s, None) for s, it in enumerate(tee(it, size))])
+
