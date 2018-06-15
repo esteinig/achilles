@@ -47,8 +47,9 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 * 400 x 400, not normalized, random consecutive scan
 
 * random selection (same as training) of terminal [chromosome 20 (part5)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar) Fast5
-* random selection of terminal [chromosome 11 (part9)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr11.part09.tar) Fast5
 * random selection  (same as training) of central [chromosome 14 (part4)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar) Fast5
+* random selection of terminal [chromosome 11 (part9)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr11.part09.tar) Fast5
+
 * mixed random selection of chromosomes (11, 14, 20)
 
 **Example command line task to generate training and evaluation data**:
