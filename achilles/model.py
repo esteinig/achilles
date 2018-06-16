@@ -130,7 +130,7 @@ class Achilles:
 
         self.model = load_model(model_file)
 
-    @timeit
+    @timeit()
     def evaluate(self, eval_generator, workers=2):
 
         """ Evaluate model against presented dataset """
