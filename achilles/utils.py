@@ -104,16 +104,23 @@ def transform_signal_to_tensor(array):
     return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
 
 
-def timeit(func):
-    """ Timing decorator for functions and methods """
-    def timed(*args, **kw):
-        start_time = datetime.datetime.now()
-        result = func(*args, **kw)
-        time_delta = datetime.datetime.now()-start_time
-        seconds = time_delta.total_seconds()
-        micro_seconds = int(seconds * 1000000)
-        print(seconds, "seconds =", micro_seconds, "microseconds." ) # Microseconds
-    return timed
+def timeit(micro=False):
+    def decorator(func):
+        """ Timing decorator for functions and methods """
+        def timed(*args, **kw):
+            start_time = datetime.datetime.now()
+            result = func(*args, **kw)
+            time_delta = datetime.datetime.now()-start_time
+            seconds = time_delta.total_seconds()
+            if micro:
+                seconds = int(seconds * 1000000)  # Microseconds
+            # print("Runtime:", seconds, "seconds")
+            # Flatten output if the output of a function is a tuple with multiple items
+            # if this is the case, seconds are at index -1
+            return [num for item in [result, seconds]
+                    for num in (item if isinstance(item, tuple) else (item,))]
+        return timed
+    return decorator
 
 
 def read_signal(fast5: str, normalize: bool = False, window_size: int = 400, window_step: int = 400, window_max=10,
