@@ -85,3 +85,5 @@ def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400
         stdout = "{}\t{}\t{}\t{}\t".format(prediction, nb_windows, total_windows, file)
 
         print(stdout)
+
+make_pre
