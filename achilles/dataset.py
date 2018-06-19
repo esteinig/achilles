@@ -438,9 +438,10 @@ class DataGenerator(Sequence):
             return data, labels
 
 
+# Testing functions for plotting and writing data, will be removed:
 def plot_data():
 
-    for dataset in ("test.raw.mix_training.h5",):  #("eval.mix_training.h5", "baseline.chr20_training.h5", "eval.chr14_training.h5"):
+    for dataset in ("test.raw.mix_training.h5",):
         ds = Dataset("../"+dataset)
 
         ds.plot_signal_distribution(nb_windows=100000, data_path="training", histogram=True, limit=(0, 1200))
@@ -453,5 +454,5 @@ def write_data():
     ds.write_data("../dir1", "../dir2")
 
 
-plot_data()
+# plot_data()
 
