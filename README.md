@@ -1,7 +1,4 @@
-
-<p align="center">
-  <img src="logo.png"></img>
-</p>
+<p align="left"><img src="logo.png" height="115" width="110"></img></p>
 
 # Achilles
 
@@ -21,6 +18,7 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 | :-------: | :-------: | :-----: | :-------: | :-------: | :---------: | :----: | :------------: |  :--------: | :-----: |
 | minimal_1 |  1        | 1       | 400 x 400 | 300000    | 800         | 38/40  | 0.2            |  999,778    | Chr20   |
 | minimal_2 |  1        | 1       | 400 x 400 | 300000    | 800         | 38/40  | 0.2            |  999,778    | Chr14   |
+| minimal_3 |  1        | 1       | 400 x 400 | 300000    | 800         | 39/40  | 0.3            |  999,778    | Mixed   |
 
 #### Evaluations (Accuracy)
 ---
@@ -30,6 +28,7 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 | :--------: | :-------:| :--------: | :------: | :-----: | :-----: | :----: |
 | minimal_1  |  90.78%  | 90.59%     | 89.37%   | 87.04%  | 86.50%  | 87.97% |
 | minimal_2  |  91.78%  | 91.26%     | 85.42%   | 88.30%  | 84.03%  | 86.27% |
+| minimal_3  |  90.81%  | 90.56%     | 87.60%   | 87.61%  | 86.90%  | 90.47% |
 
 #### Training, validation and evaluation data sets
 ---
