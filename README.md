@@ -14,21 +14,22 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 #### Architectures
 ---
 
-| Run ID    | ResBlocks | BLSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   |  Parameters | Dataset |
-| :-------: | :-------: | :-----: | :-------: | :-------: | :---------: | :----: | :------------: |  :--------: | :-----: |
-| minimal_1 |  1        | 1       | 400 x 400 | 300000    | 800         | 38/40  | 0.2            |  999,778    | Chr20   |
-| minimal_2 |  1        | 1       | 400 x 400 | 300000    | 800         | 38/40  | 0.2            |  999,778    | Chr14   |
-| minimal_3 |  1        | 1       | 400 x 400 | 300000    | 800         | 39/40  | 0.3            |  999,778    | Mixed   |
+| Run ID    | ResBlocks | BLSTMs  | Windows   | Total     | Batch Size  | Epochs | LSTM Dropout   |  Parameters | 
+| :-------: | :-------: | :-----: | :-------: | :-------: | :---------: | :----: | :------------: |  :--------: | 
+| minimal_1 |  1        | 1       | 400 x 400 | 300000    | 800         | 38/40  | 0.2            |  999,778    | 
+| minimal_2 |  1        | 1       | 400 x 400 | 300000    | 800         | 38/40  | 0.2            |  999,778    | 
+| minimal_3 |  1        | 1       | 400 x 400 | 300000    | 800         | 39/40  | 0.3            |  999,778    | 
+| minimal_3 |  1        | 1       | 400 x 400 | 300000    | 800         | 39/40  | 0.2            |  999,778    | 
 
 #### Evaluations (Accuracy)
 ---
 
-
-| Run ID     | Training | Validation | Chr20    | Chr14   | Chr11   | Mixed  |
-| :--------: | :-------:| :--------: | :------: | :-----: | :-----: | :----: |
-| minimal_1  |  90.78%  | 90.59%     | 89.37%   | 87.04%  | 86.50%  | 87.97% |
-| minimal_2  |  91.78%  | 91.26%     | 85.42%   | 88.30%  | 84.03%  | 86.27% |
-| minimal_3  |  90.81%  | 90.56%     | 87.60%   | 87.61%  | 86.90%  | 90.47% |
+| Run ID     | Dataset | Signal  | Training | Validation | Chr20    | Chr14   | Chr11   | Mixed  |
+| :--------: | :-----: |:-------:| :------: |:--------:  | :------: | :-----: | :-----: | :----: |
+| minimal_1  | Chr20   | pA      | 90.78%   | 90.59%     | 89.37%   | 87.04%  | 86.50%  | 87.97% |
+| minimal_2  | Chr14   | pA      | 91.78%   | 91.26%     | 85.42%   | 88.30%  | 84.03%  | 86.27% |
+| minimal_3  | Mixed   | pA      | 90.81%   | 90.56%     | 87.60%   | 87.61%  | 86.90%  | 90.47% |
+| minimal_4  | Mixed   | DAC     | 90.12%   | 89.70%     |          |         |         |        |
 
 #### Training, validation and evaluation data sets
 ---
