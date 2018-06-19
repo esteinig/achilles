@@ -61,6 +61,11 @@ class Achilles:
         # Bidirectional RNN  #
         ######################
 
+        if gru:
+            rnn_layer = layers.CuDNNGRU if gpu else layers.GRU
+        else:
+            rnn_layer = layers.CuDNNLSTM if gpu else layers.LSTM
+
         # Add two Bidirectional RNN layers where sequences returned,
         # then into last layer with standard RNN output into Dense
         if nb_rnn > 0:
@@ -69,34 +74,9 @@ class Achilles:
                 for i in range(nb_rnn-1):
                     # The following structure adds GRU or LSTM cells to the model, and depending on whether the net is
                     # trained / executed exclusively on GPU, standard cells are replaced by CuDNN variants:
-                    if gru:
-                        if gpu:
-                            x = layers.Bidirectional(layers.CuDNNGRU(rnn_units, return_sequences=True,
-                                                                     dropout=dropout, recurrent_dropout=rc_dropout))(x)
-                        else:
-                            x = layers.Bidirectional(layers.GRU(rnn_units, return_sequences=True, dropout=dropout,
-                                                                recurrent_dropout=rc_dropout))(x)
-                    else:
-                        if gpu:
-                            x = layers.Bidirectional(layers.CuDNNLSTM(rnn_units, return_sequences=True,
-                                                                      dropout=dropout, recurrent_dropout=rc_dropout))(x)
-                        else:
-                            x = layers.Bidirectional(layers.LSTM(rnn_units, return_sequences=True, dropout=dropout,
-                                                                 recurrent_dropout=rc_dropout))(x)
-            # Same here, last (or only) RNN layer does not return sequences:
-            if gru:
-                if gpu:
-                    x = layers.Bidirectional(layers.CuDNNGRU(rnn_units, dropout=dropout,
-                                                             recurrent_dropout=rc_dropout))(x)
-                else:
-                    x = layers.Bidirectional(layers.GRU(rnn_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
-            else:
-                if gpu:
-                    x = layers.Bidirectional(layers.CuDNNLSTM(rnn_units, dropout=dropout,
-                                                              recurrent_dropout=rc_dropout))(x)
-                else:
-                    x = layers.Bidirectional(layers.LSTM(rnn_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
-
+                    x = layers.Bidirectional(rnn_layer(rnn_units, return_sequences=True, dropout=dropout,
+                                                       recurrent_dropout=rc_dropout))(x)
+            x = layers.Bidirectional(rnn_layer(rnn_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
         else:
             # If no RNN layers, flatten shape for Dense
             x = layers.Flatten()(x)
