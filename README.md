@@ -32,6 +32,7 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 | minimal_4  | Mixed   | 300000  | DAC     | 400x400  | Binary CE | Adam       | 800        | 40/40  |  90.12%   | 89.70%     |
 
 #### Evaluations
+---
 
 | Run ID     | Chr20    | Chr14   | Chr11   | Mixed  |
 | :--------: | :------: | :-----: | :-----: | :----: |
@@ -41,6 +42,7 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 | minimal_4  |          |         |         |        |
 
 #### Prediction Evalutations
+---
 
 pass
 
