@@ -18,7 +18,7 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 | :-------: | :-------: | :------: | :-----: | :-------: | :-------: | :---------: | :---------------: | :------------: | :------: | :--------:  | 
 | minimal_1 |  1        | 256      | 1       | LSTM (n)  | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | 
 | minimal_2 |  1        | 256      | 1       | LSTM (n)  | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | 
-| minimal_3 |  1        | 256      | 1       | LSTM (n)  | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | 
+| minimal_3 |  1        | 256      | 1       | LSTM (n)  | 200       | 0.3         | 0.3               | Softmax        | 2        |  999,778    | 
 | minimal_3 |  1        | 256      | 1       | LSTM (n)  | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | 
 
 #### Training 
