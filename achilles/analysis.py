@@ -56,7 +56,7 @@ def evaluate_predictions():
 
 
 def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400, window_step: int = 400,
-            batch_size: int = 10, window_random: bool = False) -> numpy.array:
+            batch_size: int = 10, window_random: bool = False, scale: bool = True) -> numpy.array:
 
     """ Predict from Fast5 using loaded model, either from beginning of signal or randomly sampled """
 
@@ -68,20 +68,20 @@ def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400
         # and then select first or random (signal_max) - need test for None, to get all windows:
         signal_windows, total_windows = read_signal(file, window_size=window_size, window_step=window_step,
                                                     normalize=False, window_random=window_random,
-                                                    window_recover=False, window_max=window_max)
+                                                    window_recover=False, window_max=window_max,
+                                                    scale=scale)
 
         if signal_windows is not None:
-            nb_windows = len(signal_windows)
             # Select first
-            signal_tensors = transform_signal_to_tensor(signal_windows)
+            nb_windows, signal_tensors = len(signal_windows), transform_signal_to_tensor(signal_windows)
             # Predict with instance of model, batch size is
             # the number of windows extracted for prediction for now:
-            # Test if cumulative sum of probabilities is bettert han average?
-            prediction = achilles.predict(signal_tensors, batch_size=batch_size).mean(axis=0)
+            # Test if cumulative sum of probabilities is better than average?
+            prediction, microseconds = achilles.predict(signal_tensors, batch_size=batch_size).mean(axis=0)
         else:
-            nb_windows, prediction = "-", "-"
+            nb_windows, prediction, microseconds = "-", "-", "-"
 
         # name = os.path.basename(file)
-        stdout = "{}\t{}\t{}\t{}\t".format(prediction, nb_windows, total_windows, file)
+        stdout = "{}\t{}\t{}\t{}\t{}\t".format(prediction, nb_windows, total_windows, microseconds, file)
 
         print(stdout)

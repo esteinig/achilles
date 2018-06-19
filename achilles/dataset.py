@@ -4,12 +4,19 @@ import random
 import logging
 import numpy as np
 
+import matplotlib.pyplot as plt
+import matplotlib.style as style
+import seaborn as sns
+
 from tqdm import tqdm
+from scipy.stats import sem
 from sklearn.model_selection import train_test_split
 from achilles.utils import read_signal, chunk
 from textwrap import dedent
 from keras.utils import Sequence
 from keras.utils.np_utils import to_categorical
+
+style.use("ggplot")
 
 
 class Dataset:
@@ -34,7 +41,8 @@ class Dataset:
         return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
 
     def write_data(self, *dirs, classes=2, max_windows_per_class=20000, max_windows_per_read=100,
-                   window_size=400, window_step=400, window_random=True, window_recover=True, normalize=False):
+                   window_size=400, window_step=400, window_random=True, window_recover=True, normalize=False,
+                   scale=True):
 
         """ Primary function to extract windows (slices) at random indices in the arrays that hold
         nanopore signal values in the (shuffled) sequencing files (.fast5) located in directories that contain
@@ -94,9 +102,10 @@ class Dataset:
                     for fast5 in files:
 
                         # Slice whole signal array into windows. May be more efficient to index first:
-                        signal_windows = read_signal(fast5, normalize=normalize, window_size=window_size,
-                                                     window_step=window_step, window_max=max_windows_per_read,
-                                                     window_random=window_random, window_recover=window_recover)
+                        signal_windows, _ = read_signal(fast5, normalize=normalize, window_size=window_size,
+                                                        window_step=window_step, window_max=max_windows_per_read,
+                                                        window_random=window_random, window_recover=window_recover,
+                                                        scale=scale)
 
                         # Proceed if the maximum number of windows per class has not been reached,
                         # and if there are windows extracted from the Fast5:
@@ -167,12 +176,15 @@ class Dataset:
 
         print("Splitting data into training and validation sets...\n")
         with h5py.File(self.data_file, "r") as data_file:
-            # Randomize the indices from data/data:
-            random_indices = np.arange(data_file["data/data"].shape[0])
 
-            training_indices, validation_indices = train_test_split(random_indices, test_size=validation,
+            # Get all indices for reading / writing in chunks:
+            indices = np.arange(data_file["data/data"].shape[0])
+
+            # Randomize the indices from data/data and split for training / validation:
+            training_indices, validation_indices = train_test_split(indices, test_size=validation,
                                                                     random_state=None, shuffle=True)
 
+            # Sanity checks for random and non-duplicated selection of indices:
             print("Sample of randomized training   indices:", training_indices[:5])
             print("Sample of randomized validation indices:", validation_indices[:5], "\n")
 
@@ -203,6 +215,63 @@ class Dataset:
                         pbar.update(len(i_val_chunk))
 
                 self.print_data_summary(data_file=outfile)
+
+    def plot_signal_distribution(self, random_windows=True, nb_windows=10000, data_path="data", limit=(0, 300),
+                                 histogram=False, bins=None, stats=True):
+
+        """ Plotting function to generate signal value histograms for each category, sampled randomly
+        this operates on the standard data path, but can be changed to training / validation data paths in HDF5 """
+
+        with h5py.File(self.data_file, "r") as data_file:
+            # Get all indices from data path in HDF5
+            indices = np.arange(data_file[data_path + "/data"].shape[0])
+            # Randomize indices:
+            if random_windows:
+                np.random.shuffle(indices)
+
+            # Select chunk size indices...
+            indices = indices[:nb_windows]
+            # ... and extract into memory:
+            data_chunk = np.take(data_file[data_path + "/data"], indices, axis=0)
+            label_chunk = np.take(data_file[data_path + "/labels"], indices, axis=0)
+            # Transform one-hot encoded labels and get unique labels:
+            all_labels = np.argmax(label_chunk, axis=1)
+            # Labels should be integers starting at 0, so sort them for plot legend:
+            unique_labels = sorted(np.unique(all_labels))
+
+            # For each label, extract corresponding data chunk and flatten into simple array,
+            # then plot as histogram or kernel density estimate with Seaborn (easier to see):
+            for label in unique_labels:
+                i = np.where(all_labels == label)[0]
+                # Extract data label-wise from chunk...
+                data = np.take(data_chunk, i, axis=0)
+                # ... then flatten into one-dimensional array:
+                data = data.flatten()
+
+                if limit:
+                    # Print percentage of reads exceeding limits:
+                    below_limit = round(len(data[data < limit[0]]), 6)
+                    above_limit = round(len(data[data > limit[1]]), 6)
+                    print("Limit warning: found {}% ({}) signal values < {} and "
+                          "{}% ({}) signal values > {} for label {}"
+                          .format(round((below_limit/len(data))*100, 6), below_limit, limit[0],
+                                  round((above_limit/len(data))*100, 6), above_limit, limit[1], label))
+                    # Subset the data by limits:
+                    data = data[(data > limit[0]) & (data < limit[1])]
+
+                if stats:
+                    mean = data.mean()
+                    standard_error = sem(data)
+                    print("Label {}: {} +- {}".format(label, round(mean, 6), round(standard_error, 4)))
+
+                # Plot signal values:
+                if histogram:
+                    sns.distplot(data, kde=False, bins=bins)
+                else:
+                    sns.kdeplot(data, shade=True)
+
+            plt.legend(unique_labels, title="Label")
+            plt.show()
 
     @staticmethod
     def create_data_paths(file, window_size=400, classes=2):
@@ -289,16 +358,15 @@ class Dataset:
         return dataset
 
     @staticmethod
-    def transform_signal_to_tensor(vector):
+    def transform_signal_to_tensor(array):
 
         """ Transform data (nb_windows, window_size) to (nb_windows, 1, window_size, 1)
-        for input into Conv2D layer: (samples, height, width, channels),
+        for input into Conv2D layer: (samples, height, width, channels) = (nb_windows, 1, window_length, 1)
         """
 
         # Return 4D array (samples, 1, width, 1)
-        # TODO: This can be done better, look at numpy.reshape:
-        # return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
-        return np.array([[[[signal] for signal in data]] for data in vector[:]])
+        # Old: np.array([[[[signal] for signal in data]] for data in vector[:]])
+        return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
 
 
 class DataGenerator(Sequence):
@@ -370,9 +438,20 @@ class DataGenerator(Sequence):
             return data, labels
 
 
-def test_write_data():
+def plot_data():
+
+    for dataset in ("test.raw.mix_training.h5",):  #("eval.mix_training.h5", "baseline.chr20_training.h5", "eval.chr14_training.h5"):
+        ds = Dataset("../"+dataset)
+
+        ds.plot_signal_distribution(nb_windows=100000, data_path="training", histogram=True, limit=(0, 1200))
+
+
+def write_data():
 
     ds = Dataset("../test.h5")
 
     ds.write_data("../dir1", "../dir2")
+
+
+plot_data()
 

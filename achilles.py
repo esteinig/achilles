@@ -25,7 +25,7 @@ def main():
             ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_windows_per_class=args["signal_max"],
                           window_size=args["signal_length"], window_step=args["signal_stride"],
                           normalize=args["normalize"], max_windows_per_read=args["window_max"],
-                          window_random=args["window_random"], window_recover=True)
+                          window_random=args["window_random"], window_recover=True, scale=args["scale"])
 
             if args["validation"] > 0:
                 ds.training_validation_split(validation=args["validation"], window_size=args["signal_length"],
@@ -38,7 +38,8 @@ def main():
 
         achilles.build(signal_length=args["signal_length"], activation=args["activation"],
                        nb_residual_block=args["nb_residual_blocks"], nb_channels=args["nb_channels"],
-                       nb_lstm=args["nb_lstm"], dropout=args["dropout"], rc_dropout=args["rc_dropout"])
+                       nb_rnn=args["nb_rnn"], rnn_units=args["rnn_units"], gru=args["gru"], gpu=args["gpu"],
+                       dropout=args["dropout"], rc_dropout=args["rc_dropout"])
 
         # Compile model with loss function and optimizer
         achilles.compile(optimizer=args["optimizer"], loss=args["loss"])

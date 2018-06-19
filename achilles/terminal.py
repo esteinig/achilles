@@ -26,6 +26,8 @@ class Terminal:
                           action="store_true", help="Extract consecutive windows from start of read.")
         prep.add_argument("--window_length", "-len", "-l", required=False, default=400, dest="signal_length", type=int,
                            help="Length of signal windows.")
+        prep.add_argument("--raw", "-r", required=False, action="store_true", dest="raw",
+                          help="Use raw (DAC) values instead of scaled picoampere (pA).")
         prep.add_argument("--window_step", "-s", required=False, default=400, dest="signal_stride", type=int,
                            help="Length of step for signal windows.")
         prep.add_argument("--normalize", "-norm", "-n", required=False, action="store_true", dest="normalize",
@@ -68,8 +70,17 @@ class Terminal:
                           help="Number of residual blocks in CNN layers.")
         train.add_argument("--nb_channels", "-ch", required=False, type=int, default=256, dest="nb_channels",
                           help="Number of channels in residual block convolution layers.")
-        train.add_argument("--nb_lstm", "-lstm", required=False, type=int, default=1, dest="nb_lstm",
-                          help="Number of bidirectional LSTMs in RNN layers.")
+
+        train.add_argument("--nb_rnn", "-rnn", required=False, type=int, default=1, dest="nb_rnn",
+                          help="Number of bidirectional RNN layers (default LSTM).")
+        train.add_argument("--rnn_units", "-units", "-u", required=False, type=int, default=200, dest="rnn_units",
+                           help="Number of units in bidirectional RNN layers (default 200).")
+
+        train.add_argument("--gru", required=False, action="store_true", dest="gru",
+                           help="Use GRU layers instead of LSTM in RNN.")
+        train.add_argument("--gpu", "-g", required=False, action="store_true", dest="gpu",
+                           help="Use CuDNN variants of RNN layers (only when using GPU).")
+
         train.add_argument("--dropout", "-d", required=False, type=float, default=0, dest="dropout",
                            help="Dropout fraction applied to LSTM between 0 and 1 (default: 0.0)")
         train.add_argument("--recurrent_dropout", "--rc_dropout", "-r", required=False, type=float, default=0,
@@ -107,8 +118,10 @@ class Terminal:
                           help="Window size to extract for prediction.")
         pred.add_argument("--window_step", "--step", required=False, dest="window_step", default=400, type=int,
                           help="Number of consecutive windows to extract for prediction.")
-        pred.add_argument("--window_random", "--random", required=False, action="store_true",
+        pred.add_argument("--window_random", "--random", required=False, action="store_true", dest="window_random",
                           help="Number of consecutive windows to extract for prediction.")
+        pred.add_argument("--raw", "-r", required=False, action="store_true", dest="raw",
+                          help="Use raw (DAC) values instead of scaled picoampere (pA).")
         pred.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=10, type=int,
                           help="Prediction mini batch size.")
         pred.set_defaults(subparser='predict')
@@ -159,3 +172,17 @@ class Terminal:
         # For nargs:
         if "input_files" in self.args.keys():
             self.args["input_files"] = [os.path.abspath(file) for file in self.args["input_files"]]
+
+        # For making dataset, random window sampling is default on,
+        # to disable with window_start flag for better user comprehension:
+        if "window_start" in self.args.keys():
+            if self.args["window_start"]:
+                self.args["window_random"] = False
+            else:
+                self.args["window_random"] = True
+
+        if "raw" in self.args.keys():
+            if self.args["raw"]:
+                self.args["scale"] = False
+            else:
+                self.args["scale"] = True

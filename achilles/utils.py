@@ -1,5 +1,6 @@
 import random
 import datetime
+import pandas
 import numpy as np
 from matplotlib import style
 from matplotlib import pyplot as plt
@@ -123,10 +124,10 @@ def timeit(micro=False):
     return decorator
 
 
-def read_signal(fast5: str, normalize: bool = False, window_size: int = 400, window_step: int = 400, window_max=10,
-                window_random: bool=True, window_recover: bool=True) -> np.array:
+def read_signal(fast5: str, normalize: bool = False, scale: bool=True, window_size: int = 400, window_step: int = 400,
+                window_max: int=10, window_random: bool=True, window_recover: bool=True) -> np.array:
 
-    """ Read scaled raw signal in pA (float) from Fast5 using ONT API
+    """ Read scaled raw signal in pA (float32) if scaling is enabled or raw (DAC, int16) values from Fast5 using ONT API
 
     :param fast5            str     path to .fast5 file
     :param normalize        bool    normalize signal by subtracting mean and dividing by standard deviation
@@ -137,12 +138,13 @@ def read_signal(fast5: str, normalize: bool = False, window_size: int = 400, win
     :param window_random    bool
     :param window_recover   bool
 
+    :returns tuple of window_max signal windows (np.array) and number of total signal windows before window_max
     """
 
     fast5 = Fast5File(fname=fast5)
 
     # Scale for array of float(pA values)
-    signal = fast5.get_raw_data(scale=True)
+    signal = fast5.get_raw_data(scale=scale)
 
     if normalize:
         signal = (signal - signal.mean()) / signal.std()
@@ -153,8 +155,8 @@ def read_signal(fast5: str, normalize: bool = False, window_size: int = 400, win
     # to generate a suitable index for desired size, if the maximum possible
     # index with the slice size is >= 0 (when number of windows >= slice size)
     # then proceed to either randomly take a slice or from start:
-    nb_windows = len(signal_windows)
-    max_index = nb_windows - window_max
+    nb_windows_total = len(signal_windows)
+    max_index = nb_windows_total - window_max
 
     if max_index >= 0:
         if window_random:
@@ -177,10 +179,19 @@ def read_signal(fast5: str, normalize: bool = False, window_size: int = 400, win
             # window_max) signal values written to it yet
             signal_windows = None
 
-    return signal_windows, nb_windows
+    return signal_windows, nb_windows_total
 
 
 # Test this out instead of view_as_windows:
 def window(it, size=3):
     yield from zip(*[islice(it, s, None) for s, it in enumerate(tee(it, size))])
 
+
+def mem_usage(pandas_obj):
+    """ https://www.dataquest.io/blog/pandas-big-data/ """
+    if isinstance(pandas_obj,pandas.DataFrame):
+        usage_b = pandas_obj.memory_usage(deep=True).sum()
+    else: # we assume if not a df it's a series
+        usage_b = pandas_obj.memory_usage(deep=True)
+    usage_mb = usage_b / 1024 ** 2 # convert bytes to megabytes
+    return "{:03.2f} MB".format(usage_mb)

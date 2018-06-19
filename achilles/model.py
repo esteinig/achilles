@@ -24,8 +24,8 @@ class Achilles:
         self.data_file = data_file
         self.model = None
 
-    def build(self, signal_length=400, activation="softmax", nb_channels=256, _nb_classes=2, _lstm_units=200,
-              nb_residual_block=1, nb_lstm=1, dropout=0.0, rc_dropout=0.0, summary=True):
+    def build(self, signal_length=400, activation="softmax", nb_channels=256, rnn_units=200, _nb_classes=2,
+              nb_residual_block=1, nb_rnn=1, dropout=0.0, rc_dropout=0.0, gpu=False, gru=False, summary=True):
 
         # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
         # with dimensions (height, width, depth) - since it is a signal sequence:
@@ -58,20 +58,44 @@ class Achilles:
         x = layers.Reshape((1 * signal_length, nb_channels))(x)
 
         ######################
-        # Bidirectional LSTM #
+        # Bidirectional RNN  #
         ######################
 
-        # Add two Bidirectional LSTM layers where sequences returned,
-        # then into last layer with standard LSTM output into Dense
-
-        if nb_lstm > 0:
-            # Deep bidirectional LSTM layers must return sequences for stacking
-            if nb_lstm > 1:
-                for i in range(nb_lstm-1):
-                    x = layers.Bidirectional(layers.LSTM(_lstm_units, return_sequences=True, dropout=dropout,
-                                                         recurrent_dropout=rc_dropout))(x)
-
-            x = layers.Bidirectional(layers.LSTM(_lstm_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
+        # Add two Bidirectional RNN layers where sequences returned,
+        # then into last layer with standard RNN output into Dense
+        if nb_rnn > 0:
+            # Deep bidirectional RNN layers must return sequences for stacking
+            if nb_rnn > 1:
+                for i in range(nb_rnn-1):
+                    # The following structure adds GRU or LSTM cells to the model, and depending on whether the net is
+                    # trained / executed exclusively on GPU, standard cells are replaced by CuDNN variants:
+                    if gru:
+                        if gpu:
+                            x = layers.Bidirectional(layers.CuDNNGRU(rnn_units, return_sequences=True,
+                                                                     dropout=dropout, recurrent_dropout=rc_dropout))(x)
+                        else:
+                            x = layers.Bidirectional(layers.GRU(rnn_units, return_sequences=True, dropout=dropout,
+                                                                recurrent_dropout=rc_dropout))(x)
+                    else:
+                        if gpu:
+                            x = layers.Bidirectional(layers.CuDNNLSTM(rnn_units, return_sequences=True,
+                                                                      dropout=dropout, recurrent_dropout=rc_dropout))(x)
+                        else:
+                            x = layers.Bidirectional(layers.LSTM(rnn_units, return_sequences=True, dropout=dropout,
+                                                                 recurrent_dropout=rc_dropout))(x)
+            # Same here, last (or only) RNN layer does not return sequences:
+            if gru:
+                if gpu:
+                    x = layers.Bidirectional(layers.CuDNNGRU(rnn_units, dropout=dropout,
+                                                             recurrent_dropout=rc_dropout))(x)
+                else:
+                    x = layers.Bidirectional(layers.GRU(rnn_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
+            else:
+                if gpu:
+                    x = layers.Bidirectional(layers.CuDNNLSTM(rnn_units, dropout=dropout,
+                                                              recurrent_dropout=rc_dropout))(x)
+                else:
+                    x = layers.Bidirectional(layers.LSTM(rnn_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
 
         else:
             # If no RNN layers, flatten shape for Dense
@@ -139,6 +163,7 @@ class Achilles:
 
         return loss, acc
 
+    @timeit(micro=True)
     def predict(self, signals, batch_size=10):
 
         """ Predict signal arrays using model test function, might implement in class later"""
