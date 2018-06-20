@@ -61,10 +61,13 @@ class Achilles:
         # Bidirectional RNN  #
         ######################
 
+        # TODO: CUDNN does not support dropout / recurrent_dropout - fix this here, or disable GPU.
         if gru:
             rnn_layer = layers.CuDNNGRU if gpu else layers.GRU
         else:
             rnn_layer = layers.CuDNNLSTM if gpu else layers.LSTM
+
+        dropout_params = {} if gpu else {"dropout": dropout, "recurrent_dropout": rc_dropout}
 
         # Add two Bidirectional RNN layers where sequences returned,
         # then into last layer with standard RNN output into Dense
@@ -73,10 +76,10 @@ class Achilles:
             if nb_rnn > 1:
                 for i in range(nb_rnn-1):
                     # The following structure adds GRU or LSTM cells to the model, and depending on whether the net is
-                    # trained / executed exclusively on GPU, standard cells are replaced by CuDNN variants:
-                    x = layers.Bidirectional(rnn_layer(rnn_units, return_sequences=True, dropout=dropout,
-                                                       recurrent_dropout=rc_dropout))(x)
-            x = layers.Bidirectional(rnn_layer(rnn_units, dropout=dropout, recurrent_dropout=rc_dropout))(x)
+                    # trained / executed exclusively on GPU, standard cells are replaced by CuDNN variants, these do
+                    # currently not support DROPOUT!
+                    x = layers.Bidirectional(rnn_layer(rnn_units, return_sequences=True, **dropout_params))(x)
+            x = layers.Bidirectional(rnn_layer(rnn_units, **dropout_params))(x)
         else:
             # If no RNN layers, flatten shape for Dense
             x = layers.Flatten()(x)
