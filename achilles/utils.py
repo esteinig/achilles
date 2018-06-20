@@ -254,7 +254,7 @@ def plot_confusion_matrix(cm, classes,
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
 
-    plt.grid('off')  # Remove white gridlines when also importing Seaborn
+    plt.grid(None)  # Remove white gridlines when also importing Seaborn
 
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label')

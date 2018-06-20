@@ -86,7 +86,7 @@ def evaluate_predictions(dirs, model, write="peval.csv", agg=False, **kwargs):
 
     cm = confusion_matrix(df["label"], df["prediction"])
 
-    plot_confusion_matrix(cm, classes=["Bp", "Human"], save="cm.pdf")
+    plot_confusion_matrix(cm, classes=["Bp", "Human"], save="cm.pdf", normalize=True)
 
     return cm
 
@@ -116,7 +116,11 @@ def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400
             # Test if cumulative sum of probabilities is better than average?
             prediction_windows, microseconds = achilles.predict(signal_tensors, batch_size=batch_size)
 
-            prediction = prediction_windows.mean(axis=0)
+            if len(prediction_windows) > 1:
+                prediction = prediction_windows.mean(axis=0)
+            else:
+                prediction = prediction_windows[0]
+
             predicted_label = numpy.argmax(prediction)
         else:
             # If no signal windows could be extracted:
