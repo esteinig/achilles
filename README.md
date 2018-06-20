@@ -14,13 +14,13 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 #### Architectures
 ---
 
-| Run ID    | ResBlocks | Channels | BRNN    | RNN (GPU) | cuDNN RNN | RNN Units | RNN Dropout | Recurrent Dropout | FC Activation  | Classes  | Parameters  | Notes              | 
-| :-------: | :-------: | :------: | :-----: | :-------: | :-------: | :-------: | :---------: | :---------------: | :------------: | :------: | :--------:  | :----------------: |
-| minimal_1 |  1        | 256      | 1       | LSTM      | no        | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | -                  |
-| minimal_2 |  1        | 256      | 1       | LSTM      | no        | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | -                  |
-| minimal_3 |  1        | 256      | 1       | LSTM      | no        | 200       | 0.3         | 0.3               | Softmax        | 2        |  999,778    | -                  | 
-| minimal_4 |  1        | 256      | 1       | LSTM      | no        | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | -                  |
-| minimal_5 |  1        | 256      | 1       | LSTM      | yes       | 200       | 0.0         | 0.0               | Softmax        | 2        |  999,778    | no dropout support |
+| Run ID    | ResBlocks | Channels | RNN Layers | RNN Cell  | RNN cuDNN | RNN Units | RNN Dropout | Recurrent Dropout | FC Activation  | Classes  | Parameters  | Notes              | 
+| :-------: | :-------: | :------: | :--------: | :-------: | :-------: | :-------: | :---------: | :---------------: | :------------: | :------: | :--------:  | :----------------: |
+| minimal_1 |  1        | 256      | 1          | BLSTM     | no        | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | -                  |
+| minimal_2 |  1        | 256      | 1          | BLSTM     | no        | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | -                  |
+| minimal_3 |  1        | 256      | 1          | BLSTM     | no        | 200       | 0.3         | 0.3               | Softmax        | 2        |  999,778    | -                  | 
+| minimal_4 |  1        | 256      | 1          | BLSTM     | no        | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | -                  |
+| minimal_5 |  1        | 256      | 1          | BLSTM     | yes       | 200       | 0.0         | 0.0               | Softmax        | 2        |  1,001,378  | no dropout         |
 
 #### Training 
 ---
@@ -31,18 +31,18 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 | minimal_2  | Chr14   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 38/40  |  91.78%   | 91.26%     | -           |
 | minimal_3  | Mixed   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 39/40  |  90.81%   | 90.56%     | -           |
 | minimal_4  | Mixed   | 300000  | DAC     | 400x400  | Binary CE | Adam       | 800        | 40/40  |  90.12%   | 89.70%     | -           |
-| minimal_5  | Mixed   | 300000  | DAC     | 400x400  | Binary CE | Adam       | 700        | 40/40  |  -        | -          | 2-3x faster |
+| minimal_5  | Mixed   | 300000  | DAC     | 400x400  | Binary CE | Adam       | 700        | 40/40  |  -        | -          | 2-3x faster, overfit |
 
 #### Evaluations
 ---
 
-| Run ID     | Chr20    | Chr14   | Chr11   | Mixed  |
-| :--------: | :------: | :-----: | :-----: | :----: |
-| minimal_1  | 89.37%   | 87.04%  | 86.50%  | 87.97% |
-| minimal_2  | 85.42%   | 88.30%  | 84.03%  | 86.27% |
-| minimal_3  | 87.60%   | 87.61%  | 86.90%  | 90.47% |
-| minimal_4  |          |         |         |        |
-| minimal_5  |          |         |         |        |
+| Run ID     | Signal   | Chr20    | Chr14   | Chr11   | Mixed  |
+| :--------: | :------: | :------: | :-----: | :-----: | :----: |
+| minimal_1  | pA       | 89.37%   | 87.04%  | 86.50%  | 87.97% |
+| minimal_2  | pA       | 85.42%   | 88.30%  | 84.03%  | 86.27% |
+| minimal_3  | pA       | 87.60%   | 87.61%  | 86.90%  | 90.47% |
+| minimal_4  | DAC      |          |         |         |        |
+| minimal_5  | DAC      |          |         |         |        |
 
 #### Prediction Evalutations
 ---
