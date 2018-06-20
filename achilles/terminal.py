@@ -8,6 +8,9 @@ class Terminal:
 
         parser = argparse.ArgumentParser()
 
+        parser.add_argument("--agg", required=False, dest="agg", action="store_true", default=False,
+                            help="Use Agg backend for plotting without X-server.")
+
         subparsers = parser.add_subparsers(help='Tasks for configuration of Achilles model')
 
         prep = subparsers.add_parser("make", help="Generate dataset from Fast5 raw signal for training.")
@@ -125,6 +128,26 @@ class Terminal:
         pred.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=10, type=int,
                           help="Prediction mini batch size.")
         pred.set_defaults(subparser='predict')
+
+        # Prediction Evaluation
+        peval = subparsers.add_parser("pevaluate", help="Run prediction evaluation on Fast5 signal files")
+        peval.add_argument("--dirs", "-d", required=True, dest="dirs", default="dir1,dir2", type=str,
+                           help="Class directories with Fast5 files same order as training (max: 2)")
+        peval.add_argument("--model_file", "--model", "-m", required=False, dest="model_file", default="model.h5",
+                           type=str, help="HDF5 prepped trained model file for prediction.")
+        peval.add_argument("--windows", "-w", required=False, dest="windows", default=10, type=int,
+                          help="Number of consecutive windows to extract for prediction.")
+        peval.add_argument("--windows_size", "--size", required=False, dest="window_size", default=400, type=int,
+                          help="Window size to extract for prediction.")
+        peval.add_argument("--window_step", "--step", required=False, dest="window_step", default=400, type=int,
+                          help="Number of consecutive windows to extract for prediction.")
+        peval.add_argument("--window_random", "--random", required=False, action="store_true", dest="window_random",
+                          help="Number of consecutive windows to extract for prediction.")
+        peval.add_argument("--raw", "-r", required=False, action="store_true", dest="raw",
+                          help="Use raw (DAC) values instead of scaled picoampere (pA).")
+        peval.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=10, type=int,
+                          help="Prediction mini batch size.")
+        peval.set_defaults(subparser='pevaluate')
 
         plot = subparsers.add_parser("plot", help="Plot loss and accuracy for model runs from logs.")
         plot.add_argument("--log_file", "--file", "-f", required=False, dest="log_file", default="test_1.log", type=str,

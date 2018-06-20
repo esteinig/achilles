@@ -1,6 +1,7 @@
 import random
 import datetime
 import pandas
+import itertools
 import numpy as np
 from matplotlib import style
 from matplotlib import pyplot as plt
@@ -92,6 +93,23 @@ def select_random_windows(signal_windows, n=4):
     return [signal_windows[random.randrange(len(signal_windows))][:] for _ in range(n)]
 
 
+def get_recursive_files(directory, extension=".fast5"):
+
+    file_paths = []
+    for root, directories, fnames in os.walk(directory):
+        for fname in fnames:
+            fpath = os.path.join(root, fname)
+            if extension:
+                if fpath.endswith(extension):
+                    file_paths.append(fpath)
+                else:
+                    continue
+            else:
+                file_paths.append(fpath)
+
+    return file_paths
+
+
 def transform_signal_to_tensor(array):
 
     """ Transform data (nb_windows,window_size) to (nb_windows, 1, window_size, 1)
@@ -141,7 +159,11 @@ def read_signal(fast5: str, normalize: bool = False, scale: bool=True, window_si
     :returns tuple of window_max signal windows (np.array) and number of total signal windows before window_max
     """
 
-    fast5 = Fast5File(fname=fast5)
+    try:
+        fast5 = Fast5File(fname=fast5)
+    except OSError:
+        # If the file can't be opened, because it is corrupt:
+        return None, 0
 
     # Scale for array of float(pA values)
     signal = fast5.get_raw_data(scale=scale)
@@ -195,3 +217,51 @@ def mem_usage(pandas_obj):
         usage_b = pandas_obj.memory_usage(deep=True)
     usage_mb = usage_b / 1024 ** 2 # convert bytes to megabytes
     return "{:03.2f} MB".format(usage_mb)
+
+
+def plot_confusion_matrix(cm, classes,
+                          title='Confusion Matrix',
+                          normalize=False,
+                          cmap="Blues",
+                          save=""):
+
+    """
+    This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+
+    From Scikit-learn examples:
+
+    http://scikit-learn.org/stable/auto_examples/model_selection/
+    plot_confusion_matrix.html#sphx-glr-auto-examples-model-selection-plot-confusion-matrix-py
+
+    """
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix.")
+
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.grid('off')  # Remove white gridlines when also importing Seaborn
+
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+
+    plt.tight_layout()
+
+    if save:
+        plt.savefig(save)
+    else:
+        plt.show()

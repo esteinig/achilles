@@ -1,9 +1,12 @@
+import os
 import numpy
 import pandas
 
 from achilles.dataset import Dataset
 from achilles.model import Achilles
-from achilles.utils import read_signal, transform_signal_to_tensor, timeit
+from achilles.utils import read_signal, transform_signal_to_tensor, get_recursive_files, plot_confusion_matrix
+
+from sklearn.metrics import confusion_matrix
 
 
 def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2, data_path: str="data",
@@ -50,19 +53,53 @@ def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2
     return df
 
 
-def evaluate_predictions():
+def evaluate_predictions(dirs, model, write="peval.csv", agg=False, **kwargs):
 
-    pass
+    """ Wrapper for evaluating predictions with analysis.predict() on a set of directories containing
+    Fast5 files from the labelled classes (species) used for model training. Fast5 files should be independent of
+    the ones used for extraction of signal windows for model training. This function returns a confusion matrix
+    for assessing prediction errors. """
+
+    fast5 = []
+    labels = []
+    for label, directory in enumerate(dirs):
+        # Recursively grab a list of Fast5 files:
+        files = get_recursive_files(directory, extension=".fast5")
+
+        fast5 += files
+        labels += [label for _ in files]
+
+    predictions = predict(fast5=fast5, model=model, **kwargs)
+
+    df = pandas.DataFrame({
+        "file_name": [os.path.basename(file) for file in fast5],
+        "label": labels,
+        "prediction": predictions
+    })
+
+    nan = int(df["prediction"].isnull().sum())
+    df = df.dropna()
+    print("Removed {} failed prediction from final results.".format(nan))
+
+    if write:
+        df.to_csv(write)
+
+    cm = confusion_matrix(df["label"], df["prediction"])
+
+    plot_confusion_matrix(cm, classes=["Bp", "Human"], save="cm.pdf")
+
+    return cm
 
 
 def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400, window_step: int = 400,
-            batch_size: int = 10, window_random: bool = False, scale: bool = True) -> numpy.array:
+            batch_size: int = 10, window_random: bool = False, scale: bool = True, stdout: bool = True) -> numpy.array:
 
     """ Predict from Fast5 using loaded model, either from beginning of signal or randomly sampled """
 
     achilles = Achilles()
     achilles.load_model(model_file=model)
 
+    predictions = []
     for file in fast5:
         # This can be memory consuming and may be too slow to load all windows
         # and then select first or random (signal_max) - need test for None, to get all windows:
@@ -72,16 +109,25 @@ def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400
                                                     scale=scale)
 
         if signal_windows is not None:
-            # Select first
+            # Transform to tensors:
             nb_windows, signal_tensors = len(signal_windows), transform_signal_to_tensor(signal_windows)
             # Predict with instance of model, batch size is
             # the number of windows extracted for prediction for now:
             # Test if cumulative sum of probabilities is better than average?
-            prediction, microseconds = achilles.predict(signal_tensors, batch_size=batch_size).mean(axis=0)
+            prediction_windows, microseconds = achilles.predict(signal_tensors, batch_size=batch_size)
+
+            prediction = prediction_windows.mean(axis=0)
+            predicted_label = numpy.argmax(prediction)
         else:
+            # If no signal windows could be extracted:
             nb_windows, prediction, microseconds = "-", "-", "-"
+            predicted_label = None
+
+        predictions.append(predicted_label)
 
         # name = os.path.basename(file)
-        stdout = "{}\t{}\t{}\t{}\t{}\t".format(prediction, nb_windows, total_windows, microseconds, file)
+        if stdout:
+            print("{}\t{}\t{}\t{}\t{}\t".format(prediction, predicted_label, nb_windows,
+                                                total_windows, microseconds, file))
 
-        print(stdout)
+    return predictions

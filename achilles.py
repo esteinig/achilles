@@ -1,17 +1,22 @@
 import json
+
+import matplotlib.pyplot as plt
+
 import achilles.utils as utils
 
 from achilles.model import Achilles
 from achilles.dataset import Dataset
 from achilles.terminal import Terminal
-
-from achilles.analysis import predict, evaluate
+from achilles.analysis import predict, evaluate, evaluate_predictions
 
 
 def main():
 
     # Terminal input
     args = Terminal().args
+
+    if args["agg"]:
+        plt.switch_backend('agg')
 
     if args["subparser"] == "make":
 
@@ -64,6 +69,12 @@ def main():
         predict(fast5=args["input_files"], model=args["model_file"], window_max=args["windows"],
                 window_size=args["window_size"], window_step=args["window_step"],
                 batch_size=args["batch_size"], window_random=args["window_random"])
+
+    if args["subparser"] == "pevaluate":
+
+        evaluate_predictions(dirs=args["dirs"], model=args["model_file"], window_max=args["windows"],
+                             window_size=args["window_size"], window_step=args["window_step"],
+                             batch_size=args["batch_size"], window_random=args["window_random"])
 
     if args["subparser"] == "plot":
 
