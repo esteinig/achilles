@@ -62,6 +62,9 @@ class Achilles:
         ######################
 
         # TODO: CUDNN does not support dropout / recurrent_dropout - fix this here, or disable GPU.
+        if gpu:
+            print("Droput disabled. Not supported by CuDNN layers for RNN.")
+            
         if gru:
             rnn_layer = layers.CuDNNGRU if gpu else layers.GRU
         else:
