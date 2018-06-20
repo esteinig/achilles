@@ -2,44 +2,57 @@
 
 # Achilles
 
-Achilles is a neural network model that distinguishes between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *B. pseudomallei*). The model trains currently on a small number of reads reads (~ 3000 reads). Issues are tracked on Github. Next steps are to reduce overfitting and deepening the network for generalisation over the human genome and diverse bacterial or viral pathogens. Patient sample simulations (i.e. pathogen DNA in contaminant human DNA) and real-time sequencing runs of MRSA genomes are planned for release. We will extend the architecture to multi-label classifications (i.e. human, bacterial, viral) for rapid pathogen identification from complex mixtures in the future.
+Achilles is a neural network model that distinguishes between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *B. pseudomallei*). The model currently trains on a small number of reads reads (~ 3000 reads). Issues are tracked on Github.
 
-This is a sort of minimal Keras implementation / adaptation of the open-source [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron), and all credit for the architecture of the model is due to Haotian Teng and Lachlan Coin, and the co-authors of [Chiron published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989). It differs in several components, like current minimal model depth (1 residual block, one bidirectional LSTM) or using recurrent dropout instead of recurrent batch normalization, which was not readily available in Keras. It also gets rid of the CTC decoder and outputs with a simple fully-connected (binary) layer and Softmax activation in the current model configuration.
+This is a minimal Keras implementation / adaptation of the open-source [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron), and all credit for the architecture of the model is due to Haotian Teng and Lachlan Coin, and the co-authors of Chiron [published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989).
 
 ### Performance for classification of human (chromosome 20) and *B. pseudomallei*
 ---
 
-This is a proof-of-concept for a pathogen detector based on raw nanopore signal from the [environmental bacterium and biothreat agent *B. pseudomallei*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4746747/) in host contaminant background of human DNA on MinION 1D R9.4. This architecture can be modified for different pathogen detection scenarios i.e. different host backgrounds or more complex microbial communities. By extending the open-source architecture based on Chiron, the detector can be trained *de novo* and on data suitable to specific local problems. This section on performance also looks at evaluating generalization of learning from a tiny fraction of chromosome 20 to accurately classify human signal from other chromosomes. In the evaluaton data, we also swap pathogen signals to assess generalization to other bacterial or viral pathogens and threshold the taxonomic distances, at which classification breaks down. This is all kinds of cool, because we are in the broadest sense trying to teach an AI what a human genome in signal space looks like.
+This is a proof-of-concept for a pathogen detector based on raw nanopore signal from the [environmental bacterium and biothreat agent *B. pseudomallei*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4746747/) in host contaminant background of human DNA on MinION 1D R9.4. This architecture can be modified for different pathogen detection scenarios i.e. different host backgrounds or more complex microbial communities. By extending the open-source architecture based on Chiron, the detector can be trained *de novo* and on data suitable to specific local problems. This section traces exploration of viable architectures and generalization over the human genome. This is kind of cool, because we are teaching an 'artificial intelligence' what a human in signal space looks like...
 
 #### Architectures
 ---
 
-| Run ID    | ResBlocks | Channels | BRNN    | RNN (GPU) | RNN Units | RNN Dropout | Recurrent Dropout | FC Activation  | Classes  | Parameters  | 
-| :-------: | :-------: | :------: | :-----: | :-------: | :-------: | :---------: | :---------------: | :------------: | :------: | :--------:  | 
-| minimal_1 |  1        | 256      | 1       | LSTM (n)  | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | 
-| minimal_2 |  1        | 256      | 1       | LSTM (n)  | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | 
-| minimal_3 |  1        | 256      | 1       | LSTM (n)  | 200       | 0.3         | 0.3               | Softmax        | 2        |  999,778    | 
-| minimal_3 |  1        | 256      | 1       | LSTM (n)  | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | 
+| Run ID    | ResBlocks | Channels | RNN Layers | RNN Cell  | RNN cuDNN | RNN Units | RNN Dropout | Recurrent Dropout | FC Activation  | Classes  | Parameters  | Notes              | 
+| :-------: | :-------: | :------: | :--------: | :-------: | :-------: | :-------: | :---------: | :---------------: | :------------: | :------: | :--------:  | :----------------: |
+| minimal_1 |  1        | 256      | 1          | BLSTM     | no        | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | -                  |
+| minimal_2 |  1        | 256      | 1          | BLSTM     | no        | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | -                  |
+| minimal_3 |  1        | 256      | 1          | BLSTM     | no        | 200       | 0.3         | 0.3               | Softmax        | 2        |  999,778    | -                  | 
+| minimal_4 |  1        | 256      | 1          | BLSTM     | no        | 200       | 0.2         | 0.2               | Softmax        | 2        |  999,778    | -                  |
+| minimal_5 |  1        | 256      | 1          | BLSTM     | yes       | 200       | 0.0         | 0.0               | Softmax        | 2        |  1,001,378  | no dropout         |
 
 #### Training 
 ---
 
 | Run ID     | Dataset | Total   | Signal  | Windows  | Loss Func | Optimizer  | Batch Size | Epochs | Training  | Validation | 
-| :--------: | :-----: | :-----: | :------:| :------: | :------:  | :--------: | :-------:  | :----: | :-------: | :--------: |
-| minimal_1  | Chr20   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 38/40  |  90.78%   | 90.59%     | 
-| minimal_2  | Chr14   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 38/40  |  91.78%   | 91.26%     | 
-| minimal_3  | Mixed   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 39/40  |  90.81%   | 90.56%     | 
+| :--------: | :-----: | :-----: | :------:| :------: | :------:  | :--------: | :-------:  | :----: | :-------: | :--------: | 
+| minimal_1  | Chr20   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 38/40  |  90.78%   | 90.59%     |
+| minimal_2  | Chr14   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 38/40  |  91.78%   | 91.26%     |
+| minimal_3  | Mixed   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 39/40  |  90.81%   | 90.56%     |
 | minimal_4  | Mixed   | 300000  | DAC     | 400x400  | Binary CE | Adam       | 800        | 40/40  |  90.12%   | 89.70%     |
+| minimal_5  | Mixed   | 300000  | DAC     | 400x400  | Binary CE | Adam       | 700        | 40/40  |  92.62%   | 89.37%     |
+
+*Notes*:
+
+Models above are selected by best validation accuracy.
+
+* **minimal_1**: trained baseline on chromosome 20 (terminal reads)
+* **minimal_2**: prevent bias from potential telomere repeat regions, trained on chromosome 14 (central reads), might be biased from centromere reads?
+* **minimal_3**: random mix of central and terminal reads of chromsomes 11 (terminal, similar to 20), 14 and 20, increased dropout to 0.3, slightly slower (more epochs) for training
+* **minimal_4**: resampled mixed chromosome data without scaling raw DAC values into picoampere (pA) since this requires full read and prevents streaming analysis, reduced dropout to 0.2
+* **minimal_5**: testing cuDNN enabled LSTM cells in Keras, about 2 - 3x faster training, but dropout not supported, looks like it is overfitting around 88% validation accuracy, final training accuracy 94+% but validation accuracy fluctuating around 89%
 
 #### Evaluations
 ---
 
-| Run ID     | Chr20    | Chr14   | Chr11   | Mixed  |
-| :--------: | :------: | :-----: | :-----: | :----: |
-| minimal_1  | 89.37%   | 87.04%  | 86.50%  | 87.97% |
-| minimal_2  | 85.42%   | 88.30%  | 84.03%  | 86.27% |
-| minimal_3  | 87.60%   | 87.61%  | 86.90%  | 90.47% |
-| minimal_4  |          |         |         |        |
+| Run ID     | Signal   | Chr20    | Chr14   | Chr11   | Mixed  |
+| :--------: | :------: | :------: | :-----: | :-----: | :----: |
+| minimal_1  | pA       | 89.37%   | 87.04%  | 86.50%  | 87.97% |
+| minimal_2  | pA       | 85.42%   | 88.30%  | 84.03%  | 86.27% |
+| minimal_3  | pA       | 87.60%   | 87.61%  | 86.90%  | 90.47% |
+| minimal_4  | DAC      |          |         |         |        |
+| minimal_5  | DAC      |          |         |         |        |
 
 #### Prediction Evalutations
 ---
