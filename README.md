@@ -9,7 +9,7 @@ This is a minimal Keras implementation / adaptation of the open-source [deep neu
 ### Performance for classification of human (chromosome 20) and *B. pseudomallei*
 ---
 
-This is a proof-of-concept for a pathogen detector based on raw nanopore signal from the [environmental bacterium and biothreat agent *B. pseudomallei*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4746747/) in host contaminant background of human DNA on MinION 1D R9.4. This architecture can be modified for different pathogen detection scenarios i.e. different host backgrounds or more complex microbial communities. By extending the open-source architecture based on Chiron, the detector can be trained *de novo* and on data suitable to specific local problems. This section traces exploration of viable architectures and generalization over the human genome. This is kind of cool, because we are teaching an 'artificial intelligence' what ah uman in signal space looks like...
+This is a proof-of-concept for a pathogen detector based on raw nanopore signal from the [environmental bacterium and biothreat agent *B. pseudomallei*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4746747/) in host contaminant background of human DNA on MinION 1D R9.4. This architecture can be modified for different pathogen detection scenarios i.e. different host backgrounds or more complex microbial communities. By extending the open-source architecture based on Chiron, the detector can be trained *de novo* and on data suitable to specific local problems. This section traces exploration of viable architectures and generalization over the human genome. This is kind of cool, because we are teaching an 'artificial intelligence' what a human in signal space looks like...
 
 #### Architectures
 ---
