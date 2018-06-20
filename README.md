@@ -25,13 +25,21 @@ This is a proof-of-concept for a pathogen detector based on raw nanopore signal 
 #### Training 
 ---
 
-| Run ID     | Dataset | Total   | Signal  | Windows  | Loss Func | Optimizer  | Batch Size | Epochs | Training  | Validation | Notes       |
-| :--------: | :-----: | :-----: | :------:| :------: | :------:  | :--------: | :-------:  | :----: | :-------: | :--------: | :--------:  |
-| minimal_1  | Chr20   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 38/40  |  90.78%   | 90.59%     | -           |
-| minimal_2  | Chr14   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 38/40  |  91.78%   | 91.26%     | -           |
-| minimal_3  | Mixed   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 39/40  |  90.81%   | 90.56%     | -           |
-| minimal_4  | Mixed   | 300000  | DAC     | 400x400  | Binary CE | Adam       | 800        | 40/40  |  90.12%   | 89.70%     | -           |
-| minimal_5  | Mixed   | 300000  | DAC     | 400x400  | Binary CE | Adam       | 700        | 40/40  |  -        | -          | 2-3x faster, overfit |
+| Run ID     | Dataset | Total   | Signal  | Windows  | Loss Func | Optimizer  | Batch Size | Epochs | Training  | Validation | 
+| :--------: | :-----: | :-----: | :------:| :------: | :------:  | :--------: | :-------:  | :----: | :-------: | :--------: | 
+| minimal_1  | Chr20   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 38/40  |  90.78%   | 90.59%     |
+| minimal_2  | Chr14   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 38/40  |  91.78%   | 91.26%     |
+| minimal_3  | Mixed   | 300000  | pA      | 400x400  | Binary CE | Adam       | 800        | 39/40  |  90.81%   | 90.56%     |
+| minimal_4  | Mixed   | 300000  | DAC     | 400x400  | Binary CE | Adam       | 800        | 40/40  |  90.12%   | 89.70%     |
+| minimal_5  | Mixed   | 300000  | DAC     | 400x400  | Binary CE | Adam       | 700        | 40/40  |  -        | -          |
+
+*Notes*:
+
+* minimal_1: trained baseline on chromosome 20 (terminal reads)
+* minimal_2: prevent bias from potential telomere repeat regions, trained on chromosome 14 (central reads), might be biased from centromere reads?
+* minimal_3: random mix of central and terminal reads of chromsomes 11 (terminal, similar to 20), 14 and 20, increased dropout to 0.3, slightly slower (more epochs) for training
+* minimal_4: resampled mixed chromosome data without scaling raw DAC values into picoampere (pA) since this requires full read and prevents streaming analysis, reduced dropout to 0.2
+* minimal_5: testing cuDNN enabled LSTM cells in Keras, about 2 - 3x faster training, but dropout not supported, looks like it is overfitting around 88% validation accuracy
 
 #### Evaluations
 ---
