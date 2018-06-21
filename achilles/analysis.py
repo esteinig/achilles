@@ -53,7 +53,7 @@ def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2
     return df
 
 
-def evaluate_predictions(dirs, model, write="peval.csv", agg=False, **kwargs):
+def evaluate_predictions(dirs, model, prefix="peval", **kwargs):
 
     """ Wrapper for evaluating predictions with analysis.predict() on a set of directories containing
     Fast5 files from the labelled classes (species) used for model training. Fast5 files should be independent of
@@ -81,12 +81,11 @@ def evaluate_predictions(dirs, model, write="peval.csv", agg=False, **kwargs):
     df = df.dropna()
     print("Removed {} failed prediction from final results.".format(nan))
 
-    if write:
-        df.to_csv(write)
+    df.to_csv(prefix+".csv")
 
     cm = confusion_matrix(df["label"], df["prediction"])
 
-    plot_confusion_matrix(cm, classes=["Bp", "Human"], save="cm.pdf", normalize=True)
+    plot_confusion_matrix(cm, classes=["Bp", "Human"], save=prefix+".pdf", normalize=True)
 
     return cm
 
@@ -124,7 +123,7 @@ def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400
             predicted_label = numpy.argmax(prediction)
         else:
             # If no signal windows could be extracted:
-            nb_windows, prediction, microseconds = "-", "-", "-"
+            nb_windows, prediction, microseconds = 0, numpy.empty(), 0
             predicted_label = None
 
         predictions.append(predicted_label)

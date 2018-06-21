@@ -74,7 +74,8 @@ def main():
 
         evaluate_predictions(dirs=args["dirs"], model=args["model_file"], window_max=args["windows"],
                              window_size=args["window_size"], window_step=args["window_step"],
-                             batch_size=args["batch_size"], window_random=args["window_random"])
+                             batch_size=args["batch_size"], window_random=args["window_random"],
+                             prefix=args["prefix"])
 
     if args["subparser"] == "plot":
 
@@ -84,8 +85,8 @@ def main():
 
     if args["subparser"] == "select":
 
-        utils.select_fast5(input_dir=args["input_dir"], output_dir=args["output_dir"], n=args["n"],
-                           largest_files=args["largest"])
+        utils.select_fast5(input_dir=args["input_dir"], output_dir=args["output_dir"], limit=args["number"],
+                           shuffle=args["random"], min_signal=args["min_signal"], symlink=args["symlink"])
 
 
 def config():

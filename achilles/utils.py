@@ -11,11 +11,10 @@ from itertools import tee, islice
 from skimage.util import view_as_windows
 from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
 
-import heapq
 import os
-
+from tqdm import tqdm
 import shutil
-import operator
+
 
 style.use("ggplot")
 
@@ -43,34 +42,58 @@ def chunk(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
-def select_fast5(input_dir, output_dir, n=3000, largest_files=False):
+def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000):
 
-    """ Copy n largest files from recursive input directory (e.g. Fast5 files) """
+    # Always recursive, always a limit:
+    fast5 = get_recursive_files(input_dir, extension=".fast5")
 
-    os.makedirs(output_dir)
+    if shuffle:
+        random.shuffle(fast5)
 
-    def file_sizes(directory):
-        for path, _, filenames in os.walk(directory):
-            for name in filenames:
-                full_path = os.path.join(path, name)
-                yield full_path, os.path.getsize(full_path)
-
-    if largest_files:
-        files = heapq.nlargest(n, file_sizes(input_dir), key=operator.itemgetter(1))
+    if min_signal:
+        lim = 0
+        filtered = []
+        with tqdm(total=limit) as pbar:
+            pbar.set_description("Fast5 filtering")
+            for file in fast5:
+                _, signal_length = read_signal(file, normalize=False, scale=False, return_signal=True)
+                if signal_length >= min_signal:
+                    filtered.append(file)
+                    lim += 1
+                    pbar.update(n=1)
+                    if lim == limit:
+                        break
+        return filtered
     else:
-        # Default mode random_files:
-        files_and_sizes = [item for item in file_sizes(input_dir)]
+        return fast5[:limit]
 
-        indices = np.arange(len(files_and_sizes))
-        # Shuffle indices for random files:
-        np.random.shuffle(indices)
-        # Assumes that there are > n files
-        files = [files_and_sizes[i] for i in indices[:n]]
 
-    for file, size in files:
-        shutil.copy(file, os.path.join(output_dir, os.path.basename(file)))
+def select_fast5(input_dir, output_dir=None, limit=1000, min_signal=None, symlink=False, shuffle=True):
 
-    return files
+    fast5_paths = filter_fast5(input_dir, min_signal=min_signal, shuffle=shuffle, limit=limit)
+
+    if limit and limit > len(fast5_paths):
+        raise ValueError("Number of Fast5 files is smaller than specified limit, please "
+                         "select from a sufficient pool of files.")
+
+    # Copy / link files to output directory:
+    if output_dir:
+        os.makedirs(output_dir)
+        with tqdm(total=len(fast5_paths)) as pbar:
+            pbar.set_description("Copying files")
+            for file_path in fast5_paths:
+                if symlink:
+                    # If not copy, symlink:
+                    file_name = os.path.basename(file_path)
+                    target_link = os.path.join(output_dir, file_name)
+
+                    os.symlink(file_path, target_link)
+                else:
+                    # Copy files to target directory
+                    shutil.copy(file_path, output_dir)
+                pbar.update(n=1)
+
+    return fast5_paths
 
 
 def plot_signal(signal_windows):
@@ -142,8 +165,9 @@ def timeit(micro=False):
     return decorator
 
 
-def read_signal(fast5: str, normalize: bool = False, scale: bool=True, window_size: int = 400, window_step: int = 400,
-                window_max: int=10, window_random: bool=True, window_recover: bool=True) -> np.array:
+def read_signal(fast5: str, normalize: bool=False, scale: bool=True, window_size: int=400, window_step: int=400,
+                window_max: int=10, window_random: bool=True, window_recover: bool=True,
+                return_signal: bool=False) -> np.array:
 
     """ Read scaled raw signal in pA (float32) if scaling is enabled or raw (DAC, int16) values from Fast5 using ONT API
 
@@ -162,7 +186,8 @@ def read_signal(fast5: str, normalize: bool = False, scale: bool=True, window_si
     try:
         fast5 = Fast5File(fname=fast5)
     except OSError:
-        # If the file can't be opened, because it is corrupt:
+        # If the file can't be opened:
+        print("Could not open Fast5 file:", fast5)
         return None, 0
 
     # Scale for array of float(pA values)
@@ -170,6 +195,13 @@ def read_signal(fast5: str, normalize: bool = False, scale: bool=True, window_si
 
     if normalize:
         signal = (signal - signal.mean()) / signal.std()
+
+    if return_signal:
+        # Here, we only return the signal array (1D) and number of signals,
+        # used in select function:
+        return signal, len(signal)
+
+    # Window processing part:
 
     signal_windows = view_as_windows(signal, window_size, window_step)
 
@@ -198,7 +230,7 @@ def read_signal(fast5: str, normalize: bool = False, scale: bool=True, window_si
         else:
             # Otherwise, return None and skip read, this is more
             # useful in live prediction if a read has not enough
-            # window_max) signal values written to it yet
+            # (window_max) signal values written to it yet
             signal_windows = None
 
     return signal_windows, nb_windows_total
@@ -265,3 +297,4 @@ def plot_confusion_matrix(cm, classes,
         plt.savefig(save)
     else:
         plt.show()
+

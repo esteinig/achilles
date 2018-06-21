@@ -147,6 +147,8 @@ class Terminal:
                           help="Use raw (DAC) values instead of scaled picoampere (pA).")
         peval.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=10, type=int,
                           help="Prediction mini batch size.")
+        peval.add_argument("--prefix", "-p", required=False, dest="prefix", default="peval", type=str,
+                           help="Prefix for plot and summary outputs.")
         peval.set_defaults(subparser='pevaluate')
 
         plot = subparsers.add_parser("plot", help="Plot loss and accuracy for model runs from logs.")
@@ -164,10 +166,14 @@ class Terminal:
                             help="Recursive directory of Fast5 files to select from randomly.")
         select.add_argument("--output_dir", "--out", "-o", required=False, dest="output_dir", default="largest",
                             type=str, help="Output file to copy largest Fast5 into.")
-        select.add_argument("--nb_fast5", "-n", required=False, dest="n", default=3000, type=int,
+        select.add_argument("--number", "-n", required=False, dest="number", default=1000, type=int,
                             help="Number of Fast5 files to copy.")
-        select.add_argument("--largest", "-l", required=False, dest="largest",  action="store_true",
-                            help="Select largest Fast5 files instead of random files.")
+        select.add_argument("--min_signal", "-m", required=False, dest="min_signal", default=None, type=int,
+                            help="Minimum length of signal array .")
+        select.add_argument("--random", "-r", required=False, dest="random",  action="store_true",
+                            help="Shuffle files and select random subset.")
+        select.add_argument("--symlink", "-s", required=False, dest="symlink", action="store_true",
+                            help="Create symlinks instead of copying files.")
 
         select.set_defaults(subparser='select')
 
