@@ -53,7 +53,7 @@ def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2
     return df
 
 
-def evaluate_predictions(dirs, model, prefix="peval", **kwargs):
+def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, **kwargs):
 
     """ Wrapper for evaluating predictions with analysis.predict() on a set of directories containing
     Fast5 files from the labelled classes (species) used for model training. Fast5 files should be independent of
@@ -69,25 +69,32 @@ def evaluate_predictions(dirs, model, prefix="peval", **kwargs):
         fast5 += files
         labels += [label for _ in files]
 
-    predictions = predict(fast5=fast5, model=model, **kwargs)
+    predictions, microseconds = predict(fast5=fast5, model=model, **kwargs)
 
     df = pandas.DataFrame({
         "file_name": [os.path.basename(file) for file in fast5],
         "label": labels,
-        "prediction": predictions
+        "prediction": predictions,
+        "microseconds": microseconds
     })
 
-    nan = int(df["prediction"].isnull().sum())
+    # nan = int(df["prediction"].isnull().sum())
+
     df = df.dropna()
-    print("Removed {} failed prediction from final results.".format(nan))
+
+    # print("Removed {} failed prediction from final results.".format(nan))
 
     df.to_csv(prefix+".csv")
 
     cm = confusion_matrix(df["label"], df["prediction"])
+    average_prediction_time = df["microseconds"].mean()
 
-    plot_confusion_matrix(cm, classes=["Bp", "Human"], save=prefix+".pdf", normalize=True)
+    # Normalized confusin matrix:
+    cm = cm.astype('float') / cm.sum(axis=1)[:, numpy.newaxis]
 
-    return cm
+    plot_confusion_matrix(cm, class_labels=class_labels, save=prefix+".pdf", normalize=True)
+
+    return cm, average_prediction_time
 
 
 def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400, window_step: int = 400,
@@ -98,6 +105,7 @@ def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400
     achilles = Achilles()
     achilles.load_model(model_file=model)
 
+    prediction_times = []
     predictions = []
     for file in fast5:
         # This can be memory consuming and may be too slow to load all windows
@@ -123,14 +131,15 @@ def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400
             predicted_label = numpy.argmax(prediction)
         else:
             # If no signal windows could be extracted:
-            nb_windows, prediction, microseconds = 0, numpy.empty(), 0
+            nb_windows, prediction, microseconds = 0, [], 0
             predicted_label = None
 
+        prediction_times.append(microseconds)
         predictions.append(predicted_label)
 
         # name = os.path.basename(file)
         if stdout:
             print("{}\t{}\t{}\t{}\t{}\t".format(prediction, predicted_label, nb_windows,
-                                                total_windows, microseconds, file))
+                                                total_windows, microseconds))
 
-    return predictions
+    return predictions, prediction_times

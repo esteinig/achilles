@@ -15,6 +15,8 @@ import os
 from tqdm import tqdm
 import shutil
 
+import seaborn
+
 
 style.use("ggplot")
 
@@ -251,9 +253,9 @@ def mem_usage(pandas_obj):
     return "{:03.2f} MB".format(usage_mb)
 
 
-def plot_confusion_matrix(cm, classes,
+def plot_confusion_matrix(cm, class_labels,
                           title='Confusion Matrix',
-                          normalize=False,
+                          normalize=True,
                           cmap="Blues",
                           save=""):
 
@@ -270,14 +272,13 @@ def plot_confusion_matrix(cm, classes,
 
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix.")
 
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
     plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
+    tick_marks = np.arange(len(class_labels))
+    plt.xticks(tick_marks, class_labels, rotation=45)
+    plt.yticks(tick_marks, class_labels)
 
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
@@ -297,4 +298,59 @@ def plot_confusion_matrix(cm, classes,
         plt.savefig(save)
     else:
         plt.show()
+
+
+def plot_pevaluate_runner(results, class_labels=(0, 1)):
+
+    """ Currently only for binary classification! """
+
+    # Results is dictionary of dictionaries with keys:
+    #          keys: prefix
+    #          values: {"confusion_matrix": np.array, "average_prediction_time": float}
+
+    data_frame = []
+    for prefix, data in results.items():
+        cm = data["confusion_matrix"]
+        ms = data["average_prediction_time"]
+
+        # First deconstruct prefix as {model}:{signal_type}:{sample}:{number_windows}
+        model, signal_type, sample, nb_windows = prefix.split(":")
+
+        # Binary classification, needs to be extended later:
+        for i, label in enumerate(class_labels):
+            if i == 0:
+                error, acc = cm[0, 1], cm[0, 0]
+            else:
+                error, acc = cm[1, 0], cm[1, 1]
+
+            row = [model, signal_type, sample, int(nb_windows), label, error, acc, ms]
+            data_frame.append(row)
+
+    df = pandas.DataFrame(data_frame, columns=["model", "signal", "sample", "windows", "label",
+                                               "error", "accuracy", "mu"])
+
+    # Setup a plot for each model:
+
+    for model in df["model"].unique():
+        fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(20, 10))
+
+        model_df = df[df["model"] == model]
+
+        for col, sample in enumerate(sorted(model_df["sample"].unique(), reverse=True)):
+            model_sample_df = model_df[model_df["sample"] == sample]
+            for row, metric in enumerate(("error", "accuracy")):
+                ax = axes[row, col]
+                plot = seaborn.pointplot(x="windows", y=metric, hue="label", data=model_sample_df, ci=None, ax=ax)
+                plot.set_title("sampling: " + sample)
+
+            time_ax = axes[2, col]
+            time_plot = seaborn.pointplot(x="windows", y="mu", data=model_sample_df,
+                                          ci=None, ax=time_ax, color="green")
+
+            time_plot.set_title("Avg. prediction speed {} (mu)".format(sample))
+
+        plt.suptitle("Model: {}".format(model), size=16)
+        plt.tight_layout()
+        plt.savefig(model+"_summary.pdf")
+
 

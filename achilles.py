@@ -8,7 +8,7 @@ from achilles.model import Achilles
 from achilles.dataset import Dataset
 from achilles.terminal import Terminal
 from achilles.analysis import predict, evaluate, evaluate_predictions
-
+from achilles.runners import pevaluate_runner, plot_runner_results
 
 def main():
 
@@ -77,11 +77,15 @@ def main():
                              batch_size=args["batch_size"], window_random=args["window_random"],
                              prefix=args["prefix"])
 
-    if args["subparser"] == "plot":
+    if args["subparser"] == "runner":
 
-        pass
+        if args["plot_pickle"]:
+            plot_runner_results(pickle_file=args["plot_pickle"], class_labels=args["labels"], runner=args["runner"])
+        else:
 
-        # utils.plot_batch_loss_accuracy(fname=args["log_file"], outname=args["plot_file"], error=args["error"])
+            if args["runner"] == "pevaluate":
+
+                pevaluate_runner(config=args["config"], class_labels=args["labels"], outdir=args["output_dir"])
 
     if args["subparser"] == "select":
 

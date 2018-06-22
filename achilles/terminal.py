@@ -164,7 +164,7 @@ class Terminal:
                                                       " directory structure for generating data and training model")
         select.add_argument("--input_dir", "--in", "-i", required=False, dest="input_dir", default="dir1", type=str,
                             help="Recursive directory of Fast5 files to select from randomly.")
-        select.add_argument("--output_dir", "--out", "-o", required=False, dest="output_dir", default="largest",
+        select.add_argument("--output_dir", "--out", "-o", required=False, dest="output_dir", default="out_select",
                             type=str, help="Output file to copy largest Fast5 into.")
         select.add_argument("--number", "-n", required=False, dest="number", default=1000, type=int,
                             help="Number of Fast5 files to copy.")
@@ -177,6 +177,19 @@ class Terminal:
 
         select.set_defaults(subparser='select')
 
+        runner = subparsers.add_parser("runner", help="Execute runners for summary evaluations / predictions.")
+        runner.add_argument("--runner", "-r", required=True, dest="runner", default="pevaluate",
+                            type=str, help="Name of runner to execute.")
+        runner.add_argument("--config", "-c", required=False, dest="config", default="config.json",
+                            type=str, help="Configuration file for runner (JSON).")
+        runner.add_argument("--output_dir", "--out", "-o", required=False, dest="output_dir", default="largest",
+                            type=str, help="Output directory for runner results.")
+        runner.add_argument("--plot_pickle", "--plot", "-p", required=False, dest="plot_pickle", default="",
+                            type=str, help="Pickle file to plot summary, requires name of Runner and Labels.")
+        runner.add_argument("--labels", "-l", required=False, dest="labels", default="0,1",
+                            type=str, help="Label names, comma-separated")
+        runner.set_defaults(subparser='runner')
+
         if commands is None:
             self.args = parser.parse_args()
         else:
@@ -186,14 +199,20 @@ class Terminal:
 
         self.args = vars(self.args)
 
+        # For input lists (comma-separated):
+
+        for key in ("labels",):
+            if key in self.args.keys():
+                self.args[key] = [item for item in self.args[key].split(",")]
+
         # Real paths:
 
-        # For input lists (comma-separated)
+        # For input lists (comma-separated) as paths:
         for key in ("dirs", "data_files", "model_files"):
             if key in self.args.keys():
                 self.args[key] = [os.path.abspath(directory) for directory in self.args[key].split(",")]
 
-        # For input strings:
+        # For input strings that are paths:
         for key in ("data_file", "output_file", "log_file", "plot_file", "input_dir", "output_dir"):
             if key in self.args.keys():
                 self.args[key] = os.path.abspath(self.args[key])
