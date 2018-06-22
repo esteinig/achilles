@@ -118,7 +118,8 @@ def pevaluate_runner(config="pevaluate.json", outdir="run", class_labels=None):
                 cm, ms = evaluate_predictions(dirs=config["dirs"], model=model, prefix=os.path.join(outdir, prefix),
                                               scale=scale, window_random=random_sample, window_max=number_windows,
                                               window_size=config["window_size"], window_step=config["window_step"],
-                                              batch_size=number_windows, stdout=config["stdout"], class_labels=labels)
+                                              batch_size=number_windows, stdout=config["stdout"],
+                                              class_labels=class_labels)
 
                 print("Average time of predictions: {} microseconds.".format(ms))
 
