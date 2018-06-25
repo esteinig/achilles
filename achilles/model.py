@@ -37,7 +37,8 @@ class Achilles:
         inputs = layers.Input(shape=shape)
 
         if conv_2d:
-            # Testing simple 2D-Conv layer
+            # Testing simple 2D-Conv layer:
+            # Note that the residual block seems to be essential, no learning with single Conv2D:
             x = layers.Conv2D(nb_channels, input_shape=shape, kernel_size=kernel_size,
                               strides=strides, padding='same')(inputs)
             x = layers.Activation('relu')(x)
@@ -68,6 +69,7 @@ class Achilles:
             print("Dropout disabled. Not supported by CuDNN layers for RNN.")
 
         if gru:
+            # GRU does not appear to be as good as LSTM!
             rnn_layer = layers.CuDNNGRU if gpu else layers.GRU
         else:
             rnn_layer = layers.CuDNNLSTM if gpu else layers.LSTM
@@ -303,6 +305,3 @@ class BatchLogger(callbacks.Callback):
 
             with open(self.output_file, "a") as logfile:
                 logfile.write(metrics)
-
-achilles = Achilles()
-achilles.build(conv_2d=True, bidirectional=False)
