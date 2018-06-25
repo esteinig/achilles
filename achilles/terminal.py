@@ -86,9 +86,8 @@ class Terminal:
 
         # Architecture simplification:
         train.add_argument("--deactivate_bidirectional", "--no_bi", required=False, action="store_false", dest="bi",
-                           default=True,
-                           help="Deactivate bidirectional RNN layers for parameter reduction.")
-        train.add_argument("--conv_2d", "--conv", required=False, action="store_true", dest="conv_2d",
+                           default=True, help="Deactivate bidirectional RNN layers for parameter reduction.")
+        train.add_argument("--conv_2d", "--conv", required=False, action="store_true", dest="conv_2d", default=False,
                            help="Activate simple convolutional layer (2D + ReLU) instead of Residual Block.")
 
         train.add_argument("--dropout", "-d", required=False, type=float, default=0, dest="dropout",

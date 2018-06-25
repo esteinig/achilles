@@ -44,7 +44,8 @@ def main():
         achilles.build(signal_length=args["signal_length"], activation=args["activation"],
                        nb_residual_block=args["nb_residual_blocks"], nb_channels=args["nb_channels"],
                        nb_rnn=args["nb_rnn"], rnn_units=args["rnn_units"], gru=args["gru"], gpu=args["gpu"],
-                       dropout=args["dropout"], rc_dropout=args["rc_dropout"])
+                       dropout=args["dropout"], rc_dropout=args["rc_dropout"], bidirectional=args["bi"],
+                       conv_2d=args["conv_2d"])
 
         # Compile model with loss function and optimizer
         achilles.compile(optimizer=args["optimizer"], loss=args["loss"])
