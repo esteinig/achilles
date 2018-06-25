@@ -354,7 +354,7 @@ def plot_pevaluate_runner(results, class_labels=(0, 1)):
         plt.tight_layout()
         plt.savefig(model+"_summary.pdf")
 
-        #TODO: close plot!
+        plt.close()
 
 
 
