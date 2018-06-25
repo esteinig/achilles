@@ -24,37 +24,39 @@ class Achilles:
         self.data_file = data_file
         self.model = None
 
-    def build(self, signal_length=400, activation="softmax", nb_channels=256, rnn_units=200, _nb_classes=2,
+    def build(self, signal_length=400, activation="softmax", bidirectional=True, conv_2d=False,
+              nb_channels=256, rnn_units=200, _nb_classes=2, kernel_size=(1, 3), strides=(1, 1),
               nb_residual_block=1, nb_rnn=1, dropout=0.0, rc_dropout=0.0, gpu=False, gru=False, summary=True):
 
-        # Need to talk to Micheal, how to convert the signal sequence to input Conv2D
-        # with dimensions (height, width, depth) - since it is a signal sequence:
-        # height = 1, depth = 1
+        # Kernel size and strides are only used for single convolutional layers (1D, or 2D)
 
+        # Default for resisdual block or Conv2D:
         shape = (1, signal_length, 1)
 
         # Input data shape for residual block (Conv2D)
         inputs = layers.Input(shape=shape)
 
-        ######################
-        # Residual Block CNN #
-        ######################
+        if conv_2d:
+            # Testing simple 2D-Conv layer
+            x = layers.Conv2D(nb_channels, input_shape=shape, kernel_size=kernel_size,
+                              strides=strides, padding='same')(inputs)
+            x = layers.Activation('relu')(x)
+        else:
 
-        # Residual block stack, see config
-        # There must always be one residual block for input dimensions
-        # by data generator:
-        x = self.residual_block(inputs, nb_channels, input_shape=shape)
+            ######################
+            # Residual Block CNN #
+            ######################
 
-        if nb_residual_block > 1:
-            for i in range(nb_residual_block-1):
-                x = self.residual_block(x, nb_channels)
+            # Residual block stack, see config
+            # There must always be one residual block for input dimensions
+            # by data generator:
+            x = self.residual_block(inputs, nb_channels, input_shape=shape)
 
-        # Reshape the output layer of residual blocks from 4D to 3D,
-        # have changed this from (1, signal_length * _nb_channels, 1)
-        # which crashed the LSTM with OOM to (1, signal_length, _nb_channels)
-        # which should be the correct encoding for LSTM input from the COnv2D layers
+            if nb_residual_block > 1:
+                for i in range(nb_residual_block - 1):
+                    x = self.residual_block(x, nb_channels)
 
-        # Check dimensions here!
+        # Reshape the output layer of residual blocks from 4D to 3D
         x = layers.Reshape((1 * signal_length, nb_channels))(x)
 
         ######################
@@ -63,7 +65,7 @@ class Achilles:
 
         # TODO: CUDNN does not support dropout / recurrent_dropout - fix this here, or disable GPU.
         if gpu:
-            print("Droput disabled. Not supported by CuDNN layers for RNN.")
+            print("Dropout disabled. Not supported by CuDNN layers for RNN.")
 
         if gru:
             rnn_layer = layers.CuDNNGRU if gpu else layers.GRU
@@ -81,8 +83,14 @@ class Achilles:
                     # The following structure adds GRU or LSTM cells to the model, and depending on whether the net is
                     # trained / executed exclusively on GPU, standard cells are replaced by CuDNN variants, these do
                     # currently not support DROPOUT!
-                    x = layers.Bidirectional(rnn_layer(rnn_units, return_sequences=True, **dropout_params))(x)
-            x = layers.Bidirectional(rnn_layer(rnn_units, **dropout_params))(x)
+                    if bidirectional:
+                        x = layers.Bidirectional(rnn_layer(rnn_units, return_sequences=True, **dropout_params))(x)
+                    else:
+                        x = rnn_layer(rnn_units, return_sequences=True, **dropout_params)(x)
+            if bidirectional:
+                x = layers.Bidirectional(rnn_layer(rnn_units, **dropout_params))(x)
+            else:
+                x = rnn_layer(rnn_units, **dropout_params)(x)
         else:
             # If no RNN layers, flatten shape for Dense
             x = layers.Flatten()(x)
@@ -296,3 +304,5 @@ class BatchLogger(callbacks.Callback):
             with open(self.output_file, "a") as logfile:
                 logfile.write(metrics)
 
+achilles = Achilles()
+achilles.build(conv_2d=True, bidirectional=False)

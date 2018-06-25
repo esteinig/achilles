@@ -84,6 +84,13 @@ class Terminal:
         train.add_argument("--gpu", "-g", required=False, action="store_true", dest="gpu",
                            help="Use CuDNN variants of RNN layers (only when using GPU).")
 
+        # Architecture simplification:
+        train.add_argument("--deactivate_bidirectional", "--no_bi", required=False, action="store_false", dest="bi",
+                           default=True,
+                           help="Deactivate bidirectional RNN layers for parameter reduction.")
+        train.add_argument("--conv_2d", "--conv", required=False, action="store_true", dest="conv_2d",
+                           help="Activate simple convolutional layer (2D + ReLU) instead of Residual Block.")
+
         train.add_argument("--dropout", "-d", required=False, type=float, default=0, dest="dropout",
                            help="Dropout fraction applied to LSTM between 0 and 1 (default: 0.0)")
         train.add_argument("--recurrent_dropout", "--rc_dropout", "-r", required=False, type=float, default=0,

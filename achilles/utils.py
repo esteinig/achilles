@@ -208,9 +208,9 @@ def read_signal(fast5: str, normalize: bool=False, scale: bool=True, window_size
     signal_windows = view_as_windows(signal, window_size, window_step)
 
     # Select a random index to extract signal slices, subtract window_max
-    # to generate a suitable index for desired size, if the maximum possible
-    # index with the slice size is >= 0 (when number of windows >= slice size)
-    # then proceed to either randomly take a slice or from start:
+    # to generate a suitable index where the total number of windows is larger
+    # than the requested number of windows then proceed to take a sequence
+    # of windows from the random index or from start:
     nb_windows_total = len(signal_windows)
     max_index = nb_windows_total - window_max
 
@@ -332,6 +332,7 @@ def plot_pevaluate_runner(results, class_labels=(0, 1)):
     # Setup a plot for each model:
 
     for model in df["model"].unique():
+        # TODO: Make this dynamic (columns for start, random)
         fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(20, 10))
 
         model_df = df[df["model"] == model]
@@ -352,5 +353,9 @@ def plot_pevaluate_runner(results, class_labels=(0, 1)):
         plt.suptitle("Model: {}".format(model), size=16)
         plt.tight_layout()
         plt.savefig(model+"_summary.pdf")
+
+        #TODO: close plot!
+
+
 
 

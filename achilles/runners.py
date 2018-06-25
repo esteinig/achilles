@@ -127,3 +127,4 @@ def pevaluate_runner(config="pevaluate.json", outdir="run", class_labels=None):
 
     with open(os.path.join(outdir, "results.pkl"), "wb") as result_pickle:
         pickle.dump(confusions, result_pickle)
+
