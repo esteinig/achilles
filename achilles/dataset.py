@@ -454,5 +454,4 @@ def write_data():
     ds.write_data("../dir1", "../dir2")
 
 
-# plot_data()
 

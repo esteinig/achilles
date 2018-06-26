@@ -6,6 +6,7 @@ import numpy as np
 from matplotlib import style
 from matplotlib import pyplot as plt
 
+from collections import deque
 from itertools import tee, islice
 
 from skimage.util import view_as_windows
@@ -239,7 +240,7 @@ def read_signal(fast5: str, normalize: bool=False, scale: bool=True, window_size
 
 
 # Test this out instead of view_as_windows:
-def window(it, size=3):
+def window_generator(it, size=3):
     yield from zip(*[islice(it, s, None) for s, it in enumerate(tee(it, size))])
 
 
@@ -299,6 +300,7 @@ def plot_confusion_matrix(cm, class_labels,
     else:
         plt.show()
 
+    plt.close()
 
 def plot_pevaluate_runner(results, class_labels=(0, 1)):
 
@@ -357,5 +359,22 @@ def plot_pevaluate_runner(results, class_labels=(0, 1)):
         plt.close()
 
 
+def sliding_window(iterable, size=2, step=1, fillvalue=None):
 
+    """ https://stackoverflow.com/a/13408251 """
+
+    if size < 0 or step < 1:
+        raise ValueError
+    it = iter(iterable)
+    q = deque(islice(it, size), maxlen=size)
+    if not q:
+        return  # empty iterable or size == 0
+    q.extend(fillvalue for _ in range(size - len(q)))  # pad to size
+    while True:
+        yield iter(q)  # iter() to avoid accidental outside modifications
+        try:
+            q.append(next(it))
+        except StopIteration: # Python 3.5 pep 479 support
+            return
+        q.extend(next(it, fillvalue) for _ in range(step - 1))
 

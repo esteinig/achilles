@@ -131,8 +131,8 @@ class Terminal:
                           help="Number of consecutive windows to extract for prediction.")
         pred.add_argument("--raw", "-r", required=False, action="store_true", dest="raw",
                           help="Use raw (DAC) values instead of scaled picoampere (pA).")
-        pred.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=10, type=int,
-                          help="Prediction mini batch size.")
+        pred.add_argument("--batches", "-b", required=False, dest="batches", default=10, type=int,
+                          help="Number of files to predict for in one pass through model (*windows = batch_size)")
         pred.set_defaults(subparser='predict')
 
         # Prediction Evaluation
@@ -151,8 +151,8 @@ class Terminal:
                           help="Number of consecutive windows to extract for prediction.")
         peval.add_argument("--raw", "-r", required=False, action="store_true", dest="raw",
                           help="Use raw (DAC) values instead of scaled picoampere (pA).")
-        peval.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=10, type=int,
-                          help="Prediction mini batch size.")
+        peval.add_argument("--batches", "-b", required=False, dest="batches", default=10, type=int,
+                           help="Number of files for batch-wise prediction (*windows = batch_size for Keras).")
         peval.add_argument("--prefix", "-p", required=False, dest="prefix", default="peval", type=str,
                            help="Prefix for plot and summary outputs.")
         peval.set_defaults(subparser='pevaluate')

@@ -15,8 +15,7 @@ pevaluate_config = {
     "dirs": ["bp", "human"],
 
     "models": {
-        "min1.h5": "pa",
-        "min2.h5": "pa"
+        "min5.h5": "dac"
     },
 
     "windows": {
@@ -26,6 +25,8 @@ pevaluate_config = {
     },
 
     "sample_locations": ["start", "random"],
+
+    "batch_size_max": 1000,
 
     "window_size": 400,
     "window_step": 400,
@@ -115,16 +116,18 @@ def pevaluate_runner(config="pevaluate.json", outdir="run", class_labels=None):
                 # Using semicolon as delimiter, so it does not interfere with model names:
                 prefix = "{}:{}:{}:{}".format(model, signal_type, sample_location, number_windows)
 
-                cm, ms = evaluate_predictions(dirs=config["dirs"], model=model, prefix=os.path.join(outdir, prefix),
+                # Set batch size for the number of windows:
+                batches = config["batch_size_max"]//number_windows
+
+                print("Number of files in batch:", batches)
+                cm, mu = evaluate_predictions(dirs=config["dirs"], model=model, prefix=os.path.join(outdir, prefix),
                                               scale=scale, window_random=random_sample, window_max=number_windows,
                                               window_size=config["window_size"], window_step=config["window_step"],
-                                              batch_size=number_windows, stdout=config["stdout"],
-                                              class_labels=class_labels)
+                                              batches=batches, stdout=config["stdout"], class_labels=class_labels)
 
-                print("Average time of predictions: {} microseconds.".format(ms))
+                print("Average time of prediction per batch: {} microseconds.".format(mu))
 
-                confusions[prefix] = {"confusion_matrix": cm, "average_prediction_time": ms}
+                confusions[prefix] = {"confusion_matrix": cm, "average_prediction_time": mu}
 
     with open(os.path.join(outdir, "results.pkl"), "wb") as result_pickle:
         pickle.dump(confusions, result_pickle)
-

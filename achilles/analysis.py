@@ -4,7 +4,8 @@ import pandas
 
 from achilles.dataset import Dataset
 from achilles.model import Achilles
-from achilles.utils import read_signal, transform_signal_to_tensor, get_recursive_files, plot_confusion_matrix
+from achilles.utils import read_signal, transform_signal_to_tensor, get_recursive_files, \
+    plot_confusion_matrix, sliding_window
 
 from sklearn.metrics import confusion_matrix
 
@@ -65,7 +66,6 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, **kwarg
     for label, directory in enumerate(dirs):
         # Recursively grab a list of Fast5 files:
         files = get_recursive_files(directory, extension=".fast5")
-
         fast5 += files
         labels += [label for _ in files]
 
@@ -89,7 +89,7 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, **kwarg
     cm = confusion_matrix(df["label"], df["prediction"])
     average_prediction_time = df["microseconds"].mean()
 
-    # Normalized confusin matrix:
+    # Normalized confusion matrix:
     cm = cm.astype('float') / cm.sum(axis=1)[:, numpy.newaxis]
 
     plot_confusion_matrix(cm, class_labels=class_labels, save=prefix+".pdf", normalize=True)
@@ -97,49 +97,79 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, **kwarg
     return cm, average_prediction_time
 
 
-def predict(fast5: str, model: str, window_max: int = 10, window_size: int = 400, window_step: int = 400,
-            batch_size: int = 10, window_random: bool = False, scale: bool = True, stdout: bool = True) -> numpy.array:
+def predict(fast5: list, model: str, window_max: int = 10, window_size: int = 400, window_step: int = 400,
+            window_random: bool = False, scale: bool = True, stdout: bool = True,
+            batches=None) -> numpy.array:
 
     """ Predict from Fast5 using loaded model, either from beginning of signal or randomly sampled """
+
+    batch_size = init_batches(batches, window_max)
 
     achilles = Achilles()
     achilles.load_model(model_file=model)
 
-    prediction_times = []
     predictions = []
-    for file in fast5:
-        # This can be memory consuming and may be too slow to load all windows
-        # and then select first or random (signal_max) - need test for None, to get all windows:
-        signal_windows, total_windows = read_signal(file, window_size=window_size, window_step=window_step,
-                                                    normalize=False, window_random=window_random,
-                                                    window_recover=False, window_max=window_max,
-                                                    scale=scale)
+    prediction_times = []
+    for file_batch in sliding_window(fast5, size=batches, step=batches):
 
-        if signal_windows is not None:
-            # Transform to tensors:
-            nb_windows, signal_tensors = len(signal_windows), transform_signal_to_tensor(signal_windows)
-            # Predict with instance of model, batch size is
-            # the number of windows extracted for prediction for now:
-            # Test if cumulative sum of probabilities is better than average?
-            prediction_windows, microseconds = achilles.predict(signal_tensors, batch_size=batch_size)
+        batch = prepare_batch(file_batch, window_size=window_size, window_step=window_step, normalize=False,
+                              window_random=window_random, window_recover=False, window_max=window_max, scale=scale)
 
-            if len(prediction_windows) > 1:
-                prediction = prediction_windows.mean(axis=0)
-            else:
-                prediction = prediction_windows[0]
+        # Microseconds is per entire batch:
+        prediction_windows, microseconds = achilles.predict(batch, batch_size=batch_size)
 
-            predicted_label = numpy.argmax(prediction)
-        else:
-            # If no signal windows could be extracted:
-            nb_windows, prediction, microseconds = 0, [], 0
-            predicted_label = None
+        # Slice the predictions by window_max and compute mean over slice of batch:
+        sliced = prediction_windows.reshape(batch.shape[0]//window_max, window_max, prediction_windows.shape[1])
 
-        prediction_times.append(microseconds)
-        predictions.append(predicted_label)
+        # Take the mean of each slice for each label:
+        prediction = numpy.mean(sliced, axis=1)
 
-        # name = os.path.basename(file)
+        # Convert to numeric class labels:
+        predicted_labels = numpy.argmax(prediction, axis=-1)
+
         if stdout:
-            print("{}\t{}\t{}\t{}\t{}\t".format(prediction, predicted_label, nb_windows,
-                                                total_windows, microseconds))
+            for i in range(len(predicted_labels)):
+                print("{}\t{}\t{}".format(prediction[i], predicted_labels[i], microseconds))
+
+        predictions += predicted_labels.tolist()
+        prediction_times += [microseconds for _ in predicted_labels]
 
     return predictions, prediction_times
+
+
+def init_batches(batches, window_max):
+
+    """ Helper function to test parameters and compute batch size based on number of batches and maximum windows """
+
+    batch_size = batches * window_max
+
+    if batch_size % window_max != 0:
+        raise ValueError("Batch size ({}) must be a multiple of the number of windows per read ({})."
+                         .format(batch_size, window_max))
+
+    print("Batch size per pass through model in Keras:", batch_size)
+
+    return batch_size
+
+
+def prepare_batch(file_batch, **kwargs):
+
+    """ Helper function to prepare a batch from a list of signal window arrays"""
+
+    # Clean fill-ins from last window and return from iterator:
+    file_batch = [file for file in file_batch if file is not None]
+
+    batch = []
+    for file in file_batch:
+        signal_windows, _ = read_signal(file, **kwargs)
+
+        if signal_windows is not None:
+            batch.append(transform_signal_to_tensor(signal_windows))
+        else:
+            print("Could not read file: ", file)
+
+    batch = numpy.array(batch)
+
+    return batch.reshape(batch.shape[0] * batch.shape[1], batch.shape[2], batch.shape[3], batch.shape[4])
+
+
