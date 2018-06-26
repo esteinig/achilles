@@ -302,6 +302,7 @@ def plot_confusion_matrix(cm, class_labels,
 
     plt.close()
 
+
 def plot_pevaluate_runner(results, class_labels=(0, 1)):
 
     """ Currently only for binary classification! """
