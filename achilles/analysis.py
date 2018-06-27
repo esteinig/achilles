@@ -105,8 +105,15 @@ def predict(fast5: list, model: str, window_max: int = 10, window_size: int = 40
 
     batch_size = init_batches(batches, window_max)
 
+    print('Loading model...')
     achilles = Achilles()
     achilles.load_model(model_file=model)
+
+    # First pass prediction on null data for initialization:
+    print("Initiating model prediction with null data...")
+    null_data = numpy.zeros(shape=(1, 1, window_size, 1))
+    achilles.predict(null_data)
+    print("Starting batch-wise predictions...")
 
     predictions = []
     prediction_times = []

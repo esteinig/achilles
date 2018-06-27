@@ -1,0 +1,11 @@
+tensorflow
+keras
+pandas
+numpy
+scipy
+scikit-image
+scikit-learn
+h5py
+tqdm
+seaborn
+matplotlib
