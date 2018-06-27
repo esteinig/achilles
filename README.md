@@ -90,9 +90,9 @@ This is training test for mixed human chromosomes (same random selection from re
 
 #### Training
 
-| Run ID     | Dataset | Total   | Signal  | Windows  | Loss Func | Optimizer  | Batch Size | Epochs | Training  | Validation | 
-| :--------: | :-----: | :-----: | :------:| :------: | :------:  | :--------: | :-------:  | :----: | :-------: | :--------: | 
-| zika_1     | PF13    | 300000  | DAC     | 400x400  | Binary CE | Adam       | 800        | 38/40  |  90.78%   | 90.59%     |
+| Run ID     | Dataset | Total   | Signal  | Windows  | Loss Func | Optimizer  | Batch Size | Epochs | Training  | Validation | Notes           |
+| :--------: | :-----: | :-----: | :------:| :------: | :------:  | :--------: | :-------:  | :----: | :-------: | :--------: | :-------------: |
+| zika_1     | PF13    | 300000  | DAC     | 400x400  | Binary CE | Adam       | 1000       | 30/30  |  93.94%   | 94.10%     | train longer    |
 
 * **PF13**: random selection of Primal PCR amplicon reads for WHO reference strain [PF13/251013-18](), R9 1D
 
