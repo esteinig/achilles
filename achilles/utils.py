@@ -11,7 +11,7 @@ from itertools import tee, islice
 
 from skimage.util import view_as_windows
 from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
-
+import h5py
 import os
 from tqdm import tqdm
 import shutil
@@ -45,10 +45,13 @@ def chunk(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
-def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000):
+def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, exclude=None):
 
     # Always recursive, always a limit:
     fast5 = get_recursive_files(input_dir, extension=".fast5")
+
+    if exclude:
+        fast5 = exclude_training_files(selection_files=fast5, data_file=exclude)
 
     if shuffle:
         random.shuffle(fast5)
@@ -71,9 +74,28 @@ def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000):
         return fast5[:limit]
 
 
-def select_fast5(input_dir, output_dir=None, limit=1000, min_signal=None, symlink=False, shuffle=True):
+def exclude_training_files(selection_files, data_file):
 
-    fast5_paths = filter_fast5(input_dir, min_signal=min_signal, shuffle=shuffle, limit=limit)
+    """ If we sample from the same (random) subset of reads as the training data, this function
+    makes sure that we are not using the same files used in training for prediction. """
+
+    with h5py.File(data_file, "r") as data:
+        training_file_paths = data["data/files"]
+
+    # Exclude files based on file name, not paths:
+    training_file_names = [os.path.basename(file) for file in training_file_paths]
+    fast5_file_names = [os.path.basename(file) for file in selection_files]
+
+    retained_files = [fast5 for fast5 in fast5_file_names if fast5 not in training_file_names]
+
+    print("Excluded", len(set()))
+
+    return retained_files
+
+
+def select_fast5(input_dir, output_dir=None, exclude=None, limit=1000, min_signal=None, symlink=False, shuffle=True):
+
+    fast5_paths = filter_fast5(input_dir, min_signal=min_signal, shuffle=shuffle, limit=limit, exclude=exclude)
 
     if limit and limit > len(fast5_paths):
         raise ValueError("Number of Fast5 files is smaller than specified limit, please "
@@ -315,6 +337,7 @@ def plot_pevaluate_runner(results, class_labels=(0, 1)):
     for prefix, data in results.items():
         cm = data["confusion_matrix"]
         ms = data["average_prediction_time"]
+        batches = data["batches"]
 
         # First deconstruct prefix as {model}:{signal_type}:{sample}:{number_windows}
         model, signal_type, sample, nb_windows = prefix.split(":")
@@ -326,11 +349,11 @@ def plot_pevaluate_runner(results, class_labels=(0, 1)):
             else:
                 error, acc = cm[1, 0], cm[1, 1]
 
-            row = [model, signal_type, sample, int(nb_windows), label, error, acc, ms]
+            row = [model, signal_type, sample, int(nb_windows), label, error, acc, ms, batches]
             data_frame.append(row)
 
     df = pandas.DataFrame(data_frame, columns=["model", "signal", "sample", "windows", "label",
-                                               "error", "accuracy", "mu"])
+                                               "error", "accuracy", "mu", "per_batch"])
 
     # Setup a plot for each model:
 
@@ -347,11 +370,15 @@ def plot_pevaluate_runner(results, class_labels=(0, 1)):
                 plot = seaborn.pointplot(x="windows", y=metric, hue="label", data=model_sample_df, ci=None, ax=ax)
                 plot.set_title("sampling: " + sample)
 
+            model_sample_df["x_labels"] = model_sample_df["windows"].astype(str).str.cat(
+                model_sample_df["per_batch"].astype(str), sep="_")
+
             time_ax = axes[2, col]
-            time_plot = seaborn.pointplot(x="windows", y="mu", data=model_sample_df,
+            time_plot = seaborn.pointplot(x="x_labels", y="mu", data=model_sample_df,
                                           ci=None, ax=time_ax, color="green")
 
-            time_plot.set_title("Avg. prediction speed {} (mu)".format(sample))
+            time_plot.set_title("Mean prediction speed per batch {} (mu)".format(sample))
+            time_plot.set_xlabel("windows _ files)")
 
         plt.suptitle("Model: {}".format(model), size=16)
         plt.tight_layout()

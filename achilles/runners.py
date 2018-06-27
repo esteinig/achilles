@@ -116,7 +116,7 @@ def pevaluate_runner(config="pevaluate.json", outdir="run", class_labels=None):
                 # Using semicolon as delimiter, so it does not interfere with model names:
                 prefix = "{}:{}:{}:{}".format(model, signal_type, sample_location, number_windows)
 
-                # Set batch size for the number of windows:
+                # Set number of batches (batch size) for the number of windows:
                 batches = config["batch_size_max"]//number_windows
 
                 print("Number of files in batch:", batches)
@@ -127,7 +127,7 @@ def pevaluate_runner(config="pevaluate.json", outdir="run", class_labels=None):
 
                 print("Average time of prediction per batch: {} microseconds.".format(mu))
 
-                confusions[prefix] = {"confusion_matrix": cm, "average_prediction_time": mu}
+                confusions[prefix] = {"confusion_matrix": cm, "average_prediction_time": mu, "batches": batches}
 
     with open(os.path.join(outdir, "results.pkl"), "wb") as result_pickle:
         pickle.dump(confusions, result_pickle)

@@ -25,8 +25,6 @@ class Dataset:
 
         self.data_file = data_file
 
-        logging.basicConfig(filename=log_file, level=logging.DEBUG)
-
     def get_signal_generator(self, data_type="training", batch_size=15, shuffle=True):
 
         """Access function to generate signal window training and validation data generators
