@@ -60,32 +60,47 @@ Models above are selected by best validation accuracy.
 #### Prediction Evaluations
 ---
 
-Selections are random selections of 1000 Fast5 files for each label (human, *B. pseudomallei*)
+Selections are random selections of 1000 Fast5 files for each label (human, *B. pseudomallei*).
 
-#### Training, validation and evaluation data sets
+#### Training Dataset
 ---
 
 **Training data set for detection of *B. pseudomallei* in [human background](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md) DNA from the `nanopore-wgs-consortium/NA12878` genome project**:
 
-* 150,000 (Burkholderia), 150,000 ([terminal chromosome 20](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar), [central chromosome 14](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar))
-* 2762 Fast5
+* 150,000 (Burkholderia), 150,000 ([terminal chromosome 20](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar) + [central chromosome 14](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar) + [terminal chromosome 11](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr11.part09.tar))
+* 2762 Fast5, R9.4, 1D
 * 70% training, 30% validation
 * 400 x 400, not normalized, random select + random consecutive scan
 
-**Evaluation data sets for generalizing over human genome**:
-
-* 150,000 (Burkholderia), 150,000 (Human)
-* 400 x 400, not normalized, random consecutive scan
-
-* random selection (same as training) of terminal [chromosome 20 (part5)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr20.part05.tar) Fast5
-* random selection  (same as training) of central [chromosome 14 (part4)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr14.part04.tar) Fast5
-* random selection of terminal [chromosome 11 (part9)](http://s3.amazonaws.com/nanopore-human-wgs/rel3-fast5-chr11.part09.tar) Fast5
-
-* mixed random selection of chromosomes (11, 14, 20)
-
 **Example command line task to generate training and evaluation data**:
 
-`achilles make --dirs bp,human_chr14 --data_file training.chr14.h5 -l 400 -s 400 -m 150000`
+`achilles make --dirs bp,human_mix --data_file training.raw.bp.mix.h5 -l 400 -s 400 -m 150000 --validation 0.3 --raw`
+
+### Performance for classification of *Homo sapiens* and Zika virus:
+---
+
+This is training test for mixed human chromosomes (same random selection from reads as in training *B. pseudomallei*) and Zika virus from the [ZIBRA]() project. The aim is to test training on R9 1D and 2D amplicons, and evaluate predictions across 1D and 2D models. 
+
+#### Architectures
+
+| Run ID    | ResBlocks | Channels | RNN Layers | RNN Cell  | RNN cuDNN | RNN Units | RNN Dropout | Recurrent Dropout | FC Activation  | Classes  | Parameters  | Notes              | 
+| :-------: | :-------: | :------: | :--------: | :-------: | :-------: | :-------: | :---------: | :---------------: | :------------: | :------: | :--------:  | :----------------: |
+| zika_1    |  1        | 256      | 1          | LSTM      | no        | 200       | 0.2         | 0.2               | Softmax        | 2        |  633,778    | -                  |
+
+
+#### Training
+
+| Run ID     | Dataset | Total   | Signal  | Windows  | Loss Func | Optimizer  | Batch Size | Epochs | Training  | Validation | 
+| :--------: | :-----: | :-----: | :------:| :------: | :------:  | :--------: | :-------:  | :----: | :-------: | :--------: | 
+| zika_1     | PF13    | 300000  | DAC     | 400x400  | Binary CE | Adam       | 800        | 38/40  |  90.78%   | 90.59%     |
+
+* **PF13**: random selection of Primal PCR amplicon reads for WHO reference strain [PF13/251013-18](), R9 1D
+
+### General Notes
+---
+
+27/06/2018 - evaluated prediction of *B. pseudomallei* model with runner on random selection of PF13 Zika. Complete failure, literally none of the reads correctly classified, all predicted Human.
+
 
 ### Documentation
 ---
