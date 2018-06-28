@@ -144,11 +144,14 @@ class Achilles:
         with open("{}.model.history".format(run_id), "wb") as history_out:
             pickle.dump(history.history, history_out)
 
-    def load_model(self, model_file):
+    def load_model(self, model_file, summary=True):
 
         """ Load model from HDF5 output file with model layers and weights """
 
         self.model = load_model(model_file)
+
+        if summary:
+            self.model.summary()
 
     @timeit()
     def evaluate(self, eval_generator, workers=2):

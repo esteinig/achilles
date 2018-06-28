@@ -53,7 +53,7 @@ def main():
 
             # Compile model with loss function and optimizer
             achilles.compile(optimizer=args["optimizer"], loss=args["loss"])
-            
+
         # Compute estimated memory for dimensions and batch size of model:
         memory = achilles.estimate_memory_usage(batch_size=args["batch_size"])
 
