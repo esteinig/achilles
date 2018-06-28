@@ -11,7 +11,7 @@ import seaborn as sns
 from tqdm import tqdm
 from scipy.stats import sem
 from sklearn.model_selection import train_test_split
-from achilles.utils import read_signal, chunk
+from achilles.utils import read_signal, chunk, get_recursive_files
 from textwrap import dedent
 from keras.utils import Sequence
 from keras.utils.np_utils import to_categorical
@@ -80,7 +80,7 @@ class Dataset:
             for label, path in enumerate(dirs):
 
                 # All Fast5 files in directory:
-                files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith(".fast5")]
+                files = get_recursive_files(path, extension=".fast5")
 
                 # Randomize:
                 random.shuffle(files)

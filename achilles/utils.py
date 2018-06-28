@@ -417,3 +417,43 @@ def sliding_window(iterable, size=2, step=1, fillvalue=None):
             return
         q.extend(next(it, fillvalue) for _ in range(step - 1))
 
+# From Mako
+
+def med_mad(data, factor=1.4826, axis=None):
+
+    """Compute the Median Absolute Deviation, i.e., the median
+    of the absolute deviations from the median, and the median.
+
+    :param data: A :class:`ndarray` object
+    :param axis: For multidimensional arrays, which axis to calculate over
+    :returns: a tuple containing the median and MAD of the data
+    .. note :: the default `factor` scales the MAD for asymptotically normal
+        consistency as in R.
+
+    """
+    dmed = np.median(data, axis=axis)
+    if axis is not None:
+        dmed1 = np.expand_dims(dmed, axis)
+    else:
+        dmed1 = dmed
+
+    dmad = factor * np.median(
+        np.abs(data - dmed1),
+        axis=axis
+    )
+    return dmed, dmad
+
+
+def _scale_data(data):
+    if data.ndim == 3:
+        # (batches, timesteps, features)
+        med, mad = med_mad(data, axis=1)
+        med = med.reshape(med.shape + (1,))
+        mad = mad.reshape(mad.shape + (1,))
+        data = (data - med) / mad
+    elif data.ndim == 1:
+        med, mad = med_mad(data)
+        data = (data - med) / mad
+    else:
+        raise AttributeError("'data' should have 3 or 1 dimensions.")
+    return data
