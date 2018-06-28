@@ -215,7 +215,7 @@ class Dataset:
                 self.print_data_summary(data_file=outfile)
 
     def plot_signal_distribution(self, random_windows=True, nb_windows=10000, data_path="data", limit=(0, 300),
-                                 histogram=False, bins=None, stats=True):
+                                 length=False, histogram=False, bins=None, stats=True):
 
         """ Plotting function to generate signal value histograms for each category, sampled randomly
         this operates on the standard data path, but can be changed to training / validation data paths in HDF5 """
@@ -269,7 +269,11 @@ class Dataset:
                     sns.kdeplot(data, shade=True)
 
             plt.legend(unique_labels, title="Label")
-            plt.show()
+
+
+    def plot_signal(self, nb_signals=4, data_path="training"):
+
+        pass
 
     @staticmethod
     def create_data_paths(file, window_size=400, classes=2):

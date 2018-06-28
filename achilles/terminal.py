@@ -79,6 +79,9 @@ class Terminal:
         train.add_argument("--rnn_units", "-units", "-u", required=False, type=int, default=200, dest="rnn_units",
                            help="Number of units in bidirectional RNN layers (default 200).")
 
+        train.add_argument("--load", required=False, dest="load", default=None, type=str,
+                           help="Load a trained model for transfer training.")
+
         train.add_argument("--gru", required=False, action="store_true", dest="gru",
                            help="Use GRU layers instead of LSTM in RNN.")
         train.add_argument("--gpu", "-g", required=False, action="store_true", dest="gpu",
@@ -205,13 +208,13 @@ class Terminal:
 
         self.args = vars(self.args)
 
+        # Data checks and conversions
+
         # For input lists (comma-separated):
 
         for key in ("labels",):
             if key in self.args.keys():
                 self.args[key] = [item for item in self.args[key].split(",")]
-
-        # Real paths:
 
         # For input lists (comma-separated) as paths:
         for key in ("dirs", "data_files", "model_files"):

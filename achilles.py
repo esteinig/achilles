@@ -42,15 +42,18 @@ def main():
         # Build model
         achilles = Achilles(data_file=args["data_file"])
 
-        achilles.build(signal_length=args["signal_length"], activation=args["activation"],
-                       nb_residual_block=args["nb_residual_blocks"], nb_channels=args["nb_channels"],
-                       nb_rnn=args["nb_rnn"], rnn_units=args["rnn_units"], gru=args["gru"], gpu=args["gpu"],
-                       dropout=args["dropout"], rc_dropout=args["rc_dropout"], bidirectional=args["bi"],
-                       conv_2d=args["conv_2d"])
+        if args["load"]:
+            achilles.load_model(args["load"])
+        else:
+            achilles.build(signal_length=args["signal_length"], activation=args["activation"],
+                           nb_residual_block=args["nb_residual_blocks"], nb_channels=args["nb_channels"],
+                           nb_rnn=args["nb_rnn"], rnn_units=args["rnn_units"], gru=args["gru"], gpu=args["gpu"],
+                           dropout=args["dropout"], rc_dropout=args["rc_dropout"], bidirectional=args["bi"],
+                           conv_2d=args["conv_2d"])
 
-        # Compile model with loss function and optimizer
-        achilles.compile(optimizer=args["optimizer"], loss=args["loss"])
-
+            # Compile model with loss function and optimizer
+            achilles.compile(optimizer=args["optimizer"], loss=args["loss"])
+            
         # Compute estimated memory for dimensions and batch size of model:
         memory = achilles.estimate_memory_usage(batch_size=args["batch_size"])
 

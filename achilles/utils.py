@@ -47,10 +47,21 @@ def chunk(seq, size):
 
 def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, exclude=None):
 
-    # Always recursive, always a limit:
-    fast5 = get_recursive_files(input_dir, extension=".fast5")
+    tar_ext = (".tar", ".tar.gz", ".tgz")
+
+    # TODO
+    if input_dir.endswith(tar_ext):
+        # Do stuff from tar files directly without unpacking
+        # useful for huge Nanopore read files from Loman or ZIBRA
+        # Use parameter like <tar_trials> to repeat sampling if not enough
+        # of min_signal have been extracted.
+        fast5 = []
+    else:
+        # Always recursive, always a limit:
+        fast5 = get_recursive_files(input_dir, extension=".fast5")
 
     if exclude:
+        # TODO
         fast5 = exclude_training_files(selection_files=fast5, data_file=exclude)
 
     if shuffle:
