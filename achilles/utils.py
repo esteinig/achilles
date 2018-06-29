@@ -59,14 +59,18 @@ def get_tarred_fast5(input_dir, shuffle=True, limit=1000):
         extract = extract[:limit]
 
     # Extract tarred Fast5 into their path:
+    extracted = []
     with tqdm(total=len(extract)) as pbar:
         pbar.set_description("Extract TAR")
         for tar_info in extract:
             if not os.path.exists(tar_info.name):
                 tar.extract(tar_info)
+                extracted.append(tar_info.name)
             pbar.update(n=1)
 
-    return [path.name for path in extract]
+    # Return only the file paths that have actually been extracted
+    # and are not duplicates
+    return extracted
 
 
 def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, exclude=None):
@@ -153,6 +157,7 @@ def select_fast5(input_dir, output_dir=None, exclude=None, limit=1000, min_signa
                     os.symlink(file_path, target_link)
                 else:
                     # Copy files to target directory
+                    # TODO: skip if paths exist?
                     shutil.copy(file_path, output_dir)
                 pbar.update(n=1)
 
