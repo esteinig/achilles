@@ -136,10 +136,6 @@ def select_fast5(input_dir, output_dir=None, exclude=None, limit=1000, min_signa
 
     fast5_paths = filter_fast5(input_dir, min_signal=min_signal, shuffle=shuffle, limit=limit, exclude=exclude)
 
-    if limit and limit > len(fast5_paths):
-        raise ValueError("Number of Fast5 files is smaller than specified limit, please "
-                         "select from a sufficient pool of files.")
-
     # Copy / link files to output directory:
     if output_dir:
         if os.path.exists(output_dir):
