@@ -62,7 +62,8 @@ def get_tarred_fast5(input_dir, shuffle=True, limit=1000):
     with tqdm(total=len(extract)) as pbar:
         pbar.set_description("Extract TAR")
         for tar_info in extract:
-            tar.extract(tar_info)
+            if not os.path.exists(tar_info.name):
+                tar.extract(tar_info)
             pbar.update(n=1)
 
     return [path.name for path in extract]
@@ -139,7 +140,7 @@ def select_fast5(input_dir, output_dir=None, exclude=None, limit=1000, min_signa
     if output_dir:
         if os.path.exists(output_dir):
             print("Warning: output directory for copying files exist, files will be copied.")
-            
+
         os.makedirs(output_dir, exist_ok=True)
         with tqdm(total=len(fast5_paths)) as pbar:
             pbar.set_description("Copying files")
