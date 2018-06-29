@@ -3,6 +3,7 @@ import datetime
 import pandas
 import itertools
 import numpy as np
+import tarfile
 from matplotlib import style
 from matplotlib import pyplot as plt
 
@@ -45,46 +46,64 @@ def chunk(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
+def get_tarred_fast5(input_dir, shuffle=True, limit=1000):
+
+    tar = tarfile.open(input_dir)
+
+    tar_fast5 = [path for path in tar if path.name.endswith(".fast5")]
+
+    if shuffle:
+        random.shuffle(tar_fast5)
+
+    extract = tar_fast5[:limit]
+
+    # Extract tarred Fast5 into their path:
+    with tqdm(total=len(extract)) as pbar:
+        pbar.set_description("Extract TAR")
+        for tar_info in tqdm(extract):
+            tar.extract(tar_info)
+            pbar.update(n=1)
+
+    return [path.name for path in extract]
+
+
 def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, exclude=None):
 
     tar_ext = (".tar", ".tar.gz", ".tgz")
 
-    # TODO
     if input_dir.endswith(tar_ext):
-        # Do stuff from tar files directly without unpacking
-        # useful for huge Nanopore read files from Loman or ZIBRA
-        # Use parameter like <tar_trials> to repeat sampling if not enough
-        # of min_signal have been extracted.
-        fast5 = []
+        if min_signal is not None:
+            raise ValueError("Selecting Fast5 of minimum signal length from tarred files is currently not possible.")
+
+        return get_tarred_fast5(input_dir, shuffle=shuffle, limit=limit)
+
     else:
         # Always recursive, always a limit:
         fast5 = get_recursive_files(input_dir, extension=".fast5")
 
-    if exclude:
-        # TODO
-        fast5 = exclude_training_files(selection_files=fast5, data_file=exclude)
+        if shuffle:
+            random.shuffle(fast5)
 
-    if shuffle:
-        random.shuffle(fast5)
-
-    if min_signal:
-        lim = 0
-        filtered = []
-        with tqdm(total=limit) as pbar:
-            pbar.set_description("Fast5 filtering")
-            for file in fast5:
-                _, signal_length = read_signal(file, normalize=False, scale=False, return_signal=True)
-                if signal_length >= min_signal:
-                    filtered.append(file)
-                    lim += 1
-                    pbar.update(n=1)
-                    if lim == limit:
-                        break
-        return filtered
-    else:
-        return fast5[:limit]
+        if min_signal:
+            # Filter for minimum signal length:
+            lim = 0
+            filtered = []
+            with tqdm(total=limit) as pbar:
+                pbar.set_description("Fast5 filtering")
+                for file in fast5:
+                    _, signal_length = read_signal(file, normalize=False, scale=False, return_signal=True)
+                    if signal_length >= min_signal:
+                        filtered.append(file)
+                        lim += 1
+                        pbar.update(n=1)
+                        if lim == limit:
+                            break
+            return filtered
+        else:
+            return fast5[:limit]
 
 
+# TODO
 def exclude_training_files(selection_files, data_file):
 
     """ If we sample from the same (random) subset of reads as the training data, this function
