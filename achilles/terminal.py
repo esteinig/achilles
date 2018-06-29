@@ -175,7 +175,7 @@ class Terminal:
                             help="Recursive directory of Fast5 files to select from randomly.")
         select.add_argument("--output_dir", "--out", "-o", required=False, dest="output_dir", default="out_select",
                             type=str, help="Output file to copy largest Fast5 into.")
-        select.add_argument("--number", "-n", required=False, dest="number", default=1000, type=int,
+        select.add_argument("--number", "-n", required=False, dest="number", default=None, type=int,
                             help="Number of Fast5 files to copy.")
         select.add_argument("--min_signal", "-m", required=False, dest="min_signal", default=None, type=int,
                             help="Minimum length of signal array .")

@@ -50,12 +50,13 @@ def get_tarred_fast5(input_dir, shuffle=True, limit=1000):
 
     tar = tarfile.open(input_dir)
 
-    tar_fast5 = [path for path in tar if path.name.endswith(".fast5")]
+    extract = [path for path in tar if path.name.endswith(".fast5")]
 
     if shuffle:
-        random.shuffle(tar_fast5)
+        random.shuffle(extract)
 
-    extract = tar_fast5[:limit]
+    if limit:
+        extract = extract[:limit]
 
     # Extract tarred Fast5 into their path:
     with tqdm(total=len(extract)) as pbar:
@@ -85,6 +86,9 @@ def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, exclude=N
             random.shuffle(fast5)
 
         if min_signal:
+            if limit is None:
+                raise ValueError("Selecting Fast5 with minimum signal length requires specifying a limit.")
+
             # Filter for minimum signal length:
             lim = 0
             filtered = []
