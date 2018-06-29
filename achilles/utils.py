@@ -137,7 +137,10 @@ def select_fast5(input_dir, output_dir=None, exclude=None, limit=1000, min_signa
 
     # Copy / link files to output directory:
     if output_dir:
-        os.makedirs(output_dir)
+        if os.path.exists(output_dir):
+            print("Warning: output directory for copying files exist, files will be copied.")
+            
+        os.makedirs(output_dir, exist_ok=True)
         with tqdm(total=len(fast5_paths)) as pbar:
             pbar.set_description("Copying files")
             for file_path in fast5_paths:
