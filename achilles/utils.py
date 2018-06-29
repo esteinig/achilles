@@ -60,7 +60,7 @@ def get_tarred_fast5(input_dir, shuffle=True, limit=1000):
     # Extract tarred Fast5 into their path:
     with tqdm(total=len(extract)) as pbar:
         pbar.set_description("Extract TAR")
-        for tar_info in tqdm(extract):
+        for tar_info in extract:
             tar.extract(tar_info)
             pbar.update(n=1)
 
