@@ -46,11 +46,14 @@ def chunk(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
-def get_tarred_fast5(input_dir, shuffle=True, limit=1000):
+def get_tarred_fast5(input_dir, shuffle=True,  include="", limit=1000):
 
     tar = tarfile.open(input_dir)
 
     extract = [path for path in tar if path.name.endswith(".fast5")]
+
+    if include:
+        extract = [path for path in extract if include in path]
 
     if shuffle:
         random.shuffle(extract)
@@ -73,7 +76,7 @@ def get_tarred_fast5(input_dir, shuffle=True, limit=1000):
     return extracted
 
 
-def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, exclude=None):
+def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, include="", exclude=None):
 
     tar_ext = (".tar", ".tar.gz", ".tgz")
 
@@ -81,11 +84,11 @@ def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, exclude=N
         if min_signal is not None:
             raise ValueError("Selecting Fast5 of minimum signal length from tarred files is currently not possible.")
 
-        return get_tarred_fast5(input_dir, shuffle=shuffle, limit=limit)
+        return get_tarred_fast5(input_dir, shuffle=shuffle, limit=limit, include=include)
 
     else:
         # Always recursive, always a limit:
-        fast5 = get_recursive_files(input_dir, extension=".fast5")
+        fast5 = get_recursive_files(input_dir, include=include, extension=".fast5")
 
         if shuffle:
             random.shuffle(fast5)
@@ -132,9 +135,10 @@ def exclude_training_files(selection_files, data_file):
     return retained_files
 
 
-def select_fast5(input_dir, output_dir=None, exclude=None, limit=1000, min_signal=None, symlink=False, shuffle=True):
+def select_fast5(input_dir, output_dir=None, exclude=None, include="", limit=1000, min_signal=None, symlink=False, shuffle=True):
 
-    fast5_paths = filter_fast5(input_dir, min_signal=min_signal, shuffle=shuffle, limit=limit, exclude=exclude)
+    fast5_paths = filter_fast5(input_dir, include=include, min_signal=min_signal, shuffle=shuffle,
+                               limit=limit, exclude=exclude)
 
     # Copy / link files to output directory:
     if output_dir:
@@ -180,12 +184,13 @@ def select_random_windows(signal_windows, n=4):
     return [signal_windows[random.randrange(len(signal_windows))][:] for _ in range(n)]
 
 
-def get_recursive_files(directory, extension=".fast5"):
+def get_recursive_files(directory, include="", extension=".fast5"):
 
     file_paths = []
     for root, directories, fnames in os.walk(directory):
         for fname in fnames:
             fpath = os.path.join(root, fname)
+
             if extension:
                 if fpath.endswith(extension):
                     file_paths.append(fpath)
@@ -193,6 +198,9 @@ def get_recursive_files(directory, extension=".fast5"):
                     continue
             else:
                 file_paths.append(fpath)
+
+    if include:
+        file_paths = [f for f in file_paths if include in f]
 
     return file_paths
 

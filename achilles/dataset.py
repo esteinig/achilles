@@ -38,6 +38,25 @@ class Dataset:
 
         return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
 
+    def clean_data(self):
+
+        """ Used on directory containing Fast5 to be used for data set construction.
+
+        Basecalled FASTQ is extracted from Fast5 and mapped against a given reference genome sequence
+        with Minimap2. Generates a mapping plot showing coverage of mapped regions along the reference.
+        Mapped FASTQ reads are linked to Fast5 files. Fast5 files are then filtered for only reference mapped
+        reads.
+
+        Test in experiments whether complete genome coverage / increase in coverage corresponds to increase in
+        training of specific pathogen detection? Not possible with host, but possible with pathogens (especially
+        viruses like Zika but check for B. pseudomallei and E. coli)
+
+        :return:
+
+        """
+
+        pass
+
     def write_data(self, *dirs, classes=2, max_windows_per_class=20000, max_windows_per_read=100,
                    window_size=400, window_step=400, window_random=True, window_recover=True, normalize=False,
                    scale=True):
