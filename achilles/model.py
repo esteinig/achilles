@@ -129,7 +129,6 @@ class Achilles:
 
         # Callbacks
         csv = CSVLogger(run_id + ".epochs.log")
-        log = BatchLogger(log_file, log_interval=log_interval)
         chk = ModelCheckpoint(run_id + ".checkpoint.val_loss.h5", monitor="val_loss", verbose=0,
                               save_best_only=False, save_weights_only=False,
                               mode="auto", period=1)
@@ -139,7 +138,7 @@ class Achilles:
 
         # TODO: Implement TensorBoard
         history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers, epochs=epochs,
-                                           validation_data=validation_generator, callbacks=[log, csv, chk])
+                                           validation_data=validation_generator, callbacks=[csv, chk])
 
         with open("{}.model.history".format(run_id), "wb") as history_out:
             pickle.dump(history.history, history_out)

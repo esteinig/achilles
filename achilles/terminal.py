@@ -187,7 +187,7 @@ class Terminal:
                             help="Include string for selection if string in part of file path.")
         select.add_argument("--exclude", required=False, dest="exclude", default="", type=str,
                             help="Exclude string for selection if string in part of file path.")
-        
+
         select.set_defaults(subparser='select')
 
         runner = subparsers.add_parser("runner", help="Execute runners for summary evaluations / predictions.")
