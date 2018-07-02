@@ -96,7 +96,7 @@ def main():
 
         utils.select_fast5(input_dir=args["input_dir"], output_dir=args["output_dir"], limit=args["number"],
                            shuffle=args["random"], min_signal=args["min_signal"], symlink=args["symlink"],
-                           include=args["include"])
+                           include=args["include"], exclude=args["exclude"])
 
 
 def config():
