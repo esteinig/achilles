@@ -53,7 +53,7 @@ def get_tarred_fast5(input_dir, shuffle=True,  include="", limit=1000):
     extract = [path for path in tar if path.name.endswith(".fast5")]
 
     if include:
-        extract = [path for path in extract if include in path]
+        extract = [path for path in extract if include in path.name]
 
     if shuffle:
         random.shuffle(extract)
