@@ -498,3 +498,9 @@ def _scale_data(data):
     else:
         raise AttributeError("'data' should have 3 or 1 dimensions.")
     return data
+
+def norm(prediction):
+
+    """ Probability normalization to 1 for predictions along multiple windows of signal """
+
+    return [float(i)/sum(prediction) for i in prediction]

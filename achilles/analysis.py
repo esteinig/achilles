@@ -5,7 +5,7 @@ import pandas
 from achilles.dataset import Dataset
 from achilles.model import Achilles
 from achilles.utils import read_signal, transform_signal_to_tensor, get_recursive_files, \
-    plot_confusion_matrix, sliding_window
+    plot_confusion_matrix, sliding_window, norm
 
 from sklearn.metrics import confusion_matrix
 
@@ -99,7 +99,7 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, **kwarg
 
 def predict(fast5: list, model: str, window_max: int = 10, window_size: int = 400, window_step: int = 400,
             window_random: bool = False, scale: bool = True, stdout: bool = True,
-            batches=None) -> numpy.array:
+            batches=None, mean=False) -> numpy.array:
 
     """ Predict from Fast5 using loaded model, either from beginning of signal or randomly sampled """
 
@@ -129,7 +129,12 @@ def predict(fast5: list, model: str, window_max: int = 10, window_size: int = 40
         sliced = prediction_windows.reshape(batch.shape[0]//window_max, window_max, prediction_windows.shape[1])
 
         # Take the mean of each slice for each label:
-        prediction = numpy.mean(sliced, axis=1)
+        if mean:
+            prediction = numpy.mean(sliced, axis=1)
+        else:
+            # Product, normalized
+            prediction = numpy.prod(sliced, axis=1)
+            prediction = norm(prediction)
 
         # Convert to numeric class labels:
         predicted_labels = numpy.argmax(prediction, axis=-1)
