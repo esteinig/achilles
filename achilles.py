@@ -23,19 +23,16 @@ def main():
 
         # Generate data for batch-wise input into Achilles,
         # write training and validation data to HDF5 file
-        ds = Dataset(data_file=args["data_file"])
+        ds = Dataset(data_file=args["output_file"])
 
-        if args["print"]:
-            ds.print_data_summary(data_file=args["data_file"])
-        else:
-            ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_windows_per_class=args["signal_max"],
-                          window_size=args["signal_length"], window_step=args["signal_stride"],
-                          normalize=args["normalize"], max_windows_per_read=args["window_max"],
-                          window_random=args["window_random"], window_recover=True, scale=args["scale"])
+        ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_windows_per_class=args["signal_max"],
+                      window_size=args["signal_length"], window_step=args["signal_stride"],
+                      normalize=args["normalize"], max_windows_per_read=args["window_max"],
+                      window_random=args["window_random"], window_recover=True, scale=args["scale"])
 
-            if args["validation"] > 0:
-                ds.training_validation_split(validation=args["validation"], window_size=args["signal_length"],
-                                             classes=len(args["dirs"]), chunk_size=args["chunk_size"])
+        if args["validation"] > 0:
+            ds.training_validation_split(validation=args["validation"], window_size=args["signal_length"],
+                                         classes=len(args["dirs"]), chunk_size=args["chunk_size"])
 
     if args["subparser"] == "train":
 

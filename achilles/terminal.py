@@ -17,7 +17,7 @@ class Terminal:
 
         prep.add_argument("--dirs", "-d", required=False, dest="dirs", default="dir1,dir2", type=str,
                           help="Class directories with Fast5 files (max: 2)")
-        prep.add_argument("--data_file", "-o", required=False, dest="data_file", default="data.h5", type=str,
+        prep.add_argument("--output_file", "-o", required=False, dest="output_file", default="data.h5", type=str,
                           help="Output HDF5 containing training and validation signal data")
         prep.add_argument("--log_file", "-log", required=False, dest="log_file", default="data.log", type=str,
                           help="Log file for generating training data.")
@@ -229,16 +229,22 @@ class Terminal:
         # For input lists (comma-separated) as paths:
         for key in ("dirs", "data_files", "model_files"):
             if key in self.args.keys():
-                self.args[key] = [os.path.abspath(directory) for directory in self.args[key].split(",")]
+                self.args[key] = [self.check_path(os.path.abspath(directory))
+                                  for directory in self.args[key].split(",")]
 
         # For input strings that are paths:
-        for key in ("data_file", "output_file", "log_file", "plot_file", "input_dir", "output_dir"):
+        for key in ("data_file", "input_dir"):
+            if key in self.args.keys():
+                self.args[key] = self.check_path(os.path.abspath(self.args[key]))
+
+        # Output paths
+        for key in ("output_file", "log_file", "plot_file", "output_dir"):
             if key in self.args.keys():
                 self.args[key] = os.path.abspath(self.args[key])
 
         # For nargs:
         if "input_files" in self.args.keys():
-            self.args["input_files"] = [os.path.abspath(file) for file in self.args["input_files"]]
+            self.args["input_files"] = [self.check_path(os.path.abspath(file)) for file in self.args["input_files"]]
 
         # For making dataset, random window sampling is default on,
         # to disable with window_start flag for better user comprehension:
@@ -257,12 +263,22 @@ class Terminal:
         if "include" in self.args.keys():
             # Split input string by comma and transform into list
             # for function checks on what to include or exclude for selection:
-            self.args["include"] = [os.path.abspath(include) if include.endswith(".h5") else include
+            self.args["include"] = [self.check_path(os.path.abspath(include)) if include.endswith(".h5") else include
                                     for include in self.args["include"].split(",")]
 
         if "exclude" in self.args.keys():
             # Split input string by comma and transform into list
             # for function checks on what to include or exclude for selection:
-            self.args["exclude"] = [os.path.abspath(exclude) if exclude.endswith(".h5") else exclude
+            self.args["exclude"] = [self.check_path(os.path.abspath(exclude)) if exclude.endswith(".h5") else exclude
                                     for exclude in self.args["exclude"].split(",")]
 
+    @staticmethod
+    def check_path(path):
+
+        if isinstance(path, str):
+            if not os.path.exists(path):
+                raise ValueError("Input path {} does not exist.".format(path))
+        else:
+            raise ValueError("Terminal argument passed to check_path() method is not a string .")
+
+        return path
