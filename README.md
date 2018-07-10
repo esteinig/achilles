@@ -1,4 +1,4 @@
-<p align="left"><img src="logo.png" height="115" width="110"></img></p>
+<p align="left"><img src="logo/logo.png" height="115" width="110"></img></p>
 
 # Achilles
 
