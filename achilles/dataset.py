@@ -11,7 +11,8 @@ import seaborn as sns
 from tqdm import tqdm
 from scipy.stats import sem
 from sklearn.model_selection import train_test_split
-from achilles.utils import read_signal, chunk, get_recursive_files
+from achilles.utils import read_signal, chunk
+from achilles.select import get_recursive_files
 from textwrap import dedent
 from keras.utils import Sequence
 from keras.utils.np_utils import to_categorical

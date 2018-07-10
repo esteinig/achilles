@@ -34,6 +34,73 @@ pevaluate_config = {
 
 }
 
+sampler_config = {
+
+    "exclude": ["FAB3218"],
+
+    "training": {
+        "n": 10000,
+        "pathogen": {
+            "zibra_1": ["zibra_flowcell_1"]
+        },
+        "host": {
+            "minimal": ["human_chr2", "human_chr4"],
+            "diverse": ["human_chr2", "human_chr4", "human_chr8", "human_chr14", "human_chr20", "human_chrX"]
+        },
+    },
+
+    "evaluation": {
+        "n": 5000,
+        "pathogen": {
+            "zibra_2": ["zibra_flowcell_2"],
+            "zibra_3": ["zibra_flowcell_3"],
+            "zibra_4": ["zibra_flowcell_4"],
+            "zibra_5": ["zibra_flowcell_5"]
+        },
+        "host": {
+            "minimal_same": ["human_chr2", "human_chr4"],  # Independent samples for evaluation!
+            "diverse_same": ["human_chr2", "human_chr4", "human_chr8", "human_chr14", "human_chr20", "human_chrX"],
+            "minimal_general": ["human_chr3", "human_chr5"],
+            "diverse_general": ["human_chr3", "human_chr5", "human_chr9", "human_chr15", "human_chr21", "human_chrY"]
+        }
+    },
+
+
+    "simulation":  {
+        "host": ["patient_sample_1"],
+        "pathogen": ["zibra_flowcell_2", "zibra_flowcell_3", "zibra_flowcell_4", "zibra_flowcell_5"]
+    }
+}
+
+
+def sampling_runner(data_dir=".", config="zika_sampler.json", outdir="zika"):
+
+    """ This runner operates on a config file to generate combinations of training and
+    independent prediction evaluation data / simulation of real human sample data for evaluation.
+    Input data dir is searched recursively for input Fast5 directories. """
+
+    pass
+
+
+def process_sampling_config(config, data_dir):
+
+    """ Generate a dictionary for sampling with task: select """
+
+    if not isinstance(config, dict):
+        with open(config, "r") as config_file:
+            config = json.load(config_file)
+
+    # Global sampling parameters:
+
+    parameters = {
+        "exclude": config["exclude"]
+    }
+
+
+
+
+
+
 
 def plot_runner_results(pickle_file, class_labels, runner="pevaluate"):
 
@@ -93,6 +160,8 @@ def pevaluate_runner(config="pevaluate.json", outdir="run", class_labels=None):
 
     confusions = {}
     for model, signal_type in config["models"].items():
+
+        # Data type pA or DAC
         if signal_type == "pa":
             scale = True
         elif signal_type == "dac":
@@ -102,6 +171,8 @@ def pevaluate_runner(config="pevaluate.json", outdir="run", class_labels=None):
 
         for sample_location in config["sample_locations"]:
 
+            # Sample location for slices: start of read or random,
+            # might have influence on amplicons with barcodes, possibly
             if sample_location == "random":
                 random_sample = True
             elif sample_location == "start":
@@ -109,6 +180,7 @@ def pevaluate_runner(config="pevaluate.json", outdir="run", class_labels=None):
             else:
                 raise ValueError("Sample location must be one of: random, start")
 
+            # Number of windows in slice, with windows size and step from config
             for number_windows in windows:
                 print("Running predictions over {} windows ({}, {}, {})"
                       .format(number_windows, model, signal_type, sample_location))

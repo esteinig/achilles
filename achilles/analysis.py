@@ -1,13 +1,15 @@
 import os
+import sys
 import numpy
 import pandas
 
-from achilles.dataset import Dataset
-from achilles.model import Achilles
-from achilles.utils import read_signal, transform_signal_to_tensor, get_recursive_files, \
-    plot_confusion_matrix, sliding_window, norm
-
 from sklearn.metrics import confusion_matrix
+
+from achilles.model import Achilles
+from achilles.dataset import Dataset
+
+from achilles.utils import read_signal, transform_signal_to_tensor, plot_confusion_matrix, sliding_window, norm
+from achilles.select import get_recursive_files
 
 
 def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2, data_path: str="data",
@@ -86,6 +88,8 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, **kwarg
 
     df.to_csv(prefix+".csv")
 
+    print(df)
+
     cm = confusion_matrix(df["label"], df["prediction"])
     average_prediction_time = df["microseconds"].mean()
 
@@ -97,13 +101,20 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, **kwarg
     return cm, average_prediction_time
 
 
-def predict(fast5: list, model: str, window_max: int = 10, window_size: int = 400, window_step: int = 400,
+def predict(fast5: str or list, model: str, window_max: int = 10, window_size: int = 400, window_step: int = 400,
             window_random: bool = False, scale: bool = True, stdout: bool = True,
             batches=None, mean=False) -> numpy.array:
 
     """ Predict from Fast5 using loaded model, either from beginning of signal or randomly sampled """
 
     batch_size = init_batches(batches, window_max)
+
+    if type(fast5) is str and fast5 == "-":
+        fast5 = sys.stdin
+    elif type(fast5) is list:
+        pass
+    else:
+        raise ValueError("Parameter: fast5 type must be lisst or - for stream")
 
     print('Loading model...')
     achilles = Achilles()
@@ -115,8 +126,10 @@ def predict(fast5: list, model: str, window_max: int = 10, window_size: int = 40
     achilles.predict(null_data)
     print("Starting batch-wise predictions...")
 
-    predictions = []
+    predicted_labels = []
     prediction_times = []
+
+    # TODO does this work with STDIN stream?
     for file_batch in sliding_window(fast5, size=batches, step=batches):
 
         batch = prepare_batch(file_batch, window_size=window_size, window_step=window_step, normalize=False,
@@ -130,23 +143,24 @@ def predict(fast5: list, model: str, window_max: int = 10, window_size: int = 40
 
         # Take the mean of each slice for each label:
         if mean:
-            prediction = numpy.mean(sliced, axis=1)
+            predictions = numpy.mean(sliced, axis=1)
         else:
             # Product, normalized
-            prediction = numpy.prod(sliced, axis=1)
-            prediction = norm(prediction)
+            predictions = numpy.prod(sliced, axis=1)
+            # Normalized product of prediction over slices (len window_max) in batch:
+            predictions = numpy.array([norm(prediction) for prediction in predictions])
 
         # Convert to numeric class labels:
-        predicted_labels = numpy.argmax(prediction, axis=-1)
+        predicted_label = numpy.argmax(predictions, axis=-1)
 
         if stdout:
-            for i in range(len(predicted_labels)):
-                print("{}\t{}\t{}".format(prediction[i], predicted_labels[i], microseconds))
+            for i in range(len(predicted_label)):
+                print("{}\t{}\t{}".format(predictions[i], predicted_label[i], microseconds))
 
-        predictions += predicted_labels.tolist()
-        prediction_times += [microseconds for _ in predicted_labels]
+        predicted_labels += predicted_label.tolist()
+        prediction_times += [microseconds for _ in predicted_label]
 
-    return predictions, prediction_times
+    return predicted_labels, prediction_times
 
 
 def init_batches(batches, window_max):
@@ -184,4 +198,13 @@ def prepare_batch(file_batch, **kwargs):
 
     return batch.reshape(batch.shape[0] * batch.shape[1], batch.shape[2], batch.shape[3], batch.shape[4])
 
+# TODO:
 
+
+def config_experiments():
+
+    """ Helper function to generate Nextflow configs based on json parameter summaries to run
+    lots of different training configurations on GPU in scheduled and replicable manner.
+    """
+
+    pass

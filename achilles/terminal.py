@@ -161,6 +161,7 @@ class Terminal:
         peval.set_defaults(subparser='pevaluate')
 
         plot = subparsers.add_parser("plot", help="Plot loss and accuracy for model runs from logs.")
+        
         plot.add_argument("--log_file", "--file", "-f", required=False, dest="log_file", default="test_1.log", type=str,
                           help="Log file from model training run.")
         plot.add_argument("--plot_file", "--plot", "-p", required=False, dest="plot_file", default="test.pdf",
@@ -171,6 +172,7 @@ class Terminal:
 
         select = subparsers.add_parser("select", help="Utility function for selecting signal from Fast5 in recursive"
                                                       " directory structure for generating data and training model")
+
         select.add_argument("--input_dir", "--in", "-i", required=False, dest="input_dir", default="dir1", type=str,
                             help="Recursive directory of Fast5 files to select from randomly.")
         select.add_argument("--output_dir", "--out", "-o", required=False, dest="output_dir", default="out_select",
@@ -184,13 +186,16 @@ class Terminal:
         select.add_argument("--symlink", "-s", required=False, dest="symlink", action="store_true",
                             help="Create symlinks instead of copying files.")
         select.add_argument("--include", required=False, dest="include", default="", type=str,
-                            help="Include string for selection if string in part of file path.")
+                            help="Include data file Fast5 (.h5) or single string or list of strings (item1,item2) "
+                                 "for selection if string in part of file path.")
         select.add_argument("--exclude", required=False, dest="exclude", default="", type=str,
-                            help="Exclude string for selection if string in part of file path.")
+                            help="Exclude data file Fast5 (.h5) or single string or list of strings (item1,item2) "
+                                 "for selection if string in part of file path.")
 
         select.set_defaults(subparser='select')
 
         runner = subparsers.add_parser("runner", help="Execute runners for summary evaluations / predictions.")
+
         runner.add_argument("--runner", "-r", required=True, dest="runner", default="pevaluate",
                             type=str, help="Name of runner to execute.")
         runner.add_argument("--config", "-c", required=False, dest="config", default="config.json",
@@ -201,6 +206,7 @@ class Terminal:
                             type=str, help="Pickle file to plot summary, requires name of Runner and Labels.")
         runner.add_argument("--labels", "-l", required=False, dest="labels", default="0,1",
                             type=str, help="Label names, comma-separated")
+
         runner.set_defaults(subparser='runner')
 
         if commands is None:
@@ -247,3 +253,16 @@ class Terminal:
                 self.args["scale"] = False
             else:
                 self.args["scale"] = True
+
+        if "include" in self.args.keys():
+            # Split input string by comma and transform into list
+            # for function checks on what to include or exclude for selection:
+            self.args["include"] = [os.path.abspath(include) if include.endswith(".h5") else include
+                                    for include in self.args["include"].split(",")]
+
+        if "exclude" in self.args.keys():
+            # Split input string by comma and transform into list
+            # for function checks on what to include or exclude for selection:
+            self.args["exclude"] = [os.path.abspath(exclude) if exclude.endswith(".h5") else exclude
+                                    for exclude in self.args["exclude"].split(",")]
+

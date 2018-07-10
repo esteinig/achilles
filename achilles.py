@@ -2,14 +2,14 @@ import json
 
 import matplotlib.pyplot as plt
 
-import achilles.utils as utils
-
 from achilles.model import Achilles
 from achilles.dataset import Dataset
 from achilles.terminal import Terminal
+
 from achilles.analysis import predict, evaluate, evaluate_predictions
 from achilles.runners import pevaluate_runner, plot_runner_results
 
+from achilles.select import select_fast5
 
 def main():
 
@@ -23,7 +23,7 @@ def main():
 
         # Generate data for batch-wise input into Achilles,
         # write training and validation data to HDF5 file
-        ds = Dataset(data_file=args["data_file"], log_file=args["log_file"])
+        ds = Dataset(data_file=args["data_file"])
 
         if args["print"]:
             ds.print_data_summary(data_file=args["data_file"])
@@ -73,7 +73,7 @@ def main():
 
         predict(fast5=args["input_files"], model=args["model_file"], window_max=args["windows"],
                 window_size=args["window_size"], window_step=args["window_step"],
-                batches=args["bacthes"], window_random=args["window_random"])
+                batches=args["batches"], window_random=args["window_random"])
 
     if args["subparser"] == "pevaluate":
 
@@ -94,9 +94,9 @@ def main():
 
     if args["subparser"] == "select":
 
-        utils.select_fast5(input_dir=args["input_dir"], output_dir=args["output_dir"], limit=args["number"],
-                           shuffle=args["random"], min_signal=args["min_signal"], symlink=args["symlink"],
-                           include=args["include"], exclude=args["exclude"])
+        select_fast5(input_dir=args["input_dir"], output_dir=args["output_dir"], limit=args["number"],
+                     shuffle=args["random"], min_signal=args["min_signal"], symlink=args["symlink"],
+                     include=args["include"], exclude=args["exclude"])
 
 
 def config():

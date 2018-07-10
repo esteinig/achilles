@@ -1,245 +1,21 @@
-import random
 import datetime
-import pandas
 import itertools
-import numpy as np
-import tarfile
-from matplotlib import style
-from matplotlib import pyplot as plt
-
+import random
 from collections import deque
 from itertools import tee, islice
 
-from skimage.util import view_as_windows
-from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
-import h5py
-import os
-from tqdm import tqdm
-import shutil
-
+import numpy as np
+import pandas
 import seaborn
+from matplotlib import pyplot as plt
+from matplotlib import style
+from skimage.util import view_as_windows
 
+from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
 
 style.use("ggplot")
 
-
-def percentage_split(seq, percentages):
-
-    """ Helper function splitting window list into training, testing and evaluation proportions
-
-    https://stackoverflow.com/a/14281094
-
-    """
-
-    prv = 0
-    size = len(seq)
-    cum_percentage = 0
-    for p in percentages:
-        cum_percentage += p
-        nxt = int(cum_percentage * size)
-        yield seq[prv:nxt]
-        prv = nxt
-
-
-def chunk(seq, size):
-
-    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
-
-
-def get_tarred_fast5(input_dir, shuffle=True,  include="", exclude="", limit=1000):
-
-    tar = tarfile.open(input_dir)
-
-    extract = [path for path in tar if path.name.endswith(".fast5")]
-
-    if include:
-        extract = [path for path in extract if include in path.name]
-    if exclude:
-        extract = [path for path in extract if exclude not in path.name]
-
-    if shuffle:
-        random.shuffle(extract)
-
-    if limit:
-        extract = extract[:limit]
-
-    # Extract tarred Fast5 into their path:
-    extracted = []
-    with tqdm(total=len(extract)) as pbar:
-        pbar.set_description("Extract TAR")
-        for tar_info in extract:
-            if not os.path.exists(tar_info.name):
-                tar.extract(tar_info)
-                extracted.append(tar_info.name)
-            pbar.update(n=1)
-
-    # Return only the file paths that have actually been extracted
-    # and are not duplicates
-    return extracted
-
-
-def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, include="", exclude=""):
-
-    tar_ext = (".tar", ".tar.gz", ".tgz")
-
-    if input_dir.endswith(tar_ext):
-        if min_signal is not None:
-            raise ValueError("Selecting Fast5 of minimum signal length from tarred files is currently not possible.")
-
-        return get_tarred_fast5(input_dir, shuffle=shuffle, limit=limit, include=include, exclude=exclude)
-
-    else:
-        # Always recursive, always a limit:
-        fast5 = get_recursive_files(input_dir, include=include, extension=".fast5")
-
-        if shuffle:
-            random.shuffle(fast5)
-
-        if min_signal:
-            if limit is None:
-                raise ValueError("Selecting Fast5 with minimum signal length requires specifying a limit.")
-
-            # Filter for minimum signal length:
-            lim = 0
-            filtered = []
-            with tqdm(total=limit) as pbar:
-                pbar.set_description("Fast5 filtering")
-                for file in fast5:
-                    _, signal_length = read_signal(file, normalize=False, scale=False, return_signal=True)
-                    if signal_length >= min_signal:
-                        filtered.append(file)
-                        lim += 1
-                        pbar.update(n=1)
-                        if lim == limit:
-                            break
-            return filtered
-        else:
-            return fast5[:limit]
-
-
-# TODO
-def exclude_training_files(selection_files, data_file):
-
-    """ If we sample from the same (random) subset of reads as the training data, this function
-    makes sure that we are not using the same files used in training for prediction. """
-
-    with h5py.File(data_file, "r") as data:
-        training_file_paths = data["data/files"]
-
-    # Exclude files based on file name, not paths:
-    training_file_names = [os.path.basename(file) for file in training_file_paths]
-    fast5_file_names = [os.path.basename(file) for file in selection_files]
-
-    retained_files = [fast5 for fast5 in fast5_file_names if fast5 not in training_file_names]
-
-    print("Excluded", len(set()))
-
-    return retained_files
-
-
-def select_fast5(input_dir, output_dir=None, limit=1000, min_signal=None, symlink=False, shuffle=True,
-                 exclude="", include=""):
-
-    fast5_paths = filter_fast5(input_dir, include=include, min_signal=min_signal, shuffle=shuffle,
-                               limit=limit, exclude=exclude)
-
-    # Copy / link files to output directory:
-    if output_dir:
-        if os.path.exists(output_dir):
-            print("Warning: output directory for copying files exist, files will be copied.")
-
-        os.makedirs(output_dir, exist_ok=True)
-        with tqdm(total=len(fast5_paths)) as pbar:
-            pbar.set_description("Copying files")
-            for file_path in fast5_paths:
-                if symlink:
-                    # If not copy, symlink:
-                    file_name = os.path.basename(file_path)
-                    target_link = os.path.join(output_dir, file_name)
-
-                    os.symlink(file_path, target_link)
-                else:
-                    # Copy files to target directory
-                    # TODO: skip if paths exist?
-                    shutil.copy(file_path, output_dir)
-                pbar.update(n=1)
-
-    return fast5_paths
-
-
-def plot_signal(signal_windows):
-
-    fig, axes = plt.subplots(ncols=2, nrows=2)
-    ax1, ax2, ax3, ax4 = axes.ravel()
-
-    selection = select_random_windows(signal_windows, n=4)
-
-    ax1.plot(selection[0])
-    ax2.plot(selection[1])
-    ax3.plot(selection[2])
-    ax4.plot(selection[3])
-
-    plt.show()
-
-
-def select_random_windows(signal_windows, n=4):
-
-    return [signal_windows[random.randrange(len(signal_windows))][:] for _ in range(n)]
-
-
-def get_recursive_files(directory, include="", exclude="", extension=".fast5"):
-
-    file_paths = []
-    for root, directories, fnames in os.walk(directory):
-        for fname in fnames:
-            fpath = os.path.join(root, fname)
-
-            if extension:
-                if fpath.endswith(extension):
-                    file_paths.append(fpath)
-                else:
-                    continue
-            else:
-                file_paths.append(fpath)
-
-    if include:
-        file_paths = [f for f in file_paths if include in f]
-    if exclude:
-        file_paths = [f for f in file_paths if exclude not in f]
-
-    return file_paths
-
-
-def transform_signal_to_tensor(array):
-
-    """ Transform data (nb_windows,window_size) to (nb_windows, 1, window_size, 1)
-    for input into Conv2D layer: (samples, height, width, channels),
-
-    TODO: this is slow, is there a better way?
-
-    """
-
-    # Rshape 2D array (samples, width) to 4D array (samples, 1, width, 1)
-    return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
-
-
-def timeit(micro=False):
-    def decorator(func):
-        """ Timing decorator for functions and methods """
-        def timed(*args, **kw):
-            start_time = datetime.datetime.now()
-            result = func(*args, **kw)
-            time_delta = datetime.datetime.now()-start_time
-            seconds = time_delta.total_seconds()
-            if micro:
-                seconds = int(seconds * 1000000)  # Microseconds
-            # print("Runtime:", seconds, "seconds")
-            # Flatten output if the output of a function is a tuple with multiple items
-            # if this is the case, seconds are at index -1
-            return [num for item in [result, seconds]
-                    for num in (item if isinstance(item, tuple) else (item,))]
-        return timed
-    return decorator
+# Data IO and Transformation
 
 
 def read_signal(fast5: str, normalize: bool=False, scale: bool=True, window_size: int=400, window_step: int=400,
@@ -313,19 +89,35 @@ def read_signal(fast5: str, normalize: bool=False, scale: bool=True, window_size
     return signal_windows, nb_windows_total
 
 
-# Test this out instead of view_as_windows:
-def window_generator(it, size=3):
-    yield from zip(*[islice(it, s, None) for s, it in enumerate(tee(it, size))])
+
+def transform_signal_to_tensor(array):
+
+    """ Transform data (nb_windows,window_size) to (nb_windows, 1, window_size, 1)
+    for input into Conv2D layer: (samples, height, width, channels),
+
+    TODO: this is slow, is there a better way?
+
+    """
+
+    # Rshape 2D array (samples, width) to 4D array (samples, 1, width, 1)
+    return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
 
 
-def mem_usage(pandas_obj):
-    """ https://www.dataquest.io/blog/pandas-big-data/ """
-    if isinstance(pandas_obj,pandas.DataFrame):
-        usage_b = pandas_obj.memory_usage(deep=True).sum()
-    else: # we assume if not a df it's a series
-        usage_b = pandas_obj.memory_usage(deep=True)
-    usage_mb = usage_b / 1024 ** 2 # convert bytes to megabytes
-    return "{:03.2f} MB".format(usage_mb)
+# Data Plots
+
+def plot_signal(signal_windows):
+
+    fig, axes = plt.subplots(ncols=2, nrows=2)
+    ax1, ax2, ax3, ax4 = axes.ravel()
+
+    selection = select_random_windows(signal_windows, n=4)
+
+    ax1.plot(selection[0])
+    ax2.plot(selection[1])
+    ax3.plot(selection[2])
+    ax4.plot(selection[3])
+
+    plt.show()
 
 
 def plot_confusion_matrix(cm, class_labels,
@@ -438,6 +230,8 @@ def plot_pevaluate_runner(results, class_labels=(0, 1)):
 
         plt.close()
 
+# Helper Functions
+
 
 def sliding_window(iterable, size=2, step=1, fillvalue=None):
 
@@ -458,7 +252,55 @@ def sliding_window(iterable, size=2, step=1, fillvalue=None):
             return
         q.extend(next(it, fillvalue) for _ in range(step - 1))
 
-# From Mako
+
+def chunk(seq, size):
+
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+
+def select_random_windows(signal_windows, n=4):
+
+    return [signal_windows[random.randrange(len(signal_windows))][:] for _ in range(n)]
+
+
+def timeit(micro=False):
+    def decorator(func):
+        """ Timing decorator for functions and methods """
+
+        def timed(*args, **kw):
+            start_time = datetime.datetime.now()
+            result = func(*args, **kw)
+            time_delta = datetime.datetime.now() - start_time
+            seconds = time_delta.total_seconds()
+            if micro:
+                seconds = int(seconds * 1000000)  # Microseconds
+            # print("Runtime:", seconds, "seconds")
+            # Flatten output if the output of a function is a tuple with multiple items
+            # if this is the case, seconds are at index -1
+            return [num for item in [result, seconds]
+                    for num in (item if isinstance(item, tuple) else (item,))]
+
+        return timed
+
+    return decorator
+
+
+# Test this out instead of view_as_windows:
+def window_generator(it, size=3):
+    yield from zip(*[islice(it, s, None) for s, it in enumerate(tee(it, size))])
+
+
+def mem_usage(pandas_obj):
+    """ https://www.dataquest.io/blog/pandas-big-data/ """
+    if isinstance(pandas_obj, pandas.DataFrame):
+        usage_b = pandas_obj.memory_usage(deep=True).sum()
+    else:  # we assume if not a df it's a series
+        usage_b = pandas_obj.memory_usage(deep=True)
+    usage_mb = usage_b / 1024 ** 2  # convert bytes to megabytes
+    return "{:03.2f} MB".format(usage_mb)
+
+
+# From Mako (ONT) - GitHub site here
 
 def med_mad(data, factor=1.4826, axis=None):
 
