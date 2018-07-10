@@ -279,6 +279,6 @@ class Terminal:
             if not os.path.exists(path):
                 raise ValueError("Input path {} does not exist.".format(path))
         else:
-            raise ValueError("Terminal argument passed to check_path() method is not a string .")
+            raise ValueError("Terminal argument passed to check_path() method is not a string.")
 
         return path

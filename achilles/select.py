@@ -137,7 +137,7 @@ def check_include_exclude(include, exclude, verbose=False):
 
     if verbose:
         print("Excluding {} files from {} data sets + including {} files from {} data sets."
-            .format(len(exclude_ds), len(exclude_datasets), len(include_ds), len(include_datasets)))
+              .format(len(exclude_ds), len(exclude_datasets), len(include_ds), len(include_datasets)))
         print("Excluding {} strings in file names + including {} strings in file names from user specified inputs"
               .format(len(exclude_strings), len(include_strings)))
 
@@ -171,14 +171,16 @@ def get_recursive_files(directory, include=None, exclude=None, extension=".fast5
                 file_paths.append(fpath)
 
     if include:
-        file_paths = [f for f in file_paths for incl in include if incl in f]
+        retain = []
+        for f in file_paths:
+            if any(i in f for i in include) and f not in retain:
+                retain.append(retain)
+        file_paths = retain
     if exclude:
-
         retain = []
         for f in file_paths:
             if not any(x in f for x in exclude) and f not in retain:
                 retain.append(f)
-
         file_paths = retain
 
     return file_paths

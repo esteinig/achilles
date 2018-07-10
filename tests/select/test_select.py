@@ -176,12 +176,14 @@ class SelectTestCases(TestCase, AchillesTest):
         files_dir1_include = achilles_select_module.select_fast5(input_dir=self.test_dir1, output_dir=None, limit=None,
                                                                  min_signal=None, symlink=False, shuffle=True,
                                                                  include=include, exclude=None)
-        self.assertEqual(len(files_dir1_include), 6)  # Includes all six files from each class
+
+        self.assertEqual(len(files_dir1_include), 3)  # Includes all three files
 
         files_dir2_include = achilles_select_module.select_fast5(input_dir=self.test_dir2, output_dir=None, limit=None,
                                                                  min_signal=None, symlink=False, shuffle=True,
                                                                  include=include, exclude=None)
-        self.assertEqual(len(files_dir2_include), 6)  # Includes all six files from each class
+        
+        self.assertEqual(len(files_dir2_include), 3)  # Includes all three files
 
 
 # def make_test_dataset():
