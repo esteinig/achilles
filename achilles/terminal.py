@@ -263,14 +263,16 @@ class Terminal:
         if "include" in self.args.keys():
             # Split input string by comma and transform into list
             # for function checks on what to include or exclude for selection:
-            self.args["include"] = [self.check_path(os.path.abspath(include)) if include.endswith(".h5") else include
-                                    for include in self.args["include"].split(",")]
+            for include in self.args["include"].split(","):
+                if include.endswith(".h5"):
+                    self.check_path(os.path.abspath(include))
 
         if "exclude" in self.args.keys():
             # Split input string by comma and transform into list
             # for function checks on what to include or exclude for selection:
-            self.args["exclude"] = [self.check_path(os.path.abspath(exclude)) if exclude.endswith(".h5") else exclude
-                                    for exclude in self.args["exclude"].split(",")]
+            for exclude in self.args["exclude"].split(","):
+                if exclude.endswith(".h5"):
+                    self.check_path(os.path.abspath(exclude))
 
     @staticmethod
     def check_path(path):

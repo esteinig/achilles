@@ -128,6 +128,28 @@ class SelectTestCases(TestCase, AchillesTest):
         self.assertEqual(len(files_dir1_exclude), len(self.read_dir1)-n)
         # This file has the correct read_id from var exclude:
 
+    def test_default_select_include_dir(self):
+        """Test exclude with default parameters on all reads from test_dir1"""
+
+        include = self.test_dir1
+        files_dir1_include = achilles_select_module.select_fast5(input_dir=self.test_dir1, output_dir=None, limit=None,
+                                                                 min_signal=None, symlink=False, shuffle=True,
+                                                                 include=include, exclude=None)
+        # Excluded 5 Fast5 file:
+        self.assertEqual(len(files_dir1_include), 10)
+        # This file has the correct read_id from var exclude:
+
+    def test_default_select_exclude_dir(self):
+        """Test exclude with default parameters on all reads from test_dir1"""
+
+        exclude = self.test_dir1
+        files_dir1_exclude = achilles_select_module.select_fast5(input_dir=self.test_dir1, output_dir=None, limit=None,
+                                                                 min_signal=None, symlink=False, shuffle=True,
+                                                                 include=None, exclude=exclude)
+        # Excluded 5 Fast5 file:
+        self.assertEqual(len(files_dir1_exclude), 0)
+        # This file has the correct read_id from var exclude:
+
     def test_default_select_exclude_dataset(self):
 
         """Test excluding files in training dataset (.h5), generated with:
