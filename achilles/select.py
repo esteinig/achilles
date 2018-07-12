@@ -179,9 +179,14 @@ def select_fast5(input_dir, output_dir=None, limit=None, min_signal=None, symlin
     return fast5_paths
 
 
-def copy_link_files(fast5_paths, output_dir, pbar=None, symlink=False):
+def copy_link_files(fast5_paths, output_dir, pbar=None, symlink=False, overwrite=False):
 
     for file_path in fast5_paths:
+        target_path = os.path.join(output_dir, os.path.basename(file_path))
+        if os.path.exists(target_path):
+            if not overwrite:
+                return
+        
         if symlink:
             # If not copy, symlink:
             file_name = os.path.basename(file_path)

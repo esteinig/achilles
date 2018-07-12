@@ -290,7 +290,6 @@ class Dataset:
 
             plt.legend(unique_labels, title="Label")
 
-
     def plot_signal(self, nb_signals=4, data_path="training"):
 
         pass
@@ -459,21 +458,6 @@ class DataGenerator(Sequence):
 
             return data, labels
 
-
-# Testing functions for plotting and writing data, will be removed:
-def plot_data():
-
-    for dataset in ("test.raw.mix_training.h5",):
-        ds = Dataset("../"+dataset)
-
-        ds.plot_signal_distribution(nb_windows=100000, data_path="training", histogram=True, limit=(0, 1200))
-
-
-def write_data():
-
-    ds = Dataset("../test.h5")
-
-    ds.write_data("../dir1", "../dir2")
 
 
 
