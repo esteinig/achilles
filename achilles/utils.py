@@ -89,7 +89,6 @@ def read_signal(fast5: str, normalize: bool=False, scale: bool=True, window_size
     return signal_windows, nb_windows_total
 
 
-
 def transform_signal_to_tensor(array):
 
     """ Transform data (nb_windows,window_size) to (nb_windows, 1, window_size, 1)
@@ -105,17 +104,29 @@ def transform_signal_to_tensor(array):
 
 # Data Plots
 
-def plot_signal(signal_windows):
+def plot_training(file="epochs.log"):
+
+    df = pandas.read_csv(file)
+    df = df.drop(axis=1, labels="epoch")
+    df.plot()
+
+    plt.show()
+
+
+def plot_signal(fast5):
 
     fig, axes = plt.subplots(ncols=2, nrows=2)
     ax1, ax2, ax3, ax4 = axes.ravel()
 
+    signal_windows, _ = read_signal(fast5=fast5, normalize=False, scale=False, window_size=200, window_step=200,
+                                    window_max=10, window_random=True, window_recover=False, return_signal=False)
+
     selection = select_random_windows(signal_windows, n=4)
 
-    ax1.plot(selection[0])
-    ax2.plot(selection[1])
-    ax3.plot(selection[2])
-    ax4.plot(selection[3])
+    ax1.plot(selection[0], 'go')
+    ax2.plot(selection[1], 'go')
+    ax3.plot(selection[2], 'mo')
+    ax4.plot(selection[3], 'mo')
 
     plt.show()
 

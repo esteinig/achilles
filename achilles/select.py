@@ -132,8 +132,17 @@ def check_include_exclude(include, exclude, verbose=False):
     include_strings = [item for item in include if not item.endswith(".h5")]
     exclude_strings = [item for item in exclude if not item.endswith(".h5")]
 
+    include_dirs = [item for item in include if os.path.isdir(item)]
+    exclude_dirs = [item for item in exclude if os.path.isdir(item)]
+
     include_ds = get_dataset_file_names(include_datasets)
     exclude_ds = get_dataset_file_names(exclude_datasets)
+
+    # Added if given is directory, then get all files from that dir
+    # recursively and do not use, i.e. to get only unique resamples
+    # from dir into other collection
+    include_df = get_dir_file_names(include_dirs)
+    exclude_df = get_dir_file_names(exclude_dirs)
 
     if verbose:
         print("Excluding {} files from {} data sets + including {} files from {} data sets."
@@ -141,8 +150,15 @@ def check_include_exclude(include, exclude, verbose=False):
         print("Excluding {} strings in file names + including {} strings in file names from user specified inputs"
               .format(len(exclude_strings), len(include_strings)))
 
-    return include_ds + include_strings, exclude_ds + exclude_strings
+    return include_ds + include_strings + include_df, exclude_ds + exclude_strings + exclude_df
 
+def get_dir_file_names(dirs):
+
+    files = []
+    for d in dirs:
+        fast5 = get_recursive_files(d)
+        files += [os.path.basename(path) for path in fast5]
+    return files
 
 def get_dataset_file_names(datasets):
 

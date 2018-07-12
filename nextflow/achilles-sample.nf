@@ -39,12 +39,12 @@ workdir = System.getProperty("user.dir");
  * from human chromosomes and target pathogen.
 */
 
-regime = {
+sample_reads_regimen = {
     
     training: {
-        exclude: "FAB3218",
-        n: 10000
-        pathogen: ["flowcell_1"]
+        include: ["FAB3218"],
+        n: 12000,
+        pathogen: ["zibra_flowcell_1"],
         host: {
             "minimal": ["human_chr2", "human_chr4"],
             "diverse": ["human_chr2", "human_chr4", "human_chr8", "human_chr14", "human_chr20", "human_chrX"]
@@ -52,20 +52,21 @@ regime = {
     },
 
     evaluation: {
-        exclude: "FAB3218",
-        n: 5000
-        pathogen: ["flow_cell_2", "flowcell_3", "flowcell_4", "flowcell_5"]
+        include: ["FAB3218"],
+        exclude: ["zibra_1_minimal_training.h5", "zibra_1_diverse_training.h5"],
+        n: 6000,
+        pathogen: ["zibra_flowcell_2", "zibra_flowcell_3", "zibra_flowcell_4", "zibra_flowcell_5"],
         host: {
             "minimal_same": ["human_chr2", "human_chr4"],
-            "diverse_same": ["human_chr2", "human_chr4", "human_chr8", "human_chr14", "human_chr20", "human_chrX"]
-            "minimal_general": ["human_chr3", "human_chr5"],
-            "diverse_general": ["human_chr3", "human_chr5", "human_chr9", "human_chr15", "human_chr21", "human_chrY"]
+            "diverse_same": ["human_chr2", "human_chr4", "human_chr8", "human_chr14", "human_chr20", "human_chrX"],
+            "minimal_gen": ["human_chr3", "human_chr5"],
+            "diverse_gen": ["human_chr3", "human_chr5", "human_chr9", "human_chr15", "human_chr21", "human_chrY"]
         }
     },
 
     simulation:  {
-        host: ["patient_sample_1"]
-        pathogen: ["flow_cell_2", "flowcell_3", "flowcell_4", "flowcell_5"]
+        host: ["patient_sample_1"],  # map to human genome (or provide index) then replace non human with zika
+        pathogen: ["zibra_flowcell_2", "zibra_flowcell_3", "zibra_flowcell_4", "zibra_flowcell_5"]
     },
 
 }
