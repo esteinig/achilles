@@ -22,7 +22,7 @@ style.use("ggplot")
 
 class Dataset:
 
-    def __init__(self, data_file="data.h5", log_file="data.log"):
+    def __init__(self, data_file="data.h5"):
 
         self.data_file = data_file
 
@@ -60,7 +60,7 @@ class Dataset:
 
     def write_data(self, *dirs, classes=2, max_windows_per_class=20000, max_windows_per_read=100,
                    window_size=400, window_step=400, window_random=True, window_recover=True, normalize=False,
-                   scale=True):
+                   scale=False, recursive=True):
 
         """ Primary function to extract windows (slices) at random indices in the arrays that hold
         nanopore signal values in the (shuffled) sequencing files (.fast5) located in directories that contain
@@ -100,7 +100,7 @@ class Dataset:
             for label, path in enumerate(dirs):
 
                 # All Fast5 files in directory:
-                files = get_recursive_files(path, extension=".fast5")
+                files = get_recursive_files(path, recursive=recursive, extension=".fast5")
 
                 # Randomize:
                 random.shuffle(files)

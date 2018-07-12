@@ -4,6 +4,7 @@ import random
 import shutil
 import json
 import tarfile
+import pandas
 
 from tqdm import tqdm
 import multiprocessing
@@ -101,32 +102,37 @@ class DataSelector:
             pathogen_dirs = [os.path.join(host_basedir, fast5_dir)
                              for fast5_dir in training_pathogen_data[pathogen_id]]
 
-            print("Sampling host reads in progress for dataset {}...".format(data_set_id))
+            def _print_progress(label):
+                print(f"Sampling {label} reads in progress for dataset {data_set_id}.")
+
+            _print_progress("host")
             host_fast5 = self.sample_mix(host_dirs, host_path, ncpu=self.ncpu, chunk_size=self.chunk_size,
                                          **training_global_params, **training_host_params)
 
-            print("Sampling pathogen reads in progress for dataset {}...".format(data_set_id))
+            _print_progress("pathogen")
             pathogen_fast5 = self.sample_mix(pathogen_dirs, pathogen_path, ncpu=self.ncpu, chunk_size=self.chunk_size,
                                              **training_global_params, **training_pathogen_params)
 
             host_files = os.listdir(host_path)
             pathogen_files = os.listdir(pathogen_path)
 
+            def _print_warning(files, fast5, data_id):
+
+                print(f"Warning: there are less host files selected ({len(files)}) than "
+                      f"expected ({len(fast5)}) in data set {data_id}."
+                      "This may be because only unique files are considered from across the sampled data directories.")
+
             if len(host_files) < len(host_fast5):
-                print("Warning: there are less host files selected ({}) than expected ({}) in data set {}. "
-                      "This may be because only unique files are considered from across the sampled data directories."
-                      .format(len(host_files), len(host_fast5), data_set_id))
+               _print_warning(host_files, host_fast5, data_set_id)
             if len(pathogen_files) < len(pathogen_fast5):
-                print("Warning: there are less host files selected ({}) than expected ({}) in data set {}. "
-                      "This may be because only unique files are considered from across the sampled data directories."
-                      .format(len(pathogen_files), len(pathogen_fast5), data_set_id))
+                _print_warning(pathogen_files, pathogen_fast5, data_set_id)
 
     @staticmethod
     def sample_mix(dirs, outdir, shuffle=True, limit=12000, min_signal=None, include=None,
                    exclude=None, ncpu=1, chunk_size=100):
 
         sample_limit = limit//len(dirs)
-        print("Sampling maximum of {} Fast5 files per directory.".format(sample_limit))
+        print(f"Sampling maximum of {sample_limit} Fast5 files per directory.")
         fast5 = []
         for d in dirs:
             fast5 += select_fast5(input_dir=d, output_dir=outdir, limit=sample_limit, min_signal=min_signal,
@@ -136,10 +142,10 @@ class DataSelector:
 
 
 def select_fast5(input_dir, output_dir=None, limit=None, min_signal=None, symlink=False, shuffle=True,
-                 exclude=None, include=None, ncpu=1, chunk_size=100):
+                 exclude=None, include=None, recursive=True, ncpu=1, chunk_size=100):
 
     fast5_paths = filter_fast5(input_dir, include=include, min_signal=min_signal, shuffle=shuffle,
-                               limit=limit, exclude=exclude)
+                               limit=limit, exclude=exclude, recursive=recursive)
 
     # Copy / link files to output directory:
     if output_dir:
@@ -191,12 +197,12 @@ def copy_link_files(fast5_paths, output_dir, pbar=None, symlink=False):
             pbar.update(n=1)
 
 
-def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, include=None, exclude=None):
+def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, include=None, exclude=None, recursive=True):
 
     # Check for datasets in include or exclude lists, unpack
     # file basenames for inclusion or exclusion:
 
-    include, exclude = check_include_exclude(include, exclude)
+    include, exclude = check_include_exclude(include, exclude, recursive)
 
     tar_ext = (".tar", ".tar.gz", ".tgz")
 
@@ -207,8 +213,7 @@ def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, include=N
         return get_tarred_fast5(input_dir, shuffle=shuffle, limit=limit, include=include, exclude=exclude)
 
     else:
-        # Always recursive, always a limit:
-        fast5 = get_recursive_files(input_dir, include=include, exclude=exclude, extension=".fast5")
+        fast5 = get_recursive_files(input_dir, include=include, exclude=exclude, extension=".fast5", recursive=recursive)
 
         if shuffle:
             random.shuffle(fast5)
@@ -267,7 +272,7 @@ def get_tarred_fast5(input_dir, shuffle=True,  include=None, exclude=None, limit
     return extracted
 
 
-def check_include_exclude(include, exclude, verbose=False):
+def check_include_exclude(include, exclude, recursive, verbose=False):
 
     if include is None:
         include = []
@@ -300,8 +305,8 @@ def check_include_exclude(include, exclude, verbose=False):
     # Added if given is directory, then get all files from that dir
     # recursively and do not use, i.e. to get only unique resamples
     # from dir into other collection
-    include_df = get_dir_file_names(include_dirs)
-    exclude_df = get_dir_file_names(exclude_dirs)
+    include_df = get_dir_file_names(include_dirs, recursive)
+    exclude_df = get_dir_file_names(exclude_dirs, recursive)
 
     if verbose:
         print("Excluding {} files from {} data sets + including {} files from {} data sets."
@@ -314,11 +319,11 @@ def check_include_exclude(include, exclude, verbose=False):
     return include_ds + include_strings + include_df, exclude_ds + exclude_strings + exclude_df
 
 
-def get_dir_file_names(dirs):
+def get_dir_file_names(dirs, recursive):
 
     files = []
     for d in dirs:
-        fast5 = get_recursive_files(d)
+        fast5 = get_recursive_files(d, recursive=recursive)
         files += [os.path.basename(path) for path in fast5]
     return files
 
@@ -336,13 +341,30 @@ def get_dataset_file_names(datasets):
     return file_names
 
 
-def get_recursive_files(directory, include=None, exclude=None, extension=".fast5"):
+def get_recursive_files(directory, include=None, exclude=None, recursive=True, extension=".fast5"):
 
-    file_paths = []
-    for root, directories, fnames in os.walk(directory):
-        for fname in fnames:
-            if fname.endswith(extension):
-                file_paths.append(os.path.join(root, fname))
+    def _init_index():
+        if ".achilles.index" in os.listdir(directory):
+            return pandas.read_csv(".achilles.index").tolist()
+        else:
+            return None
+
+    # TODO build index for large collections!
+    if recursive:
+        # Check if there is index:
+        file_paths = _init_index()
+        if file_paths is None:
+            # Get file paths recursively:
+            file_paths = []
+            for root, directories, fnames in os.walk(directory):
+                for fname in fnames:
+                    if fname.endswith(extension):
+                        file_paths.append(os.path.join(root, fname))
+
+            print(f"Writing index to .achilles.index in {directory}.")
+            pandas.DataFrame(file_paths).to_csv()
+    else:
+        file_paths = [os.path.join(directory, path) for path in os.listdir(directory)]
 
     if include:
         retain = []

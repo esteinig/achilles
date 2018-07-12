@@ -56,7 +56,7 @@ def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2
     return df
 
 
-def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, **kwargs):
+def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, recursive=False, **kwargs):
 
     """ Wrapper for evaluating predictions with analysis.predict() on a set of directories containing
     Fast5 files from the labelled classes (species) used for model training. Fast5 files should be independent of
@@ -67,7 +67,7 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, **kwarg
     labels = []
     for label, directory in enumerate(dirs):
         # Recursively grab a list of Fast5 files:
-        files = get_recursive_files(directory, extension=".fast5")
+        files = get_recursive_files(directory, recursive=recursive, extension=".fast5")
         fast5 += files
         labels += [label for _ in files]
 
