@@ -19,9 +19,10 @@ from achilles.dataset import Dataset
 
 class Achilles:
 
-    def __init__(self, data_file=None):
+    def __init__(self, data_file=None, log_dir=""):
 
         self.data_file = data_file
+        self.log_dir = log_dir
         self.model = None
 
     def build(self, signal_length=400, activation="softmax", bidirectional=True, conv_2d=False,
@@ -116,7 +117,7 @@ class Achilles:
 
         return self.model
 
-    def train(self, batch_size=15, epochs=10, workers=2, run_id="run_1", log_interval=10):
+    def train(self, batch_size=15, epochs=10, workers=2, run_id="run_1"):
 
         # Reads data from HDF5 data file:
         dataset = Dataset(data_file=self.data_file)
@@ -125,13 +126,12 @@ class Achilles:
         training_generator = dataset.get_signal_generator(data_type="training", batch_size=batch_size, shuffle=True)
         validation_generator = dataset.get_signal_generator(data_type="validation", batch_size=batch_size, shuffle=True)
 
-        log_file = self.init_logs(run_id=run_id)
+        log_path = self.init_logs(run_id=run_id)
 
         # Callbacks
-        csv = CSVLogger(run_id + ".epochs.log")
-        chk = ModelCheckpoint(run_id + ".checkpoint.val_loss.h5", monitor="val_loss", verbose=0,
-                              save_best_only=False, save_weights_only=False,
-                              mode="auto", period=1)
+        csv = CSVLogger(os.path.join(log_path, run_id + ".epochs.log"))
+        chk = ModelCheckpoint(os.path.join(log_path, run_id + ".checkpoint.val_loss.h5"), monitor="val_loss", verbose=0,
+                              save_best_only=False, save_weights_only=False, mode="auto", period=1)
 
         print("Running on batch size {} for {} epochs with {} worker processes --> run ID: {}"
               .format(batch_size, epochs, workers, run_id))
@@ -140,7 +140,7 @@ class Achilles:
         history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers, epochs=epochs,
                                            validation_data=validation_generator, callbacks=[csv, chk])
 
-        with open("{}.model.history".format(run_id), "wb") as history_out:
+        with open(os.path.join(log_path, "{}.model.history".format(run_id)), "wb") as history_out:
             pickle.dump(history.history, history_out)
 
     def load_model(self, model_file, summary=True):
@@ -179,24 +179,6 @@ class Achilles:
 
         # Log file path:
         log_path = os.path.join(run_id, run_id + ".log")
-
-        # TODO: Fix error None type has no group attribute in regex
-        if os.path.exists(log_path):
-            # Extract trailing number from log file strings:
-            log_numbers = [int(re.match('.*?([0-9]+)$', file).group(1))
-                           for file in os.listdir(run_id) if ".log" in file]
-
-            # Get trailing number
-            if not log_numbers:
-                nb_log = 1
-            else:
-                nb_log = max(log_numbers)+1
-
-            # Move the current log (run_id.log) to consecutively numbered log files:
-            # > run_id/run_id.log.1 (first run after current)
-            # > run_id/run_id.log.2 (second one after current)
-
-            shutil.move(log_path, log_path + "." + str(nb_log))
 
         return log_path
 
