@@ -69,8 +69,7 @@ class DataSelector:
         # Training data set generation:
 
         training_config = self.config["training"]
-        training_global_params, training_pathogen, training_host = \
-            training_config["params"], training_config["pathogen"], training_config["host"]
+        training_pathogen, training_host =  training_config["pathogen"], training_config["host"]
 
         training_host_data, training_pathogen_data = training_host["data"], training_pathogen["data"]
         training_host_params, training_pathogen_params = training_host["params"], training_pathogen["params"]
@@ -107,11 +106,11 @@ class DataSelector:
 
             _print_progress("host")
             host_fast5 = self.sample_mix(host_dirs, host_path, ncpu=self.ncpu, chunk_size=self.chunk_size,
-                                         **training_global_params, **training_host_params)
+                                         **training_host_params)
 
             _print_progress("pathogen")
             pathogen_fast5 = self.sample_mix(pathogen_dirs, pathogen_path, ncpu=self.ncpu, chunk_size=self.chunk_size,
-                                             **training_global_params, **training_pathogen_params)
+                                             **training_pathogen_params)
 
             host_files = os.listdir(host_path)
             pathogen_files = os.listdir(pathogen_path)
@@ -123,7 +122,7 @@ class DataSelector:
                       "This may be because only unique files are considered from across the sampled data directories.")
 
             if len(host_files) < len(host_fast5):
-               _print_warning(host_files, host_fast5, data_set_id)
+                _print_warning(host_files, host_fast5, data_set_id)
             if len(pathogen_files) < len(pathogen_fast5):
                 _print_warning(pathogen_files, pathogen_fast5, data_set_id)
 
@@ -186,7 +185,7 @@ def copy_link_files(fast5_paths, output_dir, pbar=None, symlink=False, overwrite
         if os.path.exists(target_path):
             if not overwrite:
                 return
-        
+
         if symlink:
             # If not copy, symlink:
             file_name = os.path.basename(file_path)
@@ -349,8 +348,10 @@ def get_dataset_file_names(datasets):
 def get_recursive_files(directory, include=None, exclude=None, recursive=True, extension=".fast5"):
 
     def _init_index():
-        if ".achilles.index" in os.listdir(directory):
-            return pandas.read_csv(".achilles.index").tolist()
+        if "achilles.index" in os.listdir(directory):
+            df = pandas.read_csv(os.path.join(directory, "achilles.index"))
+            print(df)
+            return df.tolist()
         else:
             return None
 
@@ -366,11 +367,12 @@ def get_recursive_files(directory, include=None, exclude=None, recursive=True, e
                     if fname.endswith(extension):
                         file_paths.append(os.path.join(root, fname))
 
-            print(f"Writing index to .achilles.index in {directory}.")
-            pandas.DataFrame(file_paths).to_csv()
+            print(f"Writing index to achilles.index in {directory}.")
+            pandas.DataFrame(file_paths).to_csv(os.path.join(directory, "achilles.index"), index=False, header=None)
     else:
         file_paths = [os.path.join(directory, path) for path in os.listdir(directory)]
 
+    # TODO: Try set difference on file names (exact matches) and fast loops for within string matches.
     if include:
         retain = []
         for f in file_paths:
