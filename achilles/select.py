@@ -49,7 +49,7 @@ test_config = {
 class DataSelector:
     """ Mix and match samples from Fast5 directories to generate DataSets """
 
-    def __init__(self, outdir, data_path="select_data", config=None, config_file=None, ncpu=1, chunk_size=100):
+    def __init__(self, outdir, config=None, config_file=None, ncpu=1, chunk_size=100):
 
         self.config = config
         self.config_file = config_file
@@ -62,7 +62,6 @@ class DataSelector:
                 self.config = json.load(cfg)
 
         self.outdir = os.path.abspath(outdir)
-        self.data_path = os.path.abspath(data_path)
 
     def run_config(self):
 
@@ -75,10 +74,8 @@ class DataSelector:
         training_host_data, training_pathogen_data = training_host["data"], training_pathogen["data"]
         training_host_params, training_pathogen_params = training_host["params"], training_pathogen["params"]
 
-        host_basedir = training_host_params.pop("basedir")\
-            if "basedir" in training_host_params.keys() else self.data_path
-        pathogen_basedir = training_pathogen_params.pop("basedir")\
-            if "basedir" in training_pathogen_params.keys() else self.data_path
+        host_basedir = training_host_params.pop("basedir")
+        pathogen_basedir = training_pathogen_params.pop("basedir")
 
         if host_basedir is None or pathogen_basedir is None:
             raise ValueError("Please specify data_path or include basedir in host and pathogen configurations.")
@@ -88,18 +85,21 @@ class DataSelector:
 
         print("Initiated data set combinations.")
         for host_id, pathogen_id in host_pathogen_data:
-            host_dirs = [self.get_dir_path_recursively(fast5_dir, host_basedir)
-                         for fast5_dir in training_host_data[host_id]]
-
-            pathogen_dirs = [self.get_dir_path_recursively(fast5_dir, pathogen_basedir)
-                             for fast5_dir in training_pathogen_data[pathogen_id]]
+            print("Preparing data for processing.")
 
             data_set_id = host_id + "_" + pathogen_id
             data_set_path = os.path.join(self.outdir, data_set_id)
 
             os.makedirs(data_set_path, exist_ok=False)
+
             host_path = os.path.join(data_set_path, "host")
             pathogen_path = os.path.join(data_set_path, "pathogen")
+
+            host_dirs = [os.path.join(host_basedir, fast5_dir)
+                         for fast5_dir in training_host_data[host_id]]
+
+            pathogen_dirs = [os.path.join(host_basedir, fast5_dir)
+                             for fast5_dir in training_pathogen_data[pathogen_id]]
 
             print("Sampling host reads in progress for dataset {}...".format(data_set_id))
             host_fast5 = self.sample_mix(host_dirs, host_path, ncpu=self.ncpu, chunk_size=self.chunk_size,
@@ -113,24 +113,13 @@ class DataSelector:
             pathogen_files = os.listdir(pathogen_path)
 
             if len(host_files) < len(host_fast5):
-                print("Warning: there are less host files selected {} than expected {} in data set {}. "
+                print("Warning: there are less host files selected ({}) than expected ({}) in data set {}. "
                       "This may be because only unique files are considered from across the sampled data directories."
                       .format(len(host_files), len(host_fast5), data_set_id))
             if len(pathogen_files) < len(pathogen_fast5):
                 print("Warning: there are less host files selected ({}) than expected ({}) in data set {}. "
                       "This may be because only unique files are considered from across the sampled data directories."
                       .format(len(pathogen_files), len(pathogen_fast5), data_set_id))
-
-    def get_dir_path_recursively(self, target_dir, data_path):
-
-        target_dir = os.path.basename(target_dir)
-
-        for root, dirs, files in os.walk(data_path):
-            if target_dir in dirs:
-                return os.path.abspath(os.path.join(root, target_dir))
-
-        raise ValueError("Could not find path of directory {} in data path {}."
-                         .format(target_dir, self.data_path))
 
     @staticmethod
     def sample_mix(dirs, outdir, shuffle=True, limit=12000, min_signal=None, include=None,
@@ -200,6 +189,7 @@ def copy_link_files(fast5_paths, output_dir, pbar=None, symlink=False):
 
         if pbar:
             pbar.update(n=1)
+
 
 def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, include=None, exclude=None):
 
@@ -351,13 +341,8 @@ def get_recursive_files(directory, include=None, exclude=None, extension=".fast5
     file_paths = []
     for root, directories, fnames in os.walk(directory):
         for fname in fnames:
-            fpath = os.path.join(root, fname)
-
-            if extension:
-                if fpath.endswith(extension):
-                    file_paths.append(fpath)
-            else:
-                file_paths.append(fpath)
+            if fname.endswith(extension):
+                file_paths.append(os.path.join(root, fname))
 
     if include:
         retain = []
