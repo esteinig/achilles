@@ -14,40 +14,70 @@ from achilles.utils import read_signal, chunk
 
 from pandas.errors import EmptyDataError
 
+
 test_config = {
     "training": {
-
-        "params": {
-            "limit": 12000,
-            "shuffle": True,
-            "min_signal": None,
-        },
-
         "host": {
             "data": {
                 "minimal": ["chr_2_part03", "chr_4_part06"],
                 "diverse": ["chr_2_part03", "chr_4_part06", "chr_8_part07",
-                            "chr_14_part06", "chr_20_part05", "chr_X_part02"],
+                            "chr_14_part06", "chr_20_part05"]
             },
             "params": {
                 "exclude": None,
-                "include": None
-            }
-        },
-
-
+                "include": ["FAB23716"],
+                "limit": 20000,
+                "basedir": "/rdsi/vol08/Q0220/Eike/nanopore/human",
+                "shuffle": True,
+                "min_signal": None
+                }
+            },
         "pathogen": {
             "data": {
-                "zibra_1": ["zika_library1"],
+                "zibra_1": ["zika_library2"],
             },
             "params": {
                 "exclude": None,
-                "include": None  # Also possible, add param "basedir"
+                "include": None,
+                "limit": 10000,
+                "basedir": "/rdsi/vol08/Q0220/Eike/nanopore/zibra",
+                "shuffle": True,
+                "min_signal": None
             }
         }
+    },
+}
 
+evaluate_config = {"evaluation": {
+            "host": {"data": {
+                            "minimal": ["chr_3_part03", "chr_5_part06"],
+                            "diverse": ["chr_3_part03", "chr_5_part06", "chr_9_part07",
+                                        "chr_15_part06", "chr_21_part05"]
+                    }, "params": {
+                            "exclude": None,
+                            "include": ["FAB23716"],
+                            "limit": 1000,
+                            "basedir": "/rdsi/vol08/Q0220/Eike/nanopore/human",
+                            "shuffle": True,
+                            "min_signal": None
+                     }},
+            "pathogen": {"data": {
+                            "day2": ["zika_library2"],
+                            "day3": ["zika_library3"],
+                            "day4": ["zika_library4"],
+                            "day5": ["zika_library5"]
+                    }, "params": {
+                            "exclude": None,
+                            "include": None,
+                            "limit": 1000,
+                            "basedir": "/rdsi/vol08/Q0220/Eike/nanopore/zibra",
+                            "shuffle": True,
+                            "min_signal": None
+                     }
+            }
     }
 }
+
 
 
 class DataSelector:
@@ -81,13 +111,15 @@ class DataSelector:
 
         print(textwrap.dedent(f"""
         PARAMS FOR {Fore.RED}{data.upper()}{Style.RESET_ALL} CONFIG
-        ================================
+        =================================
         Limit:      {params["limit"]}
         Shuffle:    {params["shuffle"]}
         Signal:     {params["min_signal"]}
-        Exclude:    {",".join([e for e in params["exclude"]]) if params["exclude"] is not None else None}
-        Include:    {",".join([e for e in params["include"]]) if params["include"] is not None else None}
-        Sampling:   {",".join([os.path.basename(d) for d in sample_dirs])}
+        Exclude:    {", ".join([f'{Fore.RED}{e}{Style.RESET_ALL}' for e in params["exclude"]])
+                                if params["exclude"] is not None else None}
+        Include:    {", ".join([f'{Fore.GREEN}{e}{Style.RESET_ALL}' for e in params["include"]])
+                                if params["include"] is not None else None}
+        Sampling:   {", ".join([os.path.basename(d) for d in sample_dirs])}
         From:       {base_dir}
         To:         {out_dir}
         """))
@@ -140,6 +172,8 @@ class DataSelector:
             self.print_params(training_pathogen_params, pathogen_path, pathogen_dirs, pathogen_basedir)
             self.sample_mix(pathogen_dirs, pathogen_path, ncpu=self.ncpu, chunk_size=self.chunk_size,
                             **training_pathogen_params)
+
+        print("\n")
 
     def _get_data_params(self, config):
 
