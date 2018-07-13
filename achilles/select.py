@@ -5,11 +5,14 @@ import shutil
 import json
 import tarfile
 import pandas
+import textwrap
+from colorama import Fore, Style
 
 from tqdm import tqdm
 import multiprocessing
 from achilles.utils import read_signal, chunk
 
+from pandas.errors import EmptyDataError
 
 test_config = {
     "training": {
@@ -50,7 +53,7 @@ test_config = {
 class DataSelector:
     """ Mix and match samples from Fast5 directories to generate DataSets """
 
-    def __init__(self, outdir, config=None, config_file=None, ncpu=1, chunk_size=100):
+    def __init__(self, outdir, basedir=None, config=None, config_file=None, ncpu=1, chunk_size=100):
 
         self.config = config
         self.config_file = config_file
@@ -64,15 +67,37 @@ class DataSelector:
 
         self.outdir = os.path.abspath(outdir)
 
-    def run_config(self):
+        self.default_params = {
+                "exclude": None,
+                "include": None,
+                "limit": 1000,
+                "basedir": "" if basedir is None else basedir,
+                "shuffle": True,
+                "min_signal": None
+            }
+
+    @staticmethod
+    def print_params(params, out_dir, sample_dirs, base_dir, data="training"):
+
+        print(textwrap.dedent(f"""
+        PARAMS FOR {Fore.RED}{data.upper()}{Style.RESET_ALL} CONFIG
+        ================================
+        Limit:      {params["limit"]}
+        Shuffle:    {params["shuffle"]}
+        Signal:     {params["min_signal"]}
+        Exclude:    {",".join([e for e in params["exclude"]]) if params["exclude"] is not None else None}
+        Include:    {",".join([e for e in params["include"]]) if params["include"] is not None else None}
+        Sampling:   {",".join([os.path.basename(d) for d in sample_dirs])}
+        From:       {base_dir}
+        To:         {out_dir}
+        """))
+
+    def run_training_config(self):
 
         # Training data set generation:
 
-        training_config = self.config["training"]
-        training_pathogen, training_host =  training_config["pathogen"], training_config["host"]
-
-        training_host_data, training_pathogen_data = training_host["data"], training_pathogen["data"]
-        training_host_params, training_pathogen_params = training_host["params"], training_pathogen["params"]
+        training_host_data, training_pathogen_data, training_host_params, training_pathogen_params = \
+            self._get_data_params(self.config["training"])
 
         host_basedir = training_host_params.pop("basedir")
         pathogen_basedir = training_pathogen_params.pop("basedir")
@@ -80,12 +105,13 @@ class DataSelector:
         if host_basedir is None or pathogen_basedir is None:
             raise ValueError("Please specify data_path or include basedir in host and pathogen configurations.")
 
+        # Data selection combinations:
         host_pathogen_data = [(host, pathogen) for pathogen in training_pathogen_data.keys()
                               for host in training_host_data.keys()]
 
-        print("Initiated data set combinations.")
         for host_id, pathogen_id in host_pathogen_data:
-            print("Preparing data for processing.")
+            print(f"\n{Fore.YELLOW}Preparing data set for processing.\n"
+                  f"=================================={Style.RESET_ALL}")
 
             data_set_id = host_id + "_" + pathogen_id
             data_set_path = os.path.join(self.outdir, data_set_id)
@@ -98,46 +124,50 @@ class DataSelector:
             host_dirs = [os.path.join(host_basedir, fast5_dir)
                          for fast5_dir in training_host_data[host_id]]
 
-            pathogen_dirs = [os.path.join(host_basedir, fast5_dir)
+            pathogen_dirs = [os.path.join(pathogen_basedir, fast5_dir)
                              for fast5_dir in training_pathogen_data[pathogen_id]]
 
             def _print_progress(label):
-                print(f"Sampling {label} reads in progress for dataset {data_set_id}.")
+                print(f"\n{Fore.GREEN}Sampling {Fore.YELLOW}{label}{Fore.GREEN} reads in progress for"
+                      f" dataset {Fore.YELLOW}{data_set_id}{Style.RESET_ALL}")
 
             _print_progress("host")
-            host_fast5 = self.sample_mix(host_dirs, host_path, ncpu=self.ncpu, chunk_size=self.chunk_size,
-                                         **training_host_params)
+            self.print_params(training_host_params, host_path, host_dirs, host_basedir)
+            self.sample_mix(host_dirs, host_path, ncpu=self.ncpu, chunk_size=self.chunk_size,
+                            **training_host_params)
 
             _print_progress("pathogen")
-            pathogen_fast5 = self.sample_mix(pathogen_dirs, pathogen_path, ncpu=self.ncpu, chunk_size=self.chunk_size,
-                                             **training_pathogen_params)
+            self.print_params(training_pathogen_params, pathogen_path, pathogen_dirs, pathogen_basedir)
+            self.sample_mix(pathogen_dirs, pathogen_path, ncpu=self.ncpu, chunk_size=self.chunk_size,
+                            **training_pathogen_params)
 
-            host_files = os.listdir(host_path)
-            pathogen_files = os.listdir(pathogen_path)
+    def _get_data_params(self, config):
 
-            def _print_warning(files, fast5, data_id):
+        training_pathogen, training_host = config["pathogen"], config["host"]
 
-                print(f"Warning: there are less host files selected ({len(files)}) than "
-                      f"expected ({len(fast5)}) in data set {data_id}."
-                      "This may be because only unique files are considered from across the sampled data directories.")
-
-            if len(host_files) < len(host_fast5):
-                _print_warning(host_files, host_fast5, data_set_id)
-            if len(pathogen_files) < len(pathogen_fast5):
-                _print_warning(pathogen_files, pathogen_fast5, data_set_id)
+        return training_host["data"], training_pathogen["data"],\
+            {**self.default_params, **training_host["params"]}, \
+            {**self.default_params, **training_pathogen["params"]}
 
     @staticmethod
     def sample_mix(dirs, outdir, shuffle=True, limit=12000, min_signal=None, include=None,
                    exclude=None, ncpu=1, chunk_size=100):
 
+        # TODO: Might want to add recursive option?
         sample_limit = limit//len(dirs)
-        print(f"Sampling maximum of {sample_limit} Fast5 files per directory.")
-        fast5 = []
-        for d in dirs:
-            fast5 += select_fast5(input_dir=d, output_dir=outdir, limit=sample_limit, min_signal=min_signal,
-                                  shuffle=shuffle, exclude=exclude, include=include, ncpu=ncpu, chunk_size=chunk_size)
+        files = []
 
-        return fast5
+        for d in dirs:
+            fast5 = select_fast5(input_dir=d, output_dir=outdir, limit=sample_limit, min_signal=min_signal,
+                                 shuffle=shuffle, exclude=exclude, include=include, ncpu=ncpu, chunk_size=chunk_size)
+
+            nb_target = f"{Fore.YELLOW}{sample_limit}{Style.RESET_ALL}"
+            nb_sampled = f"{Fore.RED}{len(fast5)}{Style.RESET_ALL}" if len(fast5) < sample_limit \
+                else f"{Fore.GREEN}{len(fast5)}{Style.RESET_ALL}"
+            print(f"{os.path.basename(d)}: {nb_sampled} ({nb_target})")
+            files.append(fast5)
+
+        return files
 
 
 def select_fast5(input_dir, output_dir=None, limit=None, min_signal=None, symlink=False, shuffle=True,
@@ -148,9 +178,6 @@ def select_fast5(input_dir, output_dir=None, limit=None, min_signal=None, symlin
 
     # Copy / link files to output directory:
     if output_dir:
-        if os.path.exists(output_dir):
-            print("Warning: output directory for copying files exist, files will be copied.")
-
         os.makedirs(output_dir, exist_ok=True)
 
         if ncpu == 1:
@@ -163,10 +190,9 @@ def select_fast5(input_dir, output_dir=None, limit=None, min_signal=None, symlin
 
             fast5_chunks = list(chunk(fast5_paths, chunk_size))
             nb_chunks = len(fast5_chunks)
-            pbar = tqdm(total=nb_chunks)
 
             def cbk_update(*args):
-                pbar.update()
+                pass
 
             pool = multiprocessing.Pool(processes=ncpu)
             for i in range(nb_chunks):
@@ -208,40 +234,32 @@ def filter_fast5(input_dir, min_signal=None, shuffle=True, limit=1000, include=N
 
     include, exclude = check_include_exclude(include, exclude, recursive)
 
-    tar_ext = (".tar", ".tar.gz", ".tgz")
+    fast5 = get_recursive_files(input_dir, include=include, exclude=exclude,
+                                extension=".fast5", recursive=recursive)
 
-    if input_dir.endswith(tar_ext):
-        if min_signal is not None:
-            raise ValueError("Selecting Fast5 of minimum signal length from tarred files is currently not possible.")
+    if shuffle:
+        random.shuffle(fast5)
 
-        return get_tarred_fast5(input_dir, shuffle=shuffle, limit=limit, include=include, exclude=exclude)
+    if min_signal:
+        if limit is None:
+            raise ValueError("Selecting Fast5 with minimum signal length requires specifying a limit.")
 
+        # Filter for minimum signal length:
+        lim = 0
+        filtered = []
+        with tqdm(total=limit) as pbar:
+            pbar.set_description("Fast5 filtering")
+            for file in fast5:
+                _, signal_length = read_signal(file, normalize=False, scale=False, return_signal=True)
+                if signal_length >= min_signal:
+                    filtered.append(file)
+                    lim += 1
+                    pbar.update(n=1)
+                    if lim == limit:
+                        break
+        return filtered
     else:
-        fast5 = get_recursive_files(input_dir, include=include, exclude=exclude, extension=".fast5", recursive=recursive)
-
-        if shuffle:
-            random.shuffle(fast5)
-
-        if min_signal:
-            if limit is None:
-                raise ValueError("Selecting Fast5 with minimum signal length requires specifying a limit.")
-
-            # Filter for minimum signal length:
-            lim = 0
-            filtered = []
-            with tqdm(total=limit) as pbar:
-                pbar.set_description("Fast5 filtering")
-                for file in fast5:
-                    _, signal_length = read_signal(file, normalize=False, scale=False, return_signal=True)
-                    if signal_length >= min_signal:
-                        filtered.append(file)
-                        lim += 1
-                        pbar.update(n=1)
-                        if lim == limit:
-                            break
-            return filtered
-        else:
-            return fast5[:limit]
+        return fast5[:limit]
 
 
 def get_tarred_fast5(input_dir, shuffle=True,  include=None, exclude=None, limit=1000):
@@ -320,7 +338,8 @@ def check_include_exclude(include, exclude, recursive, verbose=False):
         print("Excluding {} files from dirs + including {} files from dirs."
               .format(len(exclude_strings), len(include_strings)))
 
-    return include_ds + include_strings + include_df, exclude_ds + exclude_strings + exclude_df
+    # [Include files, include strings], [Exclude files, exclude strings], BASENAMES
+    return [include_ds + include_df, include_strings], [exclude_ds + exclude_df, exclude_strings]
 
 
 def get_dir_file_names(dirs, recursive):
@@ -349,13 +368,15 @@ def get_recursive_files(directory, include=None, exclude=None, recursive=True, e
 
     def _init_index():
         if "achilles.index" in os.listdir(directory):
-            df = pandas.read_csv(os.path.join(directory, "achilles.index"))
-            print(df)
-            return df.tolist()
+            try:
+                df = pandas.read_csv(os.path.join(directory, "achilles.index"), header=None)
+            except EmptyDataError:
+                return None
+            else:
+                return df.ix[:, 0].values.tolist()
         else:
             return None
 
-    # TODO build index for large collections!
     if recursive:
         # Check if there is index:
         file_paths = _init_index()
@@ -368,23 +389,52 @@ def get_recursive_files(directory, include=None, exclude=None, recursive=True, e
                         file_paths.append(os.path.join(root, fname))
 
             print(f"Writing index to achilles.index in {directory}.")
-            pandas.DataFrame(file_paths).to_csv(os.path.join(directory, "achilles.index"), index=False, header=None)
+            pandas.DataFrame(file_paths).to_csv(os.path.join(directory, "achilles.index"), index=False, header=False)
     else:
         file_paths = [os.path.join(directory, path) for path in os.listdir(directory)]
 
     # TODO: Try set difference on file names (exact matches) and fast loops for within string matches.
-    if include:
-        retain = []
-        for f in file_paths:
-            if any(i in f for i in include) and f not in retain:
-                retain.append(f)
-        file_paths = retain.copy()
-
-    if exclude:
-        retain = []
-        for f in file_paths:
-            if not any(x in f for x in exclude) and f not in retain:
-                retain.append(f)
-        file_paths = retain.copy()
+    file_paths = retain_after_include(file_paths, include)
+    file_paths = retain_after_exclude(file_paths, exclude)
 
     return file_paths
+
+
+def retain_after_exclude(file_paths, exclude):
+
+    if exclude is None or (not exclude[0] and not exclude[1]):
+        return file_paths
+
+    exclude_files, exclude_strings = exclude[0], exclude[1]
+
+    if exclude_files:
+        file_retains = [path for path in file_paths if not os.path.basename(path) in exclude_files]
+    else:
+        file_retains = []
+
+    if exclude_strings:
+        string_retains = [path for path in file_paths if not any([string in path for string in exclude_strings])]
+    else:
+        string_retains = []
+
+    return list(set(string_retains + file_retains))
+
+
+def retain_after_include(file_paths, include):
+
+    if include is None or (not include[0] and not include[1]):
+        return file_paths
+
+    include_files, include_strings = include[0], include[1]
+
+    if include_files:
+        file_retains = [path for path in file_paths if os.path.basename(path) in include_files]
+    else:
+        file_retains = []
+
+    if include_strings:
+        string_retains = [path for path in file_paths if any([string in path for string in include_strings])]
+    else:
+        string_retains = []
+
+    return list(set(string_retains + file_retains))

@@ -25,8 +25,8 @@ class AchillesTest:
 
         self.test_data_dir, self.test_data_sets, self.test_dir1, self.test_dir2 = self.get_test_data_dirs()
 
-        self.read_dir1 = os.listdir(self.test_dir1)
-        self.read_dir2 = os.listdir(self.test_dir2)
+        self.read_dir1 = [f for f in os.listdir(self.test_dir1) if f.endswith(".fast5")]
+        self.read_dir2 = [f for f in os.listdir(self.test_dir2) if f.endswith(".fast5")]
 
     @staticmethod
     def get_test_data_dirs(this: str = None):
