@@ -107,9 +107,9 @@ class Achilles:
 
         return self.model
 
-    def save(self, file):
+    def save(self, run_id, file):
 
-        self.model.save(file)
+        self.model.save(os.path.join(run_id, file))
 
     def compile(self, optimizer="adam", loss="binary_crossentropy"):
 
@@ -117,7 +117,7 @@ class Achilles:
 
         return self.model
 
-    def train(self, batch_size=15, epochs=10, workers=2, run_id="run_1"):
+    def train(self, batch_size=15, epochs=10, workers=2, run_id="run_1", verbose=True):
 
         # Reads data from HDF5 data file:
         dataset = Dataset(data_file=self.data_file)
@@ -126,11 +126,11 @@ class Achilles:
         training_generator = dataset.get_signal_generator(data_type="training", batch_size=batch_size, shuffle=True)
         validation_generator = dataset.get_signal_generator(data_type="validation", batch_size=batch_size, shuffle=True)
 
-        log_path = self.init_logs(run_id=run_id)
+        self.init_logs(run_id=run_id)
 
         # Callbacks
-        csv = CSVLogger(os.path.join(log_path, run_id + ".epochs.log"))
-        chk = ModelCheckpoint(os.path.join(log_path, run_id + ".checkpoint.val_loss.h5"), monitor="val_loss", verbose=0,
+        csv = CSVLogger(os.path.join(run_id, run_id + ".epochs.log"))
+        chk = ModelCheckpoint(os.path.join(run_id, run_id + ".checkpoint.val_loss.h5"), monitor="val_loss", verbose=0,
                               save_best_only=False, save_weights_only=False, mode="auto", period=1)
 
         print("Running on batch size {} for {} epochs with {} worker processes --> run ID: {}"
@@ -138,9 +138,9 @@ class Achilles:
 
         # TODO: Implement TensorBoard
         history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers, epochs=epochs,
-                                           validation_data=validation_generator, callbacks=[csv, chk])
+                                           validation_data=validation_generator, callbacks=[csv, chk], verbose=verbose)
 
-        with open(os.path.join(log_path, "{}.model.history".format(run_id)), "wb") as history_out:
+        with open(os.path.join(run_id, "{}.model.history".format(run_id)), "wb") as history_out:
             pickle.dump(history.history, history_out)
 
     def load_model(self, model_file, summary=True):
@@ -177,10 +177,7 @@ class Achilles:
         # Make log directory:
         os.makedirs(run_id, exist_ok=True)
 
-        # Log file path:
-        log_path = os.path.join(run_id, run_id + ".log")
-
-        return log_path
+        return run_id
 
     @staticmethod
     def residual_block(y, nb_channels, input_shape=None, _strides=(1, 1), _project_shortcut=True, _leaky=False):

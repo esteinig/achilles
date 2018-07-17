@@ -12,7 +12,7 @@ from tqdm import tqdm
 from scipy.stats import sem
 from sklearn.model_selection import train_test_split
 from achilles.utils import read_signal, chunk
-from achilles.select import get_recursive_files
+from achilles.select import get_recursive_files, check_include_exclude
 from textwrap import dedent
 from keras.utils import Sequence
 from keras.utils.np_utils import to_categorical
@@ -60,7 +60,7 @@ class Dataset:
 
     def write_data(self, *dirs, classes=2, max_windows_per_class=20000, max_windows_per_read=100,
                    window_size=400, window_step=400, window_random=True, window_recover=True, normalize=False,
-                   scale=False, recursive=True):
+                   scale=False, recursive=True, exclude=None, include=None):
 
         """ Primary function to extract windows (slices) at random indices in the arrays that hold
         nanopore signal values in the (shuffled) sequencing files (.fast5) located in directories that contain
@@ -90,6 +90,11 @@ class Dataset:
 
         print("Generating data set for input to Achilles...\n")
 
+        # For some reason, this can't be put into the loop, probably because it
+        # overwrites include / exclude returns and presents empty list: TODO
+
+        include, exclude = check_include_exclude(include, exclude, recursive)
+
         with h5py.File(self.data_file, "w") as f:
 
             # Create data paths for storing all extracted data:
@@ -100,7 +105,8 @@ class Dataset:
             for label, path in enumerate(dirs):
 
                 # All Fast5 files in directory:
-                files = get_recursive_files(path, recursive=recursive, extension=".fast5")
+                files = get_recursive_files(path, recursive=recursive, exclude=exclude,
+                                            include=include, extension=".fast5")
 
                 # Randomize:
                 random.shuffle(files)

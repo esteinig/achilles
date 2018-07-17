@@ -50,9 +50,9 @@ test_config = {
 
 evaluate_config = {"evaluation": {
             "host": {"data": {
-                            "minimal": ["chr_3_part03", "chr_5_part06"],
-                            "diverse": ["chr_3_part03", "chr_5_part06", "chr_9_part07",
-                                        "chr_15_part06", "chr_21_part05"]
+                            "minimal": ["chr_3_part03", "chr_5_part07"],
+                            "diverse": ["chr_3_part03", "chr_5_part07", "chr_9_part03",
+                                        "chr_20_part05", "chr_21_part01"]
                     }, "params": {
                             "exclude": None,
                             "include": ["FAB23716"],
@@ -77,7 +77,6 @@ evaluate_config = {"evaluation": {
             }
     }
 }
-
 
 
 class DataSelector:
@@ -198,7 +197,7 @@ class DataSelector:
             nb_target = f"{Fore.YELLOW}{sample_limit}{Style.RESET_ALL}"
             nb_sampled = f"{Fore.RED}{len(fast5)}{Style.RESET_ALL}" if len(fast5) < sample_limit \
                 else f"{Fore.GREEN}{len(fast5)}{Style.RESET_ALL}"
-            print(f"{os.path.basename(d)}: {nb_sampled} ({nb_target})")
+            print(f"{os.path.basename(d)}: {nb_sampled} sampled ({nb_target} requested)")
             files.append(fast5)
 
         return files
@@ -346,8 +345,8 @@ def check_include_exclude(include, exclude, recursive, verbose=False):
     if isinstance(exclude, str) and exclude == "":
         exclude = []
 
-    include_datasets = [os.path.abspath(item) for item in include if item.endswith(".h5")]
-    exclude_datasets = [os.path.abspath(item) for item in exclude if item.endswith(".h5")]
+    include_datasets = [item for item in include if item.endswith(".h5")]
+    exclude_datasets = [item for item in exclude if item.endswith(".h5")]
 
     include_strings = [item for item in include if not item.endswith(".h5")]
     exclude_strings = [item for item in exclude if not item.endswith(".h5")]
@@ -400,6 +399,8 @@ def get_dataset_file_names(datasets):
 
 def get_recursive_files(directory, include=None, exclude=None, recursive=True, extension=".fast5"):
 
+    # TODO: Index file in Dataset?
+
     def _init_index():
         if "achilles.index" in os.listdir(directory):
             try:
@@ -422,10 +423,9 @@ def get_recursive_files(directory, include=None, exclude=None, recursive=True, e
                     if fname.endswith(extension):
                         file_paths.append(os.path.join(root, fname))
 
-            print(f"Writing index to achilles.index in {directory}.")
             pandas.DataFrame(file_paths).to_csv(os.path.join(directory, "achilles.index"), index=False, header=False)
     else:
-        file_paths = [os.path.join(directory, path) for path in os.listdir(directory)]
+        file_paths = [os.path.join(directory, path) for path in os.listdir(directory) if path.endswith(extension)]
 
     # TODO: Try set difference on file names (exact matches) and fast loops for within string matches.
     file_paths = retain_after_include(file_paths, include)

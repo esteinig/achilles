@@ -9,11 +9,11 @@ from achilles.model import Achilles
 from achilles.dataset import Dataset
 
 from achilles.utils import read_signal, transform_signal_to_tensor, plot_confusion_matrix, sliding_window, norm
-from achilles.select import get_recursive_files
+from achilles.select import get_recursive_files, check_include_exclude
 
 
 def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2, data_path: str="data",
-             meta_data: dict=None, write: str="") -> pandas.DataFrame:
+             write: str="") -> pandas.DataFrame:
 
     results = {}
 
@@ -51,12 +51,13 @@ def evaluate(data_files: list, models: list, batch_size: int=100, workers: int=2
     df.rename(columns={'level_0': 'model', 'level_1': 'dataset'}, inplace=True)
 
     if write:
-        df.to_csv(write)
+        df.to_csv(write, index=False)
 
     return df
 
 
-def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, recursive=False, **kwargs):
+def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, recursive=False, include=None,
+                         exclude=None, **kwargs):
 
     """ Wrapper for evaluating predictions with analysis.predict() on a set of directories containing
     Fast5 files from the labelled classes (species) used for model training. Fast5 files should be independent of
@@ -65,9 +66,11 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, recursi
 
     fast5 = []
     labels = []
+    include, exclude = check_include_exclude(include=include, exclude=exclude, recursive=recursive, verbose=True)
     for label, directory in enumerate(dirs):
         # Recursively grab a list of Fast5 files:
-        files = get_recursive_files(directory, recursive=recursive, extension=".fast5")
+        files = get_recursive_files(directory, recursive=recursive, include=include,
+                                    exclude=exclude, extension=".fast5")
         fast5 += files
         labels += [label for _ in files]
 
@@ -86,9 +89,7 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, recursi
 
     # print("Removed {} failed prediction from final results.".format(nan))
 
-    df.to_csv(prefix+".csv")
-
-    print(df)
+    df.to_csv(prefix+".csv", index=False)
 
     cm = confusion_matrix(df["label"], df["prediction"])
     average_prediction_time = df["microseconds"].mean()
@@ -102,19 +103,20 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, recursi
 
 
 def predict(fast5: str or list, model: str, window_max: int = 10, window_size: int = 400, window_step: int = 400,
-            window_random: bool = False, scale: bool = True, stdout: bool = True,
+            window_random: bool = False, scale: bool = False, stdout: bool = True,
             batches=None, mean=False) -> numpy.array:
 
     """ Predict from Fast5 using loaded model, either from beginning of signal or randomly sampled """
 
     batch_size = init_batches(batches, window_max)
 
+    # TODO
     if type(fast5) is str and fast5 == "-":
         fast5 = sys.stdin
     elif type(fast5) is list:
         pass
     else:
-        raise ValueError("Parameter: fast5 type must be lisst or - for stream")
+        raise ValueError("Parameter: fast5 must be list or '-' for stream.")
 
     print('Loading model...')
     achilles = Achilles()

@@ -28,7 +28,8 @@ def main():
         ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_windows_per_class=args["signal_max"],
                       window_size=args["signal_length"], window_step=args["signal_stride"],
                       normalize=args["normalize"], max_windows_per_read=args["window_max"],
-                      window_random=args["window_random"], window_recover=True, scale=args["scale"])
+                      window_random=args["window_random"], window_recover=True, scale=args["scale"],
+                      include=args["include"], exclude=args["exclude"])
 
         if args["validation"] > 0:
             ds.training_validation_split(validation=args["validation"], window_size=args["signal_length"],
@@ -57,9 +58,9 @@ def main():
         print("Estimated GPU memory for Achilles model by layers : {} GB".format(memory))
 
         achilles.train(epochs=args["epochs"], batch_size=args["batch_size"], workers=args["threads"],
-                       run_id=args["run_id"], log_interval=args["log_interval"])
+                       run_id=args["run_id"], verbose=args["verbose"])
 
-        achilles.save(args["output_file"])
+        achilles.save(args["run_id"], args["output_file"])
 
     if args["subparser"] == "evaluate":
 
@@ -77,7 +78,8 @@ def main():
         evaluate_predictions(dirs=args["dirs"], model=args["model_file"], window_max=args["windows"],
                              window_size=args["window_size"], window_step=args["window_step"],
                              batches=args["batches"], window_random=args["window_random"],
-                             prefix=args["prefix"])
+                             prefix=args["prefix"], include=args["include"], exclude=args["exclude"],
+                             class_labels=args["labels"])
 
     if args["subparser"] == "runner":
 

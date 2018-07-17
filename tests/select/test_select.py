@@ -206,12 +206,3 @@ class SelectTestCases(TestCase, AchillesTest):
                                                                  include=include, exclude=None)
         
         self.assertEqual(len(files_dir2_include), 3)  # Includes all three files
-
-
-# def make_test_dataset():
-#
-#     ds = Dataset(data_file="test_select.h5")
-#
-#     ds.write_data("../test_data/dir1", "../test_data/dir2", classes=2, max_windows_per_class=6,
-#                   window_size=200, window_step=20, normalize=False, max_windows_per_read=2,
-#                   window_random=True, window_recover=True, scale=False)

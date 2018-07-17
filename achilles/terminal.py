@@ -42,6 +42,13 @@ class Terminal:
         prep.add_argument("--print", "-p", required=False, action="store_true", dest="print",
                           help="Print summary of data file")
 
+        prep.add_argument("--include", required=False, dest="include", default="", type=str,
+                          help="Include data file Fast5 (.h5) or single string or list of strings (item1,item2) "
+                          "for selection if string in part of file path.")
+        prep.add_argument("--exclude", required=False, dest="exclude", default="", type=str,
+                          help="Exclude data file Fast5 (.h5) or single string or list of strings (item1,item2) "
+                          "for selection if string in part of file path.")
+
         prep.set_defaults(subparser='make')
 
         train = subparsers.add_parser("train", help="Train Achilles on prepped raw signal data from HDF5.")
@@ -87,6 +94,9 @@ class Terminal:
         train.add_argument("--gpu", "-g", required=False, action="store_true", dest="gpu",
                            help="Use CuDNN variants of RNN layers (only when using GPU).")
 
+        train.add_argument("--verbose", required=False, action="store_true", dest="verbose",
+                           help="Enable progress bar in Keras and verbose output for training.")
+
         # Architecture simplification:
         train.add_argument("--deactivate_bidirectional", "--no_bi", required=False, action="store_false", dest="bi",
                            default=True, help="Deactivate bidirectional RNN layers for parameter reduction.")
@@ -103,7 +113,7 @@ class Terminal:
         eval = subparsers.add_parser("evaluate", help="Evaluate data with given model file on data paths"
                                                       "data_path/data and data_path/label in HDF5 file.")
 
-        eval.add_argument("--data_files", "--file", "-f", required=True, dest="data_files", type=str,
+        eval.add_argument("--data_files", "--files", "-f", required=True, dest="data_files", type=str,
                           help="HDF5 prepared data files for evaluation.")
         eval.add_argument("--model_files", "--model", "-m", required=True, dest="model_files", type=str,
                           help="HDF5 trained model files for evaluation.")
@@ -144,20 +154,30 @@ class Terminal:
                            help="Class directories with Fast5 files same order as training (max: 2)")
         peval.add_argument("--model_file", "--model", "-m", required=False, dest="model_file", default="model.h5",
                            type=str, help="HDF5 prepped trained model file for prediction.")
+
         peval.add_argument("--windows", "-w", required=False, dest="windows", default=10, type=int,
-                          help="Number of consecutive windows to extract for prediction.")
-        peval.add_argument("--windows_size", "--size", required=False, dest="window_size", default=400, type=int,
-                          help="Window size to extract for prediction.")
+                           help="Number of consecutive windows to extract for prediction.")
+        peval.add_argument("--window_size", "--size", required=False, dest="window_size", default=400, type=int,
+                           help="Window size to extract for prediction.")
         peval.add_argument("--window_step", "--step", required=False, dest="window_step", default=400, type=int,
-                          help="Number of consecutive windows to extract for prediction.")
+                           help="Number of consecutive windows to extract for prediction.")
         peval.add_argument("--window_random", "--random", required=False, action="store_true", dest="window_random",
-                          help="Number of consecutive windows to extract for prediction.")
+                           help="Random sampling of windows from reads.")
         peval.add_argument("--raw", "-r", required=False, action="store_true", dest="raw",
-                          help="Use raw (DAC) values instead of scaled picoampere (pA).")
+                           help="Use raw (DAC) values instead of scaled picoampere (pA).")
         peval.add_argument("--batches", "-b", required=False, dest="batches", default=10, type=int,
                            help="Number of files for batch-wise prediction (*windows = batch_size for Keras).")
         peval.add_argument("--prefix", "-p", required=False, dest="prefix", default="peval", type=str,
                            help="Prefix for plot and summary outputs.")
+        peval.add_argument("--labels", "-l", required=False, dest="labels", default="0,1",
+                           type=str, help="Label names, comma-separated")
+        peval.add_argument("--include", required=False, dest="include", default="", type=str,
+                           help="Include data file Fast5 (.h5) or single string or list of strings (item1,item2) "
+                           "for selection if string in part of file path.")
+        peval.add_argument("--exclude", required=False, dest="exclude", default="", type=str,
+                           help="Exclude data file Fast5 (.h5) or single string or list of strings (item1,item2) "
+                           "for selection if string in part of file path.")
+
         peval.set_defaults(subparser='pevaluate')
 
         plot = subparsers.add_parser("plot", help="Plot loss and accuracy for model runs from logs.")
