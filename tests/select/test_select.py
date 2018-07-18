@@ -1,4 +1,15 @@
-""" Test functions for utils.py
+""" Test functions for select.py
+
+Training data set generated with:
+
+ds = Dataset(data_file="test_select.h5")
+
+ds.write_data(test_dir1, test_dir2, classes=2, max_windows_per_class=6,
+              window_size=200, window_step=20, normalize=False, max_windows_per_read=2,
+              window_random=True, window_recover=True, scale=False)
+
+--> max_windows_per_class = 6, max_windows_per_read = 2
+--> 6/2 = 3 files per class excluded, 7 retained
 
 TODO:
     - Test for making output dir, linking and copying files
@@ -52,12 +63,10 @@ class SelectTestCases(TestCase, AchillesTest):
 
     def setUp(self):
         logging.disable(logging.CRITICAL)
-
         self.tmp = tempfile.mkdtemp()
 
     def tearDown(self):
         logging.disable(logging.NOTSET)
-
         shutil.rmtree(self.tmp)
 
     def test_default_select(self, nb_test_files=10):
@@ -78,7 +87,7 @@ class SelectTestCases(TestCase, AchillesTest):
         file_names_dir1 = [os.path.basename(file) for file in files_dir1]
         file_names_dir2 = [os.path.basename(file) for file in files_dir2]
 
-        # All contain correct read identifiers = True
+        # All contain correct read identifiers:
         self.assertTrue(all([True if read in file_names_dir1 else False
                              for read in self.read_dir1]))
 
@@ -152,18 +161,7 @@ class SelectTestCases(TestCase, AchillesTest):
 
     def test_default_select_exclude_dataset(self):
 
-        """Test excluding files in training dataset (.h5), generated with:
-
-        ds = Dataset(data_file="test_select.h5")
-
-        ds.write_data(test_dir1, test_dir2, classes=2, max_windows_per_class=6,
-                      window_size=200, window_step=20, normalize=False, max_windows_per_read=2,
-                      window_random=True, window_recover=True, scale=False)
-
-        --> max_windows_per_class = 6, max_windows_per_read = 2
-        --> 6/2 = 3 files per class excluded, 7 retained
-
-        """
+        """Test excluding files in training dataset (.h5) """
 
         exclude = [os.path.join(self.test_data_sets, "test_select1.h5"),
                    os.path.join(self.test_data_sets, "test_select2.h5")]  # test_select2 is copy of test_select1
@@ -178,19 +176,8 @@ class SelectTestCases(TestCase, AchillesTest):
                                                                  include=None, exclude=exclude)
         self.assertEqual(len(files_dir2_exclude), 7)
 
-    def test_default_select_exclude_dataset(self):
-        """Test excluding files in training dataset (.h5), generated with:
-
-        ds = Dataset(data_file="test_select.h5")
-
-        ds.write_data(test_dir1, test_dir2, classes=2, max_windows_per_class=6,
-                      window_size=200, window_step=20, normalize=False, max_windows_per_read=2,
-                      window_random=True, window_recover=True, scale=False)
-
-        --> max_windows_per_class = 6, max_windows_per_read = 2
-        --> 6/2 = 3 files per class excluded, 7 retained
-
-        """
+    def test_default_select_include_dataset(self):
+        """Test excluding files in training dataset (.h5) """
 
         include = [os.path.join(self.test_data_sets, "test_select1.h5"),
                    os.path.join(self.test_data_sets, "test_select2.h5")]  # test_select2 is copy of test_select1

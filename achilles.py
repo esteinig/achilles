@@ -25,14 +25,14 @@ def main():
         # write training and validation data to HDF5 file
         ds = Dataset(data_file=args["output_file"])
 
-        ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_windows_per_class=args["signal_max"],
-                      window_size=args["signal_length"], window_step=args["signal_stride"],
-                      normalize=args["normalize"], max_windows_per_read=args["window_max"],
+        ds.write_data(*args["dirs"], classes=len(args["dirs"]), max_windows_per_class=args["window_max"],
+                      window_size=args["window_size"], window_step=args["window_step"],
+                      normalize=args["normalize"], max_windows_per_read=args["window_scan"],
                       window_random=args["window_random"], window_recover=True, scale=args["scale"],
                       include=args["include"], exclude=args["exclude"])
 
         if args["validation"] > 0:
-            ds.training_validation_split(validation=args["validation"], window_size=args["signal_length"],
+            ds.training_validation_split(validation=args["validation"], window_size=args["window_size"],
                                          classes=len(args["dirs"]), chunk_size=args["chunk_size"])
 
     if args["subparser"] == "train":
@@ -43,11 +43,10 @@ def main():
         if args["load"]:
             achilles.load_model(args["load"])
         else:
-            achilles.build(signal_length=args["signal_length"], activation=args["activation"],
+            achilles.build(window_size=args["window_size"], activation=args["activation"],
                            nb_residual_block=args["nb_residual_blocks"], nb_channels=args["nb_channels"],
                            nb_rnn=args["nb_rnn"], rnn_units=args["rnn_units"], gru=args["gru"], gpu=args["gpu"],
-                           dropout=args["dropout"], rc_dropout=args["rc_dropout"], bidirectional=args["bi"],
-                           conv_2d=args["conv_2d"])
+                           dropout=args["dropout"], rc_dropout=args["rc_dropout"], bidirectional=args["bi"])
 
             # Compile model with loss function and optimizer
             achilles.compile(optimizer=args["optimizer"], loss=args["loss"])

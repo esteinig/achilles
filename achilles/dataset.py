@@ -196,7 +196,7 @@ class Dataset:
         # validation data for input to Achilles (data_file + _training.h5)
 
         fname, fext = os.path.splitext(self.data_file)
-        outfile = fname + "_training" + fext
+        outfile = fname + ".training" + fext
 
         print("Splitting data into training and validation sets...\n")
         with h5py.File(self.data_file, "r") as data_file:

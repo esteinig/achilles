@@ -2,6 +2,15 @@ import os
 import argparse
 
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 class Terminal:
 
     def __init__(self, commands=None):
@@ -21,18 +30,18 @@ class Terminal:
                           help="Output HDF5 containing training and validation signal data")
         prep.add_argument("--log_file", "-log", required=False, dest="log_file", default="data.log", type=str,
                           help="Log file for generating training data.")
-        prep.add_argument("--max_windows_per_class", "-max", "-m", required=False, dest="signal_max", default=1000, type=int,
+        prep.add_argument("--window_max", "--max", required=False, dest="window_max", default=1000, type=int,
                           help="Maximum number of signal windows extracted from Fast5 directories per class (dir).")
-        prep.add_argument("--max_windows_per_read", "-mw", required=False, dest="window_max", default=100,
+        prep.add_argument("--window_scan", "--scan", required=False, dest="window_scan", default=100,
                           type=int, help="Maximum number of signal windows extracted per Fast5 file.")
         prep.add_argument("--windows_from_start", "--start", required=False, dest="window_start",
                           action="store_true", help="Extract consecutive windows from start of read.")
-        prep.add_argument("--window_length", "-len", "-l", required=False, default=400, dest="signal_length", type=int,
-                           help="Length of signal windows.")
+        prep.add_argument("--window_size", "--size", required=False, default=400, dest="window_size", type=int,
+                          help="Size of signal windows.")
         prep.add_argument("--raw", "-r", required=False, action="store_true", dest="raw",
                           help="Use raw (DAC) values instead of scaled picoampere (pA).")
-        prep.add_argument("--window_step", "-s", required=False, default=400, dest="signal_stride", type=int,
-                           help="Length of step for signal windows.")
+        prep.add_argument("--window_step", "-s", required=False, default=400, dest="window_step", type=float,
+                          help="Length of step for signal windows.")
         prep.add_argument("--normalize", "-norm", "-n", required=False, action="store_true", dest="normalize",
                            help="Normalize signal values to pA floats (subtract mean, divide by std)")
         prep.add_argument("--validation", "-val", "-v", required=False, default=0.3, dest="validation", type=float,
@@ -59,7 +68,8 @@ class Terminal:
                           help="Output trained model to HDF5 file.")
         train.add_argument("--run_id", "-i", required=False, dest="run_id", default="run_test", type=str,
                           help="Training run ID.")
-        train.add_argument("--signal_length", "--length", "-s", required=False, dest="signal_length", default=400, type=int,
+
+        train.add_argument("--window_size", "--size", "-s", required=False, dest="window_size", default=400, type=int,
                           help="Length of signal windows over each read from Fast5.")
         train.add_argument("--batch_size", "-b", required=False, dest="batch_size", default=15, type=int,
                           help="Training mini batch size.")
@@ -67,8 +77,7 @@ class Terminal:
                            help="CPU threads to feed batches into generator to fit to model.")
         train.add_argument("--epochs", "-e", required=False, dest="epochs", default=3, type=int,
                           help="Training epochs.")
-        train.add_argument("--log_interval", "-log", required=False, dest="log_interval", default=1, type=int,
-                           help="Log loss and accuracy every batch (default: 1).")
+
         train.add_argument("--activation", "-a", required=False, dest="activation", default="softmax", type=str,
                           help="Activation function (default: softmax)")
         train.add_argument("--loss", "-l", required=False, dest="loss", default="binary_crossentropy", type=str,
@@ -97,11 +106,14 @@ class Terminal:
         train.add_argument("--verbose", required=False, action="store_true", dest="verbose",
                            help="Enable progress bar in Keras and verbose output for training.")
 
-        # Architecture simplification:
-        train.add_argument("--deactivate_bidirectional", "--no_bi", required=False, action="store_false", dest="bi",
-                           default=True, help="Deactivate bidirectional RNN layers for parameter reduction.")
-        train.add_argument("--conv_2d", "--conv", required=False, action="store_true", dest="conv_2d", default=False,
-                           help="Activate simple convolutional layer (2D + ReLU) instead of Residual Block.")
+        # Architecture simplification
+        # Birdirectional LSTM arg type is str2bool so that 'true' and 'false' can be parsed in Nextflow
+        # There should be no additional positional arguments, this might interfere, see:
+        # https://stackoverflow.com/a/43357954
+
+        train.add_argument("--bidirectional", "--bi", required=False, type=str2bool, nargs='?',
+                           const=True, default="false", dest="bi",
+                           help="Deactivate bidirectional RNN layers for parameter reduction.")
 
         train.add_argument("--dropout", "-d", required=False, type=float, default=0, dest="dropout",
                            help="Dropout fraction applied to LSTM between 0 and 1 (default: 0.0)")
@@ -138,7 +150,7 @@ class Terminal:
                           help="Number of consecutive windows to extract for prediction.")
         pred.add_argument("--windows_size", "--size", required=False, dest="window_size", default=400, type=int,
                           help="Window size to extract for prediction.")
-        pred.add_argument("--window_step", "--step", required=False, dest="window_step", default=400, type=int,
+        pred.add_argument("--window_step", "--step", required=False, dest="window_step", default=400, type=float,
                           help="Number of consecutive windows to extract for prediction.")
         pred.add_argument("--window_random", "--random", required=False, action="store_true", dest="window_random",
                           help="Number of consecutive windows to extract for prediction.")
@@ -159,7 +171,7 @@ class Terminal:
                            help="Number of consecutive windows to extract for prediction.")
         peval.add_argument("--window_size", "--size", required=False, dest="window_size", default=400, type=int,
                            help="Window size to extract for prediction.")
-        peval.add_argument("--window_step", "--step", required=False, dest="window_step", default=400, type=int,
+        peval.add_argument("--window_step", "--step", required=False, dest="window_step", default=400, type=float,
                            help="Number of consecutive windows to extract for prediction.")
         peval.add_argument("--window_random", "--random", required=False, action="store_true", dest="window_random",
                            help="Random sampling of windows from reads.")
@@ -239,6 +251,13 @@ class Terminal:
         self.args = vars(self.args)
 
         # Data checks and conversions
+
+        # Proportional window step (if values is between 0 and 1) for Nextflow pipelines:
+        if "window_step" in self.args.keys():
+            if 0 < self.args["window_step"] < 1:
+                self.args["window_step"] = int(self.args["window_size"] * self.args["window_step"])
+            else:
+                self.args["window_step"] = int(self.args["window_step"])
 
         # For input lists (comma-separated):
 

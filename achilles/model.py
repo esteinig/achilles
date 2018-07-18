@@ -25,41 +25,33 @@ class Achilles:
         self.log_dir = log_dir
         self.model = None
 
-    def build(self, signal_length=400, activation="softmax", bidirectional=True, conv_2d=False,
+    def build(self, window_size=400, activation="softmax", bidirectional=True,
               nb_channels=256, rnn_units=200, _nb_classes=2, kernel_size=(1, 3), strides=(1, 1),
               nb_residual_block=1, nb_rnn=1, dropout=0.0, rc_dropout=0.0, gpu=False, gru=False, summary=True):
 
         # Kernel size and strides are only used for single convolutional layers (1D, or 2D)
 
         # Default for resisdual block or Conv2D:
-        shape = (1, signal_length, 1)
+        shape = (1, window_size, 1)
 
         # Input data shape for residual block (Conv2D)
         inputs = layers.Input(shape=shape)
 
-        if conv_2d:
-            # Testing simple 2D-Conv layer:
-            # Note that the residual block seems to be essential, no learning with single Conv2D:
-            x = layers.Conv2D(nb_channels, input_shape=shape, kernel_size=kernel_size,
-                              strides=strides, padding='same')(inputs)
-            x = layers.Activation('relu')(x)
-        else:
+        ######################
+        # Residual Block CNN #
+        ######################
 
-            ######################
-            # Residual Block CNN #
-            ######################
+        # Residual block stack, see config
+        # There must always be one residual block for input dimensions
+        # by data generator:
+        x = self.residual_block(inputs, nb_channels, input_shape=shape)
 
-            # Residual block stack, see config
-            # There must always be one residual block for input dimensions
-            # by data generator:
-            x = self.residual_block(inputs, nb_channels, input_shape=shape)
-
-            if nb_residual_block > 1:
-                for i in range(nb_residual_block - 1):
-                    x = self.residual_block(x, nb_channels)
+        if nb_residual_block > 1:
+            for i in range(nb_residual_block - 1):
+                x = self.residual_block(x, nb_channels)
 
         # Reshape the output layer of residual blocks from 4D to 3D
-        x = layers.Reshape((1 * signal_length, nb_channels))(x)
+        x = layers.Reshape((1 * window_size, nb_channels))(x)
 
         ######################
         # Bidirectional RNN  #
