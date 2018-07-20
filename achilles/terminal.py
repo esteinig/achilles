@@ -64,8 +64,8 @@ class Terminal:
 
         train.add_argument("--data_file", "--file", "-f", required=False, dest="data_file", default="data.h5", type=str,
                           help="HDF5 prepped data file (achilles prep) for streaming batches.")
-        train.add_argument("--output_file", "-o", required=False, dest="output_file", default="model.h5", type=str,
-                          help="Output trained model to HDF5 file.")
+        train.add_argument("--output_dir", "-o", required=False, dest="output_dir", default="", type=str,
+                          help="Output directory for training.")
         train.add_argument("--run_id", "-i", required=False, dest="run_id", default="run_test", type=str,
                           help="Training run ID.")
 

@@ -26,8 +26,8 @@ class Achilles:
         self.model = None
 
     def build(self, window_size=400, activation="softmax", bidirectional=True,
-              nb_channels=256, rnn_units=200, _nb_classes=2, kernel_size=(1, 3), strides=(1, 1),
-              nb_residual_block=1, nb_rnn=1, dropout=0.0, rc_dropout=0.0, gpu=False, gru=False, summary=True):
+              nb_channels=256, rnn_units=200, _nb_classes=2, nb_residual_block=1, nb_rnn=1,
+              dropout=0.0, rc_dropout=0.0, gpu=False, gru=False, summary=True):
 
         # Kernel size and strides are only used for single convolutional layers (1D, or 2D)
 
@@ -109,7 +109,18 @@ class Achilles:
 
         return self.model
 
-    def train(self, batch_size=15, epochs=10, workers=2, run_id="run_1", verbose=True):
+    def train(self, batch_size=15, epochs=10, workers=2, run_id="run_1", outdir="run_1", verbose=True):
+
+        # Estimated memory for dimensions and batch size of model, before adjustment:
+        memory = self.estimate_memory_usage(batch_size=batch_size)
+        print(f"Estimated GPU memory for Achilles model: {memory} GB")
+
+        if batch_size == "auto":
+            batch_size = self.adjust_batch_size(batch_size)
+
+            # Estimated memory for dimensions and batch size of model, after adjustment:
+            memory = self.estimate_memory_usage(batch_size=batch_size)
+            print(f"Estimated GPU memory for Achilles model after adjustment: {memory} GB")
 
         # Reads data from HDF5 data file:
         dataset = Dataset(data_file=self.data_file)
@@ -118,11 +129,15 @@ class Achilles:
         training_generator = dataset.get_signal_generator(data_type="training", batch_size=batch_size, shuffle=True)
         validation_generator = dataset.get_signal_generator(data_type="validation", batch_size=batch_size, shuffle=True)
 
-        self.init_logs(run_id=run_id)
+        # Make log directory:
+        if outdir:
+            os.makedirs(outdir, exist_ok=True)
+        else:
+            outdir = os.getcwd()
 
         # Callbacks
-        csv = CSVLogger(os.path.join(run_id, run_id + ".epochs.log"))
-        chk = ModelCheckpoint(os.path.join(run_id, run_id + ".checkpoint.val_loss.h5"), monitor="val_loss", verbose=0,
+        csv = CSVLogger(os.path.join(outdir, run_id + ".epochs.log"))
+        chk = ModelCheckpoint(os.path.join(outdir, run_id + ".checkpoint.val_loss.h5"), monitor="val_loss", verbose=0,
                               save_best_only=False, save_weights_only=False, mode="auto", period=1)
 
         print("Running on batch size {} for {} epochs with {} worker processes --> run ID: {}"
@@ -132,8 +147,22 @@ class Achilles:
         history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers, epochs=epochs,
                                            validation_data=validation_generator, callbacks=[csv, chk], verbose=verbose)
 
-        with open(os.path.join(run_id, "{}.model.history".format(run_id)), "wb") as history_out:
+        with open(os.path.join(outdir, "{}.model.history".format(run_id)), "wb") as history_out:
             pickle.dump(history.history, history_out)
+
+    @staticmethod
+    def adjust_batch_size(self, batch_size):
+
+        """ Function for adjusting batch size to live GPU memory; this is not an accurate estimation
+        but rather aims at conservatively estimating available GPU memory and adjusting the batch size
+        so that training does not raise out-of-memory errors, particularly when using training as part
+        of Nextflow workflows where the underlying data dimensions (and therefore memory occupancy) changes.
+        """
+
+
+
+        return adjusted_batch_size
+
 
     def load_model(self, model_file, summary=True):
 
@@ -162,14 +191,6 @@ class Achilles:
 
         # Select random or beginning consecutive windows
         return self.model.predict(x=signals, batch_size=batch_size)
-
-    @staticmethod
-    def init_logs(run_id):
-
-        # Make log directory:
-        os.makedirs(run_id, exist_ok=True)
-
-        return run_id
 
     @staticmethod
     def residual_block(y, nb_channels, input_shape=None, _strides=(1, 1), _project_shortcut=True, _leaky=False):

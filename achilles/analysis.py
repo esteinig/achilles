@@ -74,13 +74,19 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, recursi
         fast5 += files
         labels += [label for _ in files]
 
-    predictions, microseconds = predict(fast5=fast5, model=model, **kwargs)
+    predictions, microseconds, failed_files = predict(fast5=fast5, model=model, **kwargs)
+
+    failed_label_indices = [i for i, file in enumerate(fast5) if file in failed_files]
 
     df = pandas.DataFrame({
-        "file_name": [os.path.basename(file) for file in fast5],
-        "label": labels,
+        "file_name": [os.path.basename(file) for file in fast5 if file not in failed_files],
+        "label": [label for i, label in enumerate(labels) if i not in failed_label_indices],
         "prediction": predictions,
         "microseconds": microseconds
+    })
+
+    fail_df = pandas.DataFrame({
+        "file_name": [os.path.basename(file) for file in failed_files]
     })
 
     # nan = int(df["prediction"].isnull().sum())
@@ -89,6 +95,7 @@ def evaluate_predictions(dirs, model, prefix="peval", class_labels=None, recursi
 
     # print("Removed {} failed prediction from final results.".format(nan))
 
+    fail_df.to_csv(prefix+".fail.txt", index=False)
     df.to_csv(prefix+".csv", index=False)
 
     cm = confusion_matrix(df["label"], df["prediction"])
@@ -130,12 +137,12 @@ def predict(fast5: str or list, model: str, window_max: int = 10, window_size: i
 
     predicted_labels = []
     prediction_times = []
-
+    failed_files = []
     # TODO does this work with STDIN stream?
     for file_batch in sliding_window(fast5, size=batches, step=batches):
 
-        batch = prepare_batch(file_batch, window_size=window_size, window_step=window_step, normalize=False,
-                              window_random=window_random, window_recover=False, window_max=window_max, scale=scale)
+        batch, failed = prepare_batch(file_batch, window_size=window_size, window_step=window_step, normalize=False,
+                                      window_random=window_random, window_recover=False, window_max=window_max, scale=scale)
 
         # Microseconds is per entire batch:
         prediction_windows, microseconds = achilles.predict(batch, batch_size=batch_size)
@@ -161,8 +168,9 @@ def predict(fast5: str or list, model: str, window_max: int = 10, window_size: i
 
         predicted_labels += predicted_label.tolist()
         prediction_times += [microseconds for _ in predicted_label]
+        failed_files += failed
 
-    return predicted_labels, prediction_times
+    return predicted_labels, prediction_times, failed_files
 
 
 def init_batches(batches, window_max):
@@ -188,6 +196,7 @@ def prepare_batch(file_batch, **kwargs):
     file_batch = [file for file in file_batch if file is not None]
 
     batch = []
+    failed = []
     for file in file_batch:
         signal_windows, _ = read_signal(file, **kwargs)
 
@@ -195,10 +204,11 @@ def prepare_batch(file_batch, **kwargs):
             batch.append(transform_signal_to_tensor(signal_windows))
         else:
             print("Could not read file: ", file)
+            failed.append(file)
 
     batch = numpy.array(batch)
 
-    return batch.reshape(batch.shape[0] * batch.shape[1], batch.shape[2], batch.shape[3], batch.shape[4])
+    return batch.reshape(batch.shape[0] * batch.shape[1], batch.shape[2], batch.shape[3], batch.shape[4]), failed
 
 # TODO:
 

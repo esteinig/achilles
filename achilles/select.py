@@ -80,6 +80,7 @@ evaluate_config = {"evaluation": {
 
 
 class DataSelector:
+
     """ Mix and match samples from Fast5 directories to generate DataSets """
 
     def __init__(self, outdir, basedir=None, config=None, config_file=None, ncpu=1, chunk_size=100):
@@ -122,6 +123,70 @@ class DataSelector:
         From:       {base_dir}
         To:         {out_dir}
         """))
+
+    def run_config(self):
+
+        """ Configuration for selection of data for any number of stages (training, evaluation ...) and
+        any number of data classes """
+
+        os.makedirs(self.outdir)
+
+        for step in self.config.keys():  # training, evaluation, prediction
+
+            step_config = self.config[step]
+
+            step_path = os.path.join(self.outdir, step)
+            stage_path = os.path.join(step_path, "data")
+
+            os.makedirs(step_path)   # outdir/training, outdir/evaluation ...
+            os.makedirs(stage_path)  # outdir/training/data for staging mixed selections, then symlink into folders
+
+            for label, label_config in step_config.items():  # host1, host2, pathogen1, pathogen2 ...
+
+                stage_label_path = os.path.join(stage_path, label)
+                os.makedirs(stage_label_path)
+
+                label_params = label_config["params"]
+                for data_id, data_dirs in label_config["data"]:  # mix data id, mix data dirs
+
+                    stage_data_path = os.path.join(stage_label_path, data_id)
+                    os.makedirs(stage_data_path)
+
+                    # Join basedir with directories to mix:
+                    basedir = label_params.pop("basedir")
+                    mix_dirs = [os.path.join(basedir, directory) for directory in data_dirs]
+
+                    self.mix_data(mix_dirs, stage_data_path, **label_params,
+                                  ncpu=self.ncpu, chunk_size=self.chunk_size)
+                                  
+
+    def check_params(self):
+
+        pass
+
+    @staticmethod
+    def mix_data(dirs, outdir, shuffle=True, limit=12000, min_signal=None, include=None,
+                 exclude=None, ncpu=1, chunk_size=100):
+
+        # TODO: Might want to add recursive option?
+        sample_limit = limit // len(dirs)
+        files = []
+
+        for d in dirs:
+            fast5 = select_fast5(input_dir=d, output_dir=outdir, limit=sample_limit, min_signal=min_signal,
+                                 shuffle=shuffle, exclude=exclude, include=include, ncpu=ncpu, chunk_size=chunk_size)
+
+            nb_target = f"{Fore.YELLOW}{sample_limit}{Style.RESET_ALL}"
+            nb_sampled = f"{Fore.RED}{len(fast5)}{Style.RESET_ALL}" if len(fast5) < sample_limit \
+                else f"{Fore.GREEN}{len(fast5)}{Style.RESET_ALL}"
+            print(f"{os.path.basename(d)}: {nb_sampled} sampled ({nb_target} requested)")
+            files.append(fast5)
+
+        return files
+
+
+
+
 
     def run_training_config(self):
 
@@ -399,7 +464,7 @@ def get_dataset_file_names(datasets):
 
 def get_recursive_files(directory, include=None, exclude=None, recursive=True, extension=".fast5"):
 
-    # TODO: Index file in Dataset?
+    # TODO: Index file in Dataset - make index a parameter to disable for testing!
 
     def _init_index():
         if "achilles.index" in os.listdir(directory):

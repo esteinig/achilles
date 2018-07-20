@@ -102,7 +102,7 @@ pred_slices   =    $params.pred_slices
 process TrainingGenerator {
 
     tag { id }
-    publishDir "${params.outdir}/data/training", mode: 'copy'
+    publishDir "${params.outdir}/data/training", mode: "copy", pattern: "*.h5"
 
     input:
     val id from params.id
@@ -118,22 +118,23 @@ process TrainingGenerator {
     """
 }
 
-process Training {
+process ModelTraining {
 
     tag { id }
-    publishDir "${params.outdir}/training", mode: 'copy'
+    publishDir "${params.outdir}/training", mode: "copy"
+    publishDir "${params.outdir}/training", mode: "copy"
 
     input:
     set id, file(training) from training_data
 
     output:
-    set id, file("${id}/${id}.checkpoint.val_loss.h5") into evaluation_model, prediction_model
-    set id, file("${id}/${id}.model.history") into training_summary
+    set id, file("${id}.checkpoint.val_loss.h5") into evaluation_model, prediction_model
+    set id, file("${id}.model.history") into training_summary
 
     """
     python ~/code/achilles/achilles.py train --file $training --run_id $id --threads $params.threads --batch_size $params.batch_size \
     --epochs $params.epochs --dropout $params.dropout --rc_dropout $params.dropout --nb_residual_blocks $params.nb_rb \
-    --nb_rnn $params.nb_lstm --activation softmax --window_size $params.window_size --bi $params.blstm --output_file ${id}.h5
+    --nb_rnn $params.nb_lstm --activation softmax --window_size $params.window_size --bi $params.blstm
     """
 }
 
@@ -142,7 +143,7 @@ process Training {
 process EvaluationGenerator {
 
     tag { id }
-    publishDir "${params.outdir}/data/evaluation", mode: 'copy'
+    publishDir "${params.outdir}/data/evaluation", mode: "copy", pattern: "*.eval.h5"
 
     input:
     set id, file(train_data) from evaluation_generator
@@ -157,10 +158,10 @@ process EvaluationGenerator {
     """
 }
 
-process Evaluation {
+process ModelEvaluation {
 
     tag { id }
-    publishDir "${params.outdir}/evaluation", mode: 'copy'
+    publishDir "${params.outdir}/evaluation", mode: "copy"
 
     input:
     set id, file(eval_data) from evaluation_data
@@ -182,10 +183,10 @@ process Evaluation {
 
 slices = Channel.from(params.pred_slices)
 
-process PredictionEvaluation {
+process ModelPrediction {
 
     tag { [id, slice].join(":") }
-    publishDir "${params.outdir}/prediction", mode: 'copy'
+    publishDir "${params.outdir}/prediction", mode: "copy"
 
     input:
     val slice from slices // Prediction for each slice size
@@ -196,6 +197,7 @@ process PredictionEvaluation {
     output:
     file("${slice}.pdf")
     file("${slice}.csv")
+    file("${slice}.fail.txt")
 
     // Window step is same as window size for non-overlapping sequence of prediction windows.
     // Dirs takes all reads from the given directories (no maximum).

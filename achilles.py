@@ -51,15 +51,8 @@ def main():
             # Compile model with loss function and optimizer
             achilles.compile(optimizer=args["optimizer"], loss=args["loss"])
 
-        # Compute estimated memory for dimensions and batch size of model:
-        memory = achilles.estimate_memory_usage(batch_size=args["batch_size"])
-
-        print("Estimated GPU memory for Achilles model by layers : {} GB".format(memory))
-
         achilles.train(epochs=args["epochs"], batch_size=args["batch_size"], workers=args["threads"],
-                       run_id=args["run_id"], verbose=args["verbose"])
-
-        achilles.save(args["run_id"], args["output_file"])
+                       run_id=args["run_id"], outdir=args["output_dir"], verbose=args["verbose"])
 
     if args["subparser"] == "evaluate":
 

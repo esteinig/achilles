@@ -3,7 +3,7 @@
 /*
  *  This pipeline is part of the AI-based pathogen detection library 'Achilles'.
  *
- *  Pipeline            Achilles
+ *  Pipeline            Achilles Hyper
  *  Version             0.1
  *  Description         Training and evaluation pipelines for exploration of architecture and hyperparameters with Achilles.
  *           
@@ -52,12 +52,6 @@ classes       =    $params.classes
 labels        =    $params.labels
 outdir        =    $params.outdir
 
-                        Data Selection
-==================================================================
-
-
-
-
                       Variable Parameters
 ==================================================================
 
@@ -68,9 +62,8 @@ window_scan   =    $params.window_scan
 nb_rb         =    $params.nb_rb
 nb_lstm       =    $params.nb_lstm
 blstm         =    $params.blstm
-pred_slices   =    $params.pred_slices
 
-                       Fixed Parameters
+                      Constant Parameters
 ==================================================================
 
 validation    =    $params.validation
@@ -81,13 +74,18 @@ epochs        =    $params.epochs
 batch_size    =    $params.batch_size
 eval_max      =    $params.eval_max
 pred_batch    =    $params.pred_batch
+pred_slices   =    $params.pred_slices
+
+                        Data Selection
+==================================================================
+
+to be continued...
 
 ==================================================================
 ==================================================================
 """
 
 // Data wildcard directories in prefix directory for Channel.fromPath
-
 def get_data_dirs(String dir) {
     if ( dir.endsWith("/") ) { return dir+"*" } else { return dir+"/*" }
 }
@@ -101,11 +99,18 @@ def get_fast5_dirs(Path path) {
 
 // Channels for feeding directory paths from Achilles selection:
 
-data_paths_channel   = Channel.fromPath(get_data_dirs(params.dir), type: 'dir')
-                              .map { get_fast5_dirs(it)  }
+training_input_channel    = Channel.fromPath(get_data_dirs(params.dir), type: 'dir')
+                                 .map { [it.getName(), get_fast5_dirs(it)] }
 
-data_prefix_channel = Channel.fromPath(get_data_dirs(params.dir), type: 'dir')
-                             .map { it.getName() }
+// Evaluation data directories:
+
+evaluation_input_channel  = Channel.fromPath(get_data_dirs(params.eval_dir), type: 'dir')
+                                    .map { [it.getName(), get_fast5_dirs(it)] }
+
+// Prediction data directories:
+
+prediction_input_channel  = Channel.fromPath(get_data_dirs(params.pred_dir), type: 'dir')
+                                   .map { [it.getName(), get_fast5_dirs(it)] }
 
 // Channels for feeding hyperparameters:
 
@@ -118,15 +123,16 @@ resblock_channel    = Channel.from(params.nb_rb)
 lstm_channel        = Channel.from(params.nb_lstm)
 blstm_channel       = Channel.from(params.blstm)
 
+slice_channel       = Channel.from(params.pred_slices)
+
 process DataGenerator {
    
-    tag { "Data: $prefix -- Dataset: $max (windows/class) $size (size) $step (step) $scan (scan)"  }
-    publishDir { "$params.outdir/$prefix/data" }
-
+    tag "Data: $prefix -- Processing: $max (windows/class) $size (size) $step (step) $scan (scan)"
+    publishDir "$params.outdir/$prefix/data/training", mode: "copy", pattern: "*.h5"
+    
     input:
     // Data directory path and string:
-    val path_str from data_paths_channel
-    val prefix from data_prefix_channel
+    set prefix, str_paths from training_input_channel
 
     // Dataset processing combination:
     each max from window_max_channel
@@ -135,161 +141,132 @@ process DataGenerator {
     each scan from window_scan_channel
 
     output:
-    set val("$prefix"), val("$size"), val("${prefix}__${max}__${size}__${step}__${scan}"), file("${prefix}__${max}__${size}__${step}__${scan}.training.h5") into training_data
-    set val("${prefix}__${max}__${size}__${step}__${scan}"), file("${prefix}__${max}__${size}__${step}__${scan}.h5") into evaluation_generator, prediction_generator
+    set val("$prefix"), val("$size"), val("$step"), val("$scan"), val("${prefix}__${max}__${size}__${step}__${scan}") into training_parameter_channel
+    set file("${prefix}__${max}__${size}__${step}__${scan}.training.h5"), file("${prefix}__${max}__${size}__${step}__${scan}.h5") into training_data_channel
     
     // Note that each make samples randomly from the class directories, therefore the same files may be present
     // across training data sets (but not evaluation data, see below)
 
     """
-    python ~/code/achilles/achilles.py make --dirs $path_str --out ${prefix}__${max}__${size}__${step}__${scan}.h5 \
+    python ~/code/achilles/achilles.py make --dirs $str_paths --out ${prefix}__${max}__${size}__${step}__${scan}.h5 \
     --validation $params.validation --window_size $size --window_max $max --window_step $step --window_scan $scan \
     --raw --chunk_size $params.chunk_size
     """
 
 }
 
+process ModelTraining {
 
+    tag "Dataset: $data_id -- Architecture: $nb_resblock x RB, $nb_lstm x LSTM, BLSTM = $blstm"
 
-process Training {
-
-    tag { "Dataset: $data_id -- Architecture: $nb_resblock x RB, $nb_lstm x LSTM, BLSTM = $blstm" }
-    publishDir { "$params.outdir/$prefix/training" }
-
+    publishDir "$params.outdir/$prefix/training", mode: "copy", pattern: "*.checkpoint.*"
+    publishDir "$params.outdir/$prefix/training", mode: "copy", pattern: "*.history"
+    
     // All combinations of datasets (with prefix and window size)
     // and neural network architectures for training:
+
     input:
-    set prefix, window_size, data_id, file(training) from training_data
+    set prefix, size, step, scan, data_id from training_parameter_channel
+    set file(train_data), file(data) from training_data_channel
 
     each nb_resblock from resblock_channel
     each nb_lstm from lstm_channel
     each blstm from blstm_channel
 
     output:
-    set val("${data_id}__${nb_resblock}__${nb_lstm}__${blstm}"), file("${data_id}__${nb_resblock}__${nb_lstm}__${blstm}/${data_id}__${nb_resblock}__${nb_lstm}__${blstm}.checkpoint.val_loss.h5") into evaluation_model, prediction_model
-    set val("${data_id}__${nb_resblock}__${nb_lstm}__${blstm}"), file("${data_id}__${nb_resblock}__${nb_lstm}__${blstm}/${data_id}__${nb_resblock}__${nb_lstm}__${blstm}.model.history") into training_summary
+    set val("${data_id}__${nb_resblock}__${nb_lstm}__${blstm}"), file("${data_id}__${nb_resblock}__${nb_lstm}__${blstm}.checkpoint.val_loss.h5") into evaluation_model_channel
+    set val(prefix), val(size), val(step), val(scan), val(data_id), file(data) into evaluation_data_channel
+    
+    set val("${data_id}__${nb_resblock}__${nb_lstm}__${blstm}"), file("${data_id}__${nb_resblock}__${nb_lstm}__${blstm}.model.history") into training_summary
+    
+    set val("${data_id}__${nb_resblock}__${nb_lstm}__${blstm}"), file("${data_id}__${nb_resblock}__${nb_lstm}__${blstm}.checkpoint.val_loss.h5") into prediction_model_channel
+    set val(prefix), val(size), val(step), val(scan), val(data_id), file(data) into prediction_data_channel
 
     """
-    python ~/code/achilles/achilles.py train --file $training --run_id ${data_id}__${nb_resblock}__${nb_lstm}__${blstm} \
-    --threads $params.threads --batch_size $params.batch_size \
-    --epochs $params.epochs --dropout $params.dropout --rc_dropout $params.dropout --nb_residual_blocks $nb_resblock \
-    --nb_rnn $nb_lstm --activation softmax --window_size $window_size --bi $blstm \
-    --output_file ${data_id}__${nb_resblock}__${nb_lstm}__${blstm}.h5
+    python ~/code/achilles/achilles.py train --file $train_data --run_id ${data_id}__${nb_resblock}__${nb_lstm}__${blstm} \
+    --threads $params.threads --batch_size $params.batch_size --epochs $params.epochs --dropout $params.dropout \
+    --rc_dropout $params.dropout --nb_residual_blocks $nb_resblock --nb_rnn $nb_lstm --activation softmax --window_size $size \
+    --bi $blstm
     """
 
 }
 
-
+process EvaluationGenerator {
     
-// // Training
+    /* Create independent evaluation datasets across training datasets for each evaluation directory, i.e.
+       each evaluation directory is used to generate evaluation datasets for all models while excluding data 
+       present in the training dataset used for training the model.
 
-// process TrainingGenerator {
+       If there a 8 parameter combinations and datasets of training data, and 2 evaluation directories, then 
+       each evaluation directory generates 8 evaluation datasets with the same window settings as the channeled
+       training dataset / model for a total of 16 evaluation datasets. 
+    */
 
-//     tag "Prefix: $prefix -- Windows: $max $size $step $scan"
-//     publishDir "${params.outdir}/data/training", mode: 'copy'
+    tag "Evaluation: ${prefix_paths_tuple[0]} -- Model: $model_id -- Processing: $params.eval_max (windows/class)"
+    publishDir "$params.outdir/$prefix/data/evaluation", mode: "copy", pattern: "*.eval.h5"
 
-//     input:
-//     val prefix from params.prefix
-    // val max from window_max_channel
-    // val size from window_size_channel
-    // val step from window_step_channel
-    // val scan from window_scan_channel
-//     output:
-//     set "${prefix}_${max}_${size}_${step}_${scan}", file([prefix, max, size, step, scan].join("_") + "_training.h5") into training_data
-//     set "${prefix}_${max}_${size}_${step}_${scan}", file([prefix, max, size, step, scan].join("_") + ".h5") into evaluation_generator, prediction_generator  // The non-split DataSet has path: data/files
+    // Unable to unpack prefix and paths tuple because set not compatible with each?
 
-//     """
-//     python ~/code/achilles/achilles.py make --dirs $dirs --out ${prefix}_${max}_${size}_${step}_${scan}.h5 \
-//     --validation $params.validation --window_length $size --max_windows_per_class $max --window_step $step \
-//     --max_windows_per_read $scan --raw --chunk_size $params.chunk_size
-//     """
-// }
+    input:
+    each prefix_paths_tuple from evaluation_input_channel
+    set model_id, file(model_file) from evaluation_model_channel // This is passed on to ModelEvaluation 
+    set prefix, size, step, scan, data_id, file(data) from evaluation_data_channel
 
-    // process Training {
+    output:
+    set val(prefix), val("${prefix_paths_tuple[0]}__${model_id}"), file(model_file), file("${prefix_paths_tuple[0]}__${model_id}.eval.h5") into evaluation_channel
 
-    //     tag { id }
-    //     publishDir "${params.outdir}/training", mode: 'copy'
+    """
+    python ~/code/achilles/achilles.py make --dirs ${prefix_paths_tuple[1]} --out ${prefix_paths_tuple[0]}__${model_id}.eval.h5 \
+    --validation $params.validation --window_size $size --window_max $params.eval_max --window_step $step --window_scan $scan \
+    --raw --chunk_size $params.chunk_size
+    """
+}
 
-    //     input:
-    //     set id, file(training) from training_data
+process ModelEvaluation {
 
-    //     output:
-    //     set id, file("${id}/${id}.checkpoint.val_loss.h5") into evaluation_model, prediction_model
-    //     set id, file("${id}/${id}.model.history") into training_summary
+    tag "Evaluation ID: $eval_id"
+    publishDir "$params.outdir/$prefix/evaluation", mode: "copy", pattern: "*.csv"
 
-    //     """
-    //     python ~/code/achilles/achilles.py train --file $training --run_id $id --threads $params.threads --batch_size $params.batch_size \
-    //     --epochs $params.epochs --dropout $params.dropout --rc_dropout $params.dropout --nb_residual_blocks $params.nb_rb \
-    //     --nb_rnn $params.nb_lstm --activation softmax --signal_length $params.window_size --output_file ${id}.h5 --no_bi
-    //     """
-    // }
+    input:
+    set prefix, eval_id, file(eval_model), file(eval_data) from evaluation_channel
 
-    // // Evaluation of large independently sampled data set
+    output:
+    set eval_id, file("${eval_id}.csv") into evaluation_summary
 
-    // process EvaluationGenerator {
+    """
+    python ~/code/achilles/achilles.py evaluate --data_files $eval_data --model_files $eval_model \
+    --batch_size $params.batch_size --threads $params.threads --data_path data --output_file ${eval_id}.csv
+    """
 
-    //     tag { id }
-    //     publishDir "${params.outdir}/data/evaluation", mode: 'copy'
+}
 
-    //     input:
-    //     set id, file(train_data) from evaluation_generator
+process ModelPrediction {
 
-    //     output:
-    //     set id, file("${id}_eval.h5") into evaluation_data
+    tag { "Prediction: ${prefix_paths_tuple[0]} -- Slices: $slice -- Model: $model_id -- Exclude: $data_id" }
+    
+    publishDir "$params.outdir/$prefix/prediction", mode: 'copy', pattern: '*.pdf'
+    publishDir "$params.outdir/$prefix/prediction", mode: 'copy', pattern: '*.csv'  
+    publishDir "$params.outdir/$prefix/prediction/failed", mode: 'copy', pattern: '*.txt'
 
-    //     """
-    //     python ~/code/achilles/achilles.py make --dirs $eval_dirs --out ${id}_eval.h5 --validation 0 \
-    //     --window_length $params.window_size --max_windows_per_class $params.eval_max  --window_step $params.window_step \
-    //     --max_windows_per_read $params.window_scan --exclude $train_data --raw --chunk_size $params.chunk_size
-    //     """
-    // }
+    input:
+    each prefix_paths_tuple from prediction_input_channel
+    each slice from slice_channel // Prediction for each slice size
+    
+    set model_id, file(model_file) from prediction_model_channel
+    set prefix, size, step, scan, data_id, file(data) from prediction_data_channel
 
-    // process Evaluation {
+    output:
+    file("${prefix_paths_tuple[0]}__${model_id}__slice${slice}.pdf")
+    file("${prefix_paths_tuple[0]}__${model_id}__slice${slice}.csv")
+    file("${prefix_paths_tuple[0]}__${model_id}__slice${slice}.fail.txt") // Files which failed prediction (unable to read)
 
-    //     tag { id }
-    //     publishDir "${params.outdir}/evaluation", mode: 'copy'
+    // Window step is same as window size for non-overlapping sequence of prediction windows.
+    // Dirs takes all reads from the given directories (no maximum).
 
-    //     input:
-    //     set id, file(eval_data) from evaluation_data
-    //     set id, file(eval_model) from evaluation_model
+    """
+    python ~/code/achilles/achilles.py --agg pevaluate --dirs ${prefix_paths_tuple[1]} --model_file $model_file \
+    --windows $slice --window_size $size --window_step $size --prefix ${prefix_paths_tuple[0]}__${model_id}__slice${slice} \
+    --batches $params.pred_batch --exclude $data --labels $labels --random --raw
+    """
 
-    //     output:
-    //     set id, file("eval.csv") into evaluation_summary
-
-    //     """
-    //     python ~/code/achilles/achilles.py evaluate --data_files $eval_data --model_files $eval_model \
-    //     --batch_size $params.batch_size --threads $params.threads --data_path data --output_file eval.csv
-    //     """
-
-    // }
-
-    // // Prediction evaluation by sampling consecutive slices from Fast5 files 
-    // // for normalized product of output probabilities and class prediction
-    // // over different slice sizes, produces confusion matrix
-
-    // slices = Channel.from(params.pred_slices)
-
-    // process PredictionEvaluation {
-
-    //     tag { [id, slice].join(":") }
-    //     publishDir "${params.outdir}/prediction", mode: 'copy'
-
-    //     input:
-    //     val slice from slices // Prediction for each slice size
-
-    //     set id, file(train_data) from prediction_generator  // For excluding files used in training
-    //     set id, file(pred_model) from prediction_model
-        
-    //     output:
-    //     file("${slice}.pdf")
-    //     file("${slice}.csv")
-
-    //     // Window step is same as window size for non-overlapping sequence of prediction windows.
-    //     // Dirs takes all reads from the given directories (no maximum).
-
-    //     """
-    //     python ~/code/achilles/achilles.py --agg pevaluate --dirs $pred_dirs --model_file $pred_model \
-    //     --windows $slice --window_size $params.window_size --window_step $params.window_size \
-    //     --prefix $slice --batches $params.pred_batch --exclude $train_data --labels $labels --random --raw
-    //     """
-    // }
+}
