@@ -11,10 +11,19 @@ This is a minimal Keras implementation / adaptation of the open-source [deep neu
 
 Training regimes for architecture and hyperparameter exploration and models for prediction evalutaion of pathogen DNA  in host (human) background can be found in the following sections:
 
-* Zika virus detection from [ZIBRA](http://www.zibraproject.org/data/) project in Brazil
-* Biothreat agent and melioidosis bacterium *Burkholderia pseudomallei* 
+Pathogens:
+
+* Zika virus detection from [ZIBRA](http://www.zibraproject.org/data/) project in Brazil - 2D R9 amplicons
+* Biothreat agent and melioidosis bacterium *Burkholderia pseudomallei* + closely related *B. cepacia*, *B. mallei* - 1D Rapid R9.4
+* XDR *Mycobacterium tuberculosis* from Papua New Guines - 1D Rapid R9.4
+* *Klebsiella penumoniae* from Australia - 1D Rapid R9.4
+* CA-MRSA from Pakistan (Bengal Bay clone) and Far North Queensland (Cape York Peninsula) - 1D Rapid R9.4
+
+Hosts:
+
+* [Human nanopore reference genome](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md) CEPH1463 (NA12878/GM12878, Ceph/Utah pedigree) - 1d Rapid R9 + R9.4
 
 ### Documentation
 ---
 
-[asclepius.readthedocs.io](https://asclepius.readthedocs.io)
+[achilles.readthedocs.io](https://achilles.readthedocs.io)
