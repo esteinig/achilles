@@ -1,17 +1,26 @@
+import os
+import h5py
+import random
+import pandas
 import datetime
 import itertools
-import random
+import numpy as np
+
 from collections import deque
 from itertools import tee, islice
+from pandas.errors import EmptyDataError
 
-import numpy as np
-import pandas
+from ont_fast5_api.fast5_file import Fast5File
+
+import matplotlib
+
+matplotlib.use('agg')
+
 import seaborn
+
 from matplotlib import pyplot as plt
 from matplotlib import style
 from skimage.util import view_as_windows
-
-from ont_fast5_api.ont_fast5_api.fast5_file import Fast5File
 
 style.use("ggplot")
 
@@ -352,8 +361,173 @@ def _scale_data(data):
         raise AttributeError("'data' should have 3 or 1 dimensions.")
     return data
 
+
 def norm(prediction):
-
     """ Probability normalization to 1 for predictions along multiple windows of signal """
-
     return [float(i)/sum(prediction) for i in prediction]
+
+
+def find(key, dictionary):
+    """ https://gist.github.com/douglasmiranda/5127251 """
+    for k, v in dictionary.items():
+        if k == key:
+            yield v
+        elif isinstance(v, dict):
+            for result in find(key, v):
+                yield result
+
+
+def check_include_exclude(include, exclude, recursive, verbose=False):
+
+    if include is None:
+        include = []
+    if exclude is None:
+        exclude = []
+
+    # If string is empty ot
+    if isinstance(include, str) and include != "":
+        include = [incl for incl in include.split(",")]
+    if isinstance(include, str) and include == "":
+        include = []
+
+    if isinstance(exclude, str) and exclude != "":
+        exclude = [excl for excl in exclude.split(",")]
+    if isinstance(exclude, str) and exclude == "":
+        exclude = []
+
+    include_datasets = [item for item in include if item.endswith(".h5")]
+    exclude_datasets = [item for item in exclude if item.endswith(".h5")]
+
+    include_strings = [item for item in include if not item.endswith(".h5")]
+    exclude_strings = [item for item in exclude if not item.endswith(".h5")]
+
+    include_dirs = [item for item in include if os.path.isdir(item)]
+    exclude_dirs = [item for item in exclude if os.path.isdir(item)]
+
+    include_ds = get_dataset_file_names(include_datasets)
+    exclude_ds = get_dataset_file_names(exclude_datasets)
+
+    # Added if given is directory, then get all files from that dir
+    # recursively and do not use, i.e. to get only unique resamples
+    # from dir into other collection
+    include_df = get_dir_file_names(include_dirs, recursive)
+    exclude_df = get_dir_file_names(exclude_dirs, recursive)
+
+    if verbose:
+        print("Excluding {} files from {} data sets + including {} files from {} data sets."
+              .format(len(exclude_ds), len(exclude_datasets), len(include_ds), len(include_datasets)))
+        print("Excluding {} strings in file names + including {} strings in file names from user specified inputs"
+              .format(len(exclude_strings), len(include_strings)))
+        print("Excluding {} files from dirs + including {} files from dirs."
+              .format(len(exclude_strings), len(include_strings)))
+
+    # [Include files, include strings], [Exclude files, exclude strings], BASENAMES
+    return [include_ds + include_df, include_strings], [exclude_ds + exclude_df, exclude_strings]
+
+
+def get_dir_file_names(dirs, recursive):
+
+    files = []
+    for d in dirs:
+        fast5 = get_recursive_files(d, recursive=recursive)
+        files += [os.path.basename(path) for path in fast5]
+    return files
+
+
+def get_dataset_file_names(datasets):
+
+    """ If we sample from the same (random) subset of reads as the training data, this function
+    makes sure that we are not using the same files used in training for evaluation / prediction. """
+
+    file_names = []
+    for data_file in datasets:
+        with h5py.File(data_file, "r") as data:
+            file_names += [os.path.basename(file) for file in data["data/files"]]
+
+    return file_names
+
+def get_dataset_labels(dataset):
+
+    """ If we sample from the same (random) subset of reads as the training data, this function
+    makes sure that we are not using the same files used in training for evaluation / prediction. """
+
+    with h5py.File(dataset, "r") as data:
+        labels = data["data/labels"]
+        return np.array(labels)
+
+
+def get_recursive_files(directory, include=None, exclude=None, recursive=True, extension=".fast5"):
+
+    # TODO: Index file in Dataset - make index a parameter to disable for testing!
+
+    def _init_index():
+        if "achilles.index" in os.listdir(directory):
+            try:
+                df = pandas.read_csv(os.path.join(directory, "achilles.index"), header=None)
+            except EmptyDataError:
+                return None
+            else:
+                return df.ix[:, 0].values.tolist()
+        else:
+            return None
+
+    if recursive:
+        # Check if there is index:
+        file_paths = _init_index()
+        if file_paths is None:
+            # Get file paths recursively:
+            file_paths = []
+            for root, directories, fnames in os.walk(directory):
+                for fname in fnames:
+                    if fname.endswith(extension):
+                        file_paths.append(os.path.join(root, fname))
+
+            pandas.DataFrame(file_paths).to_csv(os.path.join(directory, "achilles.index"), index=False, header=False)
+    else:
+        file_paths = [os.path.join(directory, path) for path in os.listdir(directory) if path.endswith(extension)]
+
+    # TODO: Try set difference on file names (exact matches) and fast loops for within string matches.
+    file_paths = retain_after_include(file_paths, include)
+    file_paths = retain_after_exclude(file_paths, exclude)
+
+    return file_paths
+
+
+def retain_after_exclude(file_paths, exclude):
+
+    if exclude is None or (not exclude[0] and not exclude[1]):
+        return file_paths
+
+    exclude_files, exclude_strings = exclude[0], exclude[1]
+
+    if exclude_files:
+        file_retains = [path for path in file_paths if not os.path.basename(path) in exclude_files]
+    else:
+        file_retains = []
+
+    if exclude_strings:
+        string_retains = [path for path in file_paths if not any([string in path for string in exclude_strings])]
+    else:
+        string_retains = []
+
+    return list(set(string_retains + file_retains))
+
+
+def retain_after_include(file_paths, include):
+
+    if include is None or (not include[0] and not include[1]):
+        return file_paths
+
+    include_files, include_strings = include[0], include[1]
+
+    if include_files:
+        file_retains = [path for path in file_paths if os.path.basename(path) in include_files]
+    else:
+        file_retains = []
+
+    if include_strings:
+        string_retains = [path for path in file_paths if any([string in path for string in include_strings])]
+    else:
+        string_retains = []
+
+    return list(set(string_retains + file_retains))

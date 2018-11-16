@@ -1,43 +1,56 @@
 import os
 import h5py
+import json
 import random
 import logging
 import numpy as np
+
+from tqdm import tqdm
+from scipy.stats import sem
+from sklearn.model_selection import train_test_split
+from textwrap import dedent
+from keras.utils import Sequence
+from keras.utils.np_utils import to_categorical
+from colorama import Fore, Style
+import matplotlib
+
+matplotlib.use('agg')
 
 import matplotlib.pyplot as plt
 import matplotlib.style as style
 import seaborn as sns
 
-from tqdm import tqdm
-from scipy.stats import sem
-from sklearn.model_selection import train_test_split
-from achilles.utils import read_signal, chunk
-from achilles.select import get_recursive_files, check_include_exclude
-from textwrap import dedent
-from keras.utils import Sequence
-from keras.utils.np_utils import to_categorical
+from poremongo.models import Fast5
 
 style.use("ggplot")
 
 
-class Dataset:
+class AchillesDataset:
 
-    def __init__(self, data_file="data.h5"):
+    def __init__(self, dataset=None, poremongo=None):
 
-        self.data_file = data_file
+        self.dataset = dataset
 
-    def get_signal_generator(self, data_type="training", batch_size=15, shuffle=True):
+        if dataset:
+            self.dataset_handle = self.dataset.open()
+
+        self.poremongo = poremongo
+
+    def get_signal_generator(self, data_file, data_type="training", batch_size=15, shuffle=True, no_labels=False):
 
         """Access function to generate signal window training and validation data generators
         from directories of Fast5 files, generate data in batches
 
+        :param data_file:
         :param data_type:
         :param batch_size:
         :param shuffle:
+        :param no_labels: for prediction generator in Keras
         :return:
         """
 
-        return DataGenerator(self.data_file, data_type=data_type, batch_size=batch_size, shuffle=shuffle)
+        return DataGenerator(data_file, data_type=data_type, batch_size=batch_size,
+                             shuffle=shuffle, no_labels=no_labels)
 
     def clean_data(self):
 
@@ -58,57 +71,140 @@ class Dataset:
 
         pass
 
-    def write_data(self, *dirs, classes=2, max_windows_per_class=20000, max_windows_per_read=100,
-                   window_size=400, window_step=400, window_random=True, window_recover=True, normalize=False,
-                   scale=False, recursive=True, exclude=None, include=None):
+    def write_from_json(self, config: str or dict):
 
-        """ Primary function to extract windows (slices) at random indices in the arrays that hold
-        nanopore signal values in the (shuffled) sequencing files (.fast5) located in directories that contain
-        the files for each class (label). Signal arrays are sliced by consecutive windows of window_size and
-        window_step and a maximum of max_windows_per_read of random signal windows can be read from a single file.
-        (until max_windows_per_class are reached). If the signal array is smaller than the maximum number of possible
-        slices, the whole array is extracted so as not to bias for selecting longer reads.
+        """
+        Sample multiple Datasets from a JSON file, where keys are the path of the output file,
+        and values are dictionaries of parameters for the write function of Dataset.
 
-        This is followed by reshaping each slice into an nd-array of dimensions  (nb_slices, 1, window_size, 1)
-        for input to the residual blocks in the model. The sliced signal array is then written chunk-wise (append)
-        to the path 'data/data' (nb_slices, 1, window_size, 1) and its corresponding labels one-hot encoded
-        to the path to 'data/labels' (nb_slices, nb_classes).
+        :param config:    JSON file with filename (key), write parameters dict with required parameter "tags" (values)
 
-        For summary purposes, the file paths for all files from which signal slices were extracted are stored
-        in 'data/files' and integer encoded labels are kept in 'data/decoded' of the HDF5 (self.data_file)
-
-        :param dirs:
-        :param classes:
-        :param max_windows_per_class:
-        :param max_windows_per_read:
-        :param window_size:
-        :param window_step:
-        :param windows_from_start:
-        :param normalize:
         :return:
         """
 
-        print("Generating data set for input to Achilles...\n")
+        if isinstance(config, str):
+            with open(config, "r") as infile:
+                config_dict = json.load(infile)
+        else:
+            config_dict = config
 
-        # For some reason, this can't be put into the loop, probably because it
-        # overwrites include / exclude returns and presents empty list: TODO
+        if self.check_json_dict(config_dict):
+            for file, params in config_dict.items():
+                self.write(**params)
 
-        include, exclude = check_include_exclude(include, exclude, recursive)
+    @staticmethod
+    def check_json_dict(config):
 
-        with h5py.File(self.data_file, "w") as f:
+        allowed = ("data_file", "max_windows", "max_windows_per_read", "window_size", "window_step",
+                   "window_random", "window_recover", "sample_files_per_tag", "sample_proportions",
+                   "sample_unique", "scale", "validation", "chunk_size", "tags")
+
+        for fname, params in config.items():
+            if "tags" not in params:
+                raise ValueError(f"Dataset entry must contains tags for sampling ({fname}).")
+            for param, value in params.items():
+                if param not in allowed:
+                    raise ValueError(f"Parameter '{param}' is not an allowed parameter ({fname}).")
+
+        return True
+
+    @staticmethod
+    def get_files_to_exclude(exclude_datasets):
+
+        if exclude_datasets is not None:
+            exclude = []
+            for dataset in exclude_datasets:
+                with h5py.File(dataset, "r") as infile:
+                    try:
+                        exclude += infile["data/files"]
+                    except KeyError:
+                        raise ValueError(f"Could not detect path 'data/files' in file {dataset}")
+            return exclude
+        else:
+            return list()
+
+    @staticmethod
+    def parse(data_file):
+
+        with h5py.File(data_file, "r") as infile:
+            return infile["data/files"], infile["data/labels"]
+
+    def write(self, tags, data_file="data.h5", max_windows=20000, max_windows_per_read=50,
+              window_size=400, window_step=0.1, window_random=True, window_recover=True,
+              sample_files_per_tag=25000, sample_proportions=None, sample_unique=False,
+              exclude_datasets=None, validation=0.3, scale=False, chunk_size=10000, max_reads=None,
+              ssh=False, global_tags=None):
+
+        """
+
+        :param tags:
+        :param data_file:
+        :param sample_files_per_tag:
+        :param sample_proportions:
+        :param sample_unique:
+        :param scale:
+        :param max_windows:
+        :param max_windows_per_read:
+        :param window_size:
+        :param window_step:
+        :param window_random:
+        :param window_recover:
+        :param validation:
+        :param chunk_size:
+        :param ssh: explicit
+        :return:
+
+        """
+
+        if max_reads:
+            max_windows = max_reads*max_windows_per_read
+
+        if isinstance(window_step, float):
+            window_step = int(window_size*window_step)
+
+        if isinstance(exclude_datasets, str):
+            exclude_datasets = [d for d in exclude_datasets.split(",")]
+
+        classes = len(tags)
+
+        # Get list of Fast5 file names to exclude from sampling in PoreMongo
+        exclude = self.get_files_to_exclude(exclude_datasets)
+
+        with h5py.File(data_file, "w") as f:
 
             # Create data paths for storing all extracted data:
             data, labels, decoded, extracted = \
                 self.create_data_paths(file=f, window_size=window_size, classes=classes)
 
-            # Each input directory corresponds to label (0, 1)
-            for label, path in enumerate(dirs):
+            self.print_write_summary(sample_files_per_tag=sample_files_per_tag,
+                                     sample_proportions=sample_proportions,
+                                     sample_unique=sample_unique,
+                                     max_windows_per_read=max_windows_per_read,
+                                     window_size=window_size,
+                                     max_windows=max_windows,
+                                     window_step=window_step,
+                                     window_random=window_random)
 
-                # All Fast5 files in directory:
-                files = get_recursive_files(path, recursive=recursive, exclude=exclude,
-                                            include=include, extension=".fast5")
+            # Each input directory corresponds to label (0, 1, 2, ...)
+            for label, tag in enumerate(tags):
 
-                # Randomize:
+                if exclude_datasets is not None:
+                    eds = len(exclude_datasets)
+                else:
+                    eds = 0
+
+                print(dedent(f"""
+                {Fore.YELLOW}Process label: {Fore.CYAN}{label}{Fore.YELLOW} 
+                {Fore.YELLOW}Global tags: {Fore.CYAN}{global_tags}{Fore.YELLOW}
+                {Fore.YELLOW}Sample tags: {Fore.CYAN}{tag}{Fore.YELLOW}
+                {Fore.YELLOW}Exclude {Fore.CYAN}{len(exclude)}{Fore.YELLOW} Fast5 from {Fore.CYAN}{eds}{Fore.YELLOW} datasets{Style.RESET_ALL}
+                """))
+
+                files = self.poremongo.sample(Fast5.objects, tags=tag, limit=sample_files_per_tag,
+                                              proportion=sample_proportions, unique=sample_unique,
+                                              exclude_name=exclude, include_tags=global_tags, return_documents=True)
+
+                # Randomize, not necessary but precaution:
                 random.shuffle(files)
 
                 # Main loop for reading through Fast5 files and extracting windows (slices) of signal
@@ -121,27 +217,45 @@ class Dataset:
                 # The progress bar is just a feature for reference, this loop will be stopped as soon
                 # as the maximum number of signal arrays per class is reached (progress bar is therefore not
                 # accurate but just looks good and gives the user an overestimate of when extraction is finished.
-                with tqdm(total=max_windows_per_class) as pbar:
-                    pbar.set_description("Extracting label {}".format(label))
-                    for fast5 in files:
+                with tqdm(total=max_windows) as pbar:
+                    pbar.set_description(f"Extracting tensors for label {label}")
+                    for file in files:
 
-                        # Slice whole signal array into windows. May be more efficient to index first:
-                        signal_windows, _ = read_signal(fast5, normalize=normalize, window_size=window_size,
-                                                        window_step=window_step, window_max=max_windows_per_read,
-                                                        window_random=window_random, window_recover=window_recover,
-                                                        scale=scale)
+                        # If the Poremongo instance is connected to server via SSH.
+                        # This has some bandwidth cost associated with it, but only on the
+                        # sampled Fast5 files that are actually used (usually much less than
+                        # sample_files_per_tag) - total for a 100000 max_windows, 50 per read set, this
+                        # should be around 2000 files in total, i.e. somewhere on average 1 - 2 GB in traffic
+                        # over SSH connection to create Dataset from remote. This also requires all files sampled
+                        # to be located on same server.
+
+                        # TODO: Multiple SSH connections in config; add tag for server to sampling?
+
+                        if self.poremongo.scp is not None and ssh:
+                            file.get(self.poremongo.scp)
+
+                        # TODO: Template strand only, add second strand:
+                        signal_windows = file.get_reads(window_size=window_size, window_step=window_step,
+                                                        scale=scale, template=True, return_all=False)
+
+                        # Remove the local copy of the file from SSH
+                        if self.poremongo.scp is not None and ssh:
+                            file.remove()
+
+                        sampled_windows = self.sample_from_array(signal_windows, sample_size=max_windows_per_read,
+                                                                 random_sample=window_random, recover=window_recover)
 
                         # Proceed if the maximum number of windows per class has not been reached,
                         # and if there are windows extracted from the Fast5:
-                        if total < max_windows_per_class and signal_windows.size > 0:
+                        if total < max_windows and sampled_windows.size > 0:
                             # If the number of extracted signal windows exceeds the difference between
-                            # current total and max_windows_per_class is reached, cut off the signal window
+                            # current total and max_windows is reached, cut off the signal window
                             # array and write it to file, to complete the loop for generating data for this label:
-                            if signal_windows.size > max_windows_per_class-total:
-                                signal_windows = signal_windows[:max_windows_per_class-total]
+                            if sampled_windows.size > max_windows - total:
+                                sampled_windows = sampled_windows[:max_windows - total]
 
                             # 4D input tensor (nb_samples, 1, signal_length, 1) for input to Residual Blocks
-                            input_tensor = self.transform_signal_to_tensor(signal_windows)
+                            input_tensor = self.sample_to_input(sampled_windows)
 
                             # Write this tensor to file instead of storing in memory
                             # otherwise might raise OOM:
@@ -152,17 +266,15 @@ class Dataset:
                             nb_windows = input_tensor.shape[0]
                             total += nb_windows
                             pbar.update(nb_windows)
-                            n_files.append(fast5)
+                            n_files.append(file.name)
 
                             # If the maximum number of signals for this class (label) has
                             # been reached, break the Fast5-file loop and proceed to writing
-                            # label stored in memory (al at once)
-                            if total == max_windows_per_class:
+                            # label stored in memory (all at once)
+                            if total >= max_windows-1:
                                 break
 
-                    if total < max_windows_per_class:
-                        logging.debug("Extracted {} windows (< {}) for label {}"
-                                      .format(total, max_windows_per_class, label))
+                print(f"Extracted {total} / {max_windows} windows for label {label}")
 
                 # Writing all training labels to HDF5, as categorical (one-hot) encoding:
                 encoded_labels = to_categorical(np.array([label for _ in range(total)]), classes)
@@ -174,17 +286,25 @@ class Dataset:
 
                 # Fast5 file paths from which signal arrays were extracted for dataset summary:
                 file_labels = np.array([fast5_file.encode("utf8") for fast5_file in n_files])
+
                 self.write_chunk(extracted, file_labels)
 
-        self.print_data_summary(data_file=self.data_file)
+        self.print_data_summary(data_file=data_file)
 
-    def training_validation_split(self, validation: float=0.3, window_size: int=400, classes: int=2,
-                                  chunk_size: int=1000):
+        #TODO Randomize all again?
+
+        if validation > 0:
+            # Split dataset into training / validation data:
+            self._training_validation_split(data_file=data_file, validation=validation,
+                                            window_size=window_size, classes=classes,
+                                            chunk_size=chunk_size)
+
+    def _training_validation_split(self, data_file, validation: float=0.3, window_size: int=400, classes: int=2,
+                                   chunk_size: int=10000):
 
         """ This function takes a complete data set generated with write_data,
         randomizes the indices and splits it into training and validation under the paths
-        training/data, training/label, validation/data, validation/label
-        Work with attributes in HDF5.
+        training/data, training/label, validation/data, validation/label.
 
         :param validation               proportion of data to be split into validation set
         :param window_size              window (slice) size for writing data to training file in chunks
@@ -195,11 +315,11 @@ class Dataset:
         # Generate new file name for splitting data randomly into training and
         # validation data for input to Achilles (data_file + _training.h5)
 
-        fname, fext = os.path.splitext(self.data_file)
+        fname, fext = os.path.splitext(data_file)
         outfile = fname + ".training" + fext
 
         print("Splitting data into training and validation sets...\n")
-        with h5py.File(self.data_file, "r") as data_file:
+        with h5py.File(data_file, "r") as data_file:
 
             # Get all indices for reading / writing in chunks:
             indices = np.arange(data_file["data/data"].shape[0])
@@ -226,27 +346,28 @@ class Dataset:
 
                 with tqdm(total=len(training_indices)) as pbar:
                     pbar.set_description("Writing training   data")
-                    for i_train_chunk in chunk(training_indices, chunk_size):
+                    for i_train_chunk in self.chunk(training_indices, chunk_size):
                         self.write_chunk(train_x, np.take(data_file["data/data"], i_train_chunk, axis=0))
                         self.write_chunk(train_y, np.take(data_file["data/labels"], i_train_chunk, axis=0))
                         pbar.update(len(i_train_chunk))
 
                 with tqdm(total=len(validation_indices)) as pbar:
                     pbar.set_description("Writing validation data")
-                    for i_val_chunk in chunk(validation_indices, chunk_size):
+                    for i_val_chunk in self.chunk(validation_indices, chunk_size):
                         self.write_chunk(val_x, np.take(data_file["data/data"], i_val_chunk, axis=0))
                         self.write_chunk(val_y, np.take(data_file["data/labels"], i_val_chunk, axis=0))
                         pbar.update(len(i_val_chunk))
 
                 self.print_data_summary(data_file=outfile)
 
-    def plot_signal_distribution(self, random_windows=True, nb_windows=10000, data_path="data", limit=(0, 300),
-                                 length=False, histogram=False, bins=None, stats=True):
+    @staticmethod
+    def plot_signal_distribution(data_file, random_windows=True, nb_windows=10000, data_path="data", limit=(0, 300),
+                                 histogram=False, bins=None, stats=True):
 
         """ Plotting function to generate signal value histograms for each category, sampled randomly
         this operates on the standard data path, but can be changed to training / validation data paths in HDF5 """
 
-        with h5py.File(self.data_file, "r") as data_file:
+        with h5py.File(data_file, "r") as data_file:
             # Get all indices from data path in HDF5
             indices = np.arange(data_file[data_path + "/data"].shape[0])
             # Randomize indices:
@@ -278,8 +399,8 @@ class Dataset:
                     above_limit = round(len(data[data > limit[1]]), 6)
                     print("Limit warning: found {}% ({}) signal values < {} and "
                           "{}% ({}) signal values > {} for label {}"
-                          .format(round((below_limit/len(data))*100, 6), below_limit, limit[0],
-                                  round((above_limit/len(data))*100, 6), above_limit, limit[1], label))
+                          .format(round((below_limit / len(data)) * 100, 6), below_limit, limit[0],
+                                  round((above_limit / len(data)) * 100, 6), above_limit, limit[1], label))
                     # Subset the data by limits:
                     data = data[(data > limit[0]) & (data < limit[1])]
 
@@ -299,6 +420,11 @@ class Dataset:
     def plot_signal(self, nb_signals=4, data_path="training"):
 
         pass
+
+    @staticmethod
+    def chunk(seq, size):
+
+        return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
     @staticmethod
     def create_data_paths(file, window_size=400, classes=2):
@@ -324,7 +450,6 @@ class Dataset:
         }
 
         for data_type in data_paths.keys():
-
             # HDF5 file dataset creation:
             data = file.create_dataset(data_type + "/data", shape=(0, 1, window_size, 1),
                                        maxshape=(None, 1, window_size, 1))
@@ -334,42 +459,48 @@ class Dataset:
 
             data_paths[data_type] += [data, labels]
 
-        return data_paths["training"][0], data_paths["training"][1],\
+        return data_paths["training"][0], data_paths["training"][1], \
                data_paths["validation"][0], data_paths["validation"][1]
 
     @staticmethod
     def print_data_summary(data_file):
 
+        print(dedent(f"""
+        {Fore.YELLOW}Dataset (HD5)          {Fore.CYAN}{data_file}{Style.RESET_ALL}
+
+        {Fore.YELLOW}Encoded label vector:  {Fore.MAGENTA}/data/labels{Style.RESET_ALL}
+        {Fore.YELLOW}Decoded label vector:  {Fore.MAGENTA}/data/decoded{Style.RESET_ALL}
+        {Fore.YELLOW}Extracted file names:  {Fore.MAGENTA}/data/files{Style.RESET_ALL}
+        """))
+
         with h5py.File(data_file, "r") as f:
 
             if "data/data" in f.keys():
-                msg = dedent("""
-                    Data file: {}
-                    
-                    Dimensions:
-                    
-                    Data:       {}
-                    Labels:     {}
-                    Fast5:      {}
-                                
-                    """).format(data_file, f["data/data"].shape, f["data/labels"].shape, f["data/files"].shape)
+                msg = dedent(f"""
+                    {Fore.YELLOW}Data file: {Fore.CYAN}{data_file}{Style.RESET_ALL}
+
+                    {Fore.CYAN}Dimensions:{Style.RESET_ALL}
+
+                    {Fore.GREEN}Data:       {Fore.YELLOW}{f["data/data"].shape}{Style.RESET_ALL}
+                    {Fore.GREEN}Labels:     {Fore.YELLOW}{f["data/labels"].shape}{Style.RESET_ALL}
+                    {Fore.GREEN}Fast5:      {Fore.YELLOW}{f["data/files"].shape}{Style.RESET_ALL}
+                    """)
 
             elif "training/data" in f.keys() and "validation/data" in f.keys():
-                msg = dedent("""
-                    Data file: {}
+                msg = dedent(f"""
+                    {Fore.YELLOW}Data file: {Fore.CYAN}{data_file}{Style.RESET_ALL}
 
-                    Training Dimensions:
+                    {Fore.CYAN}Training Dimensions:{Style.RESET_ALL}
 
-                    Data:       {}
-                    Labels:     {}
-                    
-                    Validation Dimensions:
-                    
-                    Data:       {}
-                    Labels:     {}
+                    {Fore.GREEN}Data:       {Fore.YELLOW}{f["training/data"].shape}{Style.RESET_ALL}
+                    {Fore.GREEN}Labels:     {Fore.YELLOW}{f["training/labels"].shape}{Style.RESET_ALL}
 
-                    """).format(data_file, f["training/data"].shape, f["training/labels"].shape,
-                                f["validation/data"].shape, f["validation/labels"].shape)
+                    {Fore.CYAN}Validation Dimensions:{Style.RESET_ALL}
+
+                    {Fore.GREEN}Data:       {Fore.YELLOW}{f["validation/data"].shape}{Style.RESET_ALL}
+                    {Fore.GREEN}Labels:     {Fore.YELLOW}{f["validation/labels"].shape}{Style.RESET_ALL}
+
+                    """)
             else:
                 logging.debug("Could not access either data/data or training/data + validation/data in HDF5.")
                 raise KeyError("Could not access either data/data or training/data + validation/data in HDF5.")
@@ -379,32 +510,92 @@ class Dataset:
     @staticmethod
     def write_chunk(dataset, data):
 
-        dataset.resize(dataset.shape[0]+data.shape[0], axis=0)
+        dataset.resize(dataset.shape[0] + data.shape[0], axis=0)
         dataset[-data.shape[0]:] = data
 
         return dataset
 
     @staticmethod
-    def transform_signal_to_tensor(array):
+    def sample_from_array(array: np.array, sample_size: int, random_sample: bool = True,
+                          recover: bool = True) -> np.array:
 
-        """ Transform data (nb_windows, window_size) to (nb_windows, 1, window_size, 1)
-        for input into Conv2D layer: (samples, height, width, channels) = (nb_windows, 1, window_length, 1)
+        """Return a contiguous sample from an array of signal windows
+
+        :param array
+        :param sample_size
+        :param random_sample
+        :param recover
+
         """
 
-        # Return 4D array (samples, 1, width, 1)
-        # Old: np.array([[[[signal] for signal in data]] for data in vector[:]])
+        num_windows = array.shape[0]
+
+        if num_windows < sample_size and recover:
+            return array
+
+        if num_windows < sample_size and not recover:
+            raise ValueError(f"Could not recover read array: number of read windows "
+                             f"({num_windows}) < sample size ({sample_size})")
+
+        if num_windows == sample_size:
+            return array
+        else:
+            if random_sample:
+                idx_max = num_windows - sample_size
+                rand_idx = random.randint(0, idx_max)
+
+                return array[rand_idx:rand_idx + sample_size]
+            else:
+                return array[:sample_size]
+
+    @staticmethod
+    def sample_to_input(array: np.array) -> np.array:
+
+        """ Transform input array of (number_windows, window_size) to (number_windows, 1, window_size, 1)
+        for input into convolutional layers: (samples, height, width, channels) in Achilles
+        """
+
+        if array.ndim != 2:
+            raise ValueError(f"Array of shape {array.shape} must conform to shape: (number_windows, window_size)")
+
         return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
+
+    def print_write_summary(self, **kwargs):
+
+        print(dedent(f"""
+        Generating data set for input to Achilles.
+        =========================================================
+
+        Sampling from PoreMongo:
+
+            - {Fore.GREEN}sample_files_per_tag{Style.RESET_ALL}     {Fore.YELLOW}{kwargs["sample_files_per_tag"]}{Style.RESET_ALL} 
+            - {Fore.GREEN}sample_proportions{Style.RESET_ALL}       {Fore.YELLOW}{kwargs["sample_proportions"]}{Style.RESET_ALL} 
+            - {Fore.GREEN}sample_unique{Style.RESET_ALL}            {Fore.YELLOW}{kwargs["sample_unique"]}{Style.RESET_ALL} 
+
+        Generating tensors of shape {Fore.YELLOW}({kwargs["max_windows_per_read"]}, 1, {kwargs["window_size"]}, 1){Style.RESET_ALL} per read.
+        
+        For each class, sample signal windows with the following parameters:
+
+            - {Fore.GREEN}max_windows{Style.RESET_ALL}              {Fore.YELLOW}{kwargs["max_windows"]}{Style.RESET_ALL}
+            - {Fore.GREEN}window_size{Style.RESET_ALL}              {Fore.YELLOW}{kwargs["window_size"]}{Style.RESET_ALL}
+            - {Fore.GREEN}window_step{Style.RESET_ALL}              {Fore.YELLOW}{kwargs["window_step"]}{Style.RESET_ALL}
+            - {Fore.GREEN}window_random{Style.RESET_ALL}            {Fore.YELLOW}{kwargs["window_random"]}{Style.RESET_ALL}             
+
+        Fast5 models are shuffled by default after sampling.
+
+        =========================================================
+        """))
 
 
 class DataGenerator(Sequence):
 
-    def __init__(self, data_file, data_type="training", batch_size=15, shuffle=True):
-
+    def __init__(self, data_file, data_type="training", batch_size=15, shuffle=True, no_labels=False):
         self.data_file = data_file
         self.data_type = data_type
 
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.no_labels = no_labels
 
         self.indices = []
 
@@ -412,23 +603,20 @@ class DataGenerator(Sequence):
 
         self.on_epoch_end()
 
-    def _get_data_shapes(self, ):
-
+    def _get_data_shapes(self):
         with h5py.File(self.data_file, "r") as f:
             return f[self.data_type + "/data"].shape, f[self.data_type + "/labels"].shape
 
     def __len__(self):
-
         """ Number of batches per epoch """
 
         return int(np.floor(self.data_shape[0]) / self.batch_size)
 
     def __getitem__(self, index):
-
         """ Generate one batch of data """
 
         # Generate indexes of the batch
-        indices = self.indices[index*self.batch_size:(index+1)*self.batch_size]
+        indices = self.indices[index * self.batch_size:(index + 1) * self.batch_size]
 
         # Generate data
         data, labels = self.__data_generation(indices)
@@ -439,10 +627,12 @@ class DataGenerator(Sequence):
         # print("Training label batch:", labels.shape)
         # print("Generated data for indices:", indices)
 
-        return data, labels
+        if self.no_labels:
+            return data
+        else:
+            return data, labels
 
     def on_epoch_end(self):
-
         """ Updates indexes after each epoch """
 
         self.indices = np.arange(self.data_shape[0])
@@ -451,11 +641,9 @@ class DataGenerator(Sequence):
             np.random.shuffle(self.indices)
 
     def __data_generation(self, indices):
-
         """ Generates data containing batch_size samples """
 
         with h5py.File(self.data_file, "r") as f:
-
             file_data = f[self.data_type + "/data"]
             data = np.take(file_data, indices, axis=0)
 

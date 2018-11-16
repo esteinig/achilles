@@ -1,8 +1,6 @@
 # Keras model of Chiron (Asclepius)
 
 import os
-import re
-import shutil
 import pickle
 import numpy as np
 
@@ -14,7 +12,7 @@ from keras.callbacks import CSVLogger, ModelCheckpoint
 from keras import callbacks
 
 from achilles.utils import timeit
-from achilles.dataset import Dataset
+from achilles.dataset import AchillesDataset
 
 
 class Achilles:
@@ -109,25 +107,28 @@ class Achilles:
 
         return self.model
 
-    def train(self, batch_size=15, epochs=10, workers=2, run_id="run_1", outdir="run_1", verbose=True):
+    def train(self, batch_size=15, epochs=10, workers=2,
+              run_id="run_1", outdir="run_1", verbose=True):
 
         # Estimated memory for dimensions and batch size of model, before adjustment:
         memory = self.estimate_memory_usage(batch_size=batch_size)
-        print(f"Estimated GPU memory for Achilles model: {memory} GB")
-
-        if batch_size == "auto":
-            batch_size = self.adjust_batch_size(batch_size)
-
-            # Estimated memory for dimensions and batch size of model, after adjustment:
-            memory = self.estimate_memory_usage(batch_size=batch_size)
-            print(f"Estimated GPU memory for Achilles model after adjustment: {memory} GB")
+        print("Estimated GPU memory for Achilles model: {} GB".format(memory))
+        #
+        # if batch_size == "auto":
+        #     batch_size = self.adjust_batch_size(batch_size)
+        #
+        #     # Estimated memory for dimensions and batch size of model, after adjustment:
+        #     memory = self.estimate_memory_usage(batch_size=batch_size)
+        #     print("Estimated GPU memory for Achilles model after adjustment: {} GB".format(memory))
 
         # Reads data from HDF5 data file:
-        dataset = Dataset(data_file=self.data_file)
+        dataset = AchillesDataset()
 
         # Get training and validation data generators
-        training_generator = dataset.get_signal_generator(data_type="training", batch_size=batch_size, shuffle=True)
-        validation_generator = dataset.get_signal_generator(data_type="validation", batch_size=batch_size, shuffle=True)
+        training_generator = dataset.get_signal_generator(self.data_file, data_type="training",
+                                                          batch_size=batch_size, shuffle=True)
+        validation_generator = dataset.get_signal_generator(self.data_file, data_type="validation",
+                                                            batch_size=batch_size, shuffle=True)
 
         # Make log directory:
         if outdir:
@@ -143,26 +144,24 @@ class Achilles:
         print("Running on batch size {} for {} epochs with {} worker processes --> run ID: {}"
               .format(batch_size, epochs, workers, run_id))
 
-        # TODO: Implement TensorBoard
-        history = self.model.fit_generator(training_generator, use_multiprocessing=True, workers=workers, epochs=epochs,
+        # TODO: Enable NCPU
+
+        history = self.model.fit_generator(training_generator, use_multiprocessing=False, workers=workers, epochs=epochs,
                                            validation_data=validation_generator, callbacks=[csv, chk], verbose=verbose)
 
         with open(os.path.join(outdir, "{}.model.history".format(run_id)), "wb") as history_out:
             pickle.dump(history.history, history_out)
 
-    @staticmethod
     def adjust_batch_size(self, batch_size):
 
         """ Function for adjusting batch size to live GPU memory; this is not an accurate estimation
         but rather aims at conservatively estimating available GPU memory and adjusting the batch size
         so that training does not raise out-of-memory errors, particularly when using training as part
-        of Nextflow workflows where the underlying data dimensions (and therefore memory occupancy) changes.
+        of Nextflow workflows where the underlying data dimensions (and therefore memory occupancy) may
+        differ between runs or across a grid search.
         """
 
-
-
-        return adjusted_batch_size
-
+        mem = self.estimate_memory_usage(batch_size)
 
     def load_model(self, model_file, summary=True):
 
@@ -173,12 +172,12 @@ class Achilles:
         if summary:
             self.model.summary()
 
-    @timeit()
     def evaluate(self, eval_generator, workers=2):
 
         """ Evaluate model against presented dataset """
 
-        loss, acc = self.model.evaluate_generator(eval_generator, workers=workers, use_multiprocessing=True)
+        loss, acc = self.model.evaluate_generator(eval_generator, workers=workers, use_multiprocessing=False,
+                                                  verbose=True)
 
         return loss, acc
 
@@ -191,6 +190,18 @@ class Achilles:
 
         # Select random or beginning consecutive windows
         return self.model.predict(x=signals, batch_size=batch_size)
+
+    def predict_generator(self, data_type="data", batch_size=1000):
+
+        # Reads data from HDF5 data file:
+        dataset = AchillesDataset()
+
+        # Get training and validation data generators
+        prediction_generator = dataset.get_signal_generator(self.data_file, data_type=data_type,
+                                                            batch_size=batch_size, shuffle=False,
+                                                            no_labels=True)
+
+        return self.model.predict_generator(prediction_generator)
 
     @staticmethod
     def residual_block(y, nb_channels, input_shape=None, _strides=(1, 1), _project_shortcut=True, _leaky=False):

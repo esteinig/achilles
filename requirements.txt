@@ -10,3 +10,6 @@ tqdm
 seaborn
 matplotlib
 colorama
+mongoengine
+click
+pyyaml

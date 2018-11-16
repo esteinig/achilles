@@ -242,7 +242,7 @@ process ModelEvaluation {
 
 process ModelPrediction {
 
-    tag { "Prediction: ${prefix_paths_tuple[0]} -- Slices: $slice -- Model: $model_id -- Exclude: $data_id" }
+    tag { "Prediction: ${prefix_paths_tuple[0]} -- Slices: $slice -- Model: $model_id" }
     
     publishDir "$params.outdir/$prefix/prediction", mode: 'copy', pattern: '*.pdf'
     publishDir "$params.outdir/$prefix/prediction", mode: 'copy', pattern: '*.csv'  
