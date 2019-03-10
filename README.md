@@ -33,10 +33,10 @@ Alpha version is for testing the software with some pre-trained models. You can 
 
 Achilles is accessible through the CLI which summarizes some of the important tasks and exposes them to the user. Tasks like `achilles train` and `achilles create` have many parameters for setting the global parameters for signal sampling or the framework in which the models are trained. 
 
-#### CLI tasks
+#### Tasks
 ---
 
-**`achilles create`**
+:sunflower: **`achilles create`**
 
 Create a training or evaluation `HDF5` data set of singal slices from the `Fast5` files for input into training with `Achilles`. Uses `Poremongo` to sample labels from `MongoDB` database index of all read files on the system. Does not need GPU.
 
@@ -46,7 +46,7 @@ achilles create --help
 
 ***
 
-**`achilles train`**
+:seedling: **`achilles train`**
 
 Train a `HDF5` training dataset of signal slices and labels in `Keras` using the `Achilles` variant of `Chirons` hybrid convolutional and recurrent architecture. A simple fully connected layer predicts labels in the output. Absolutely needs GPU for training.
 
@@ -56,7 +56,7 @@ achilles train --help
 
 ***
 
-**`achilles eval`**
+:cactus: **`achilles eval`**
 
 Evaluate a trained `HDF5` model (always best validation error from training run with `achilles train`) across a directory of evaluation datasets. Should run on GPU.
 
@@ -66,7 +66,7 @@ achilles eval --help
 
 ***
 
-**`achilles predict`**
+:deciduous_tree: **`achilles predict`**
 
 Predict labels using a trained model and a directory of `.fast5` files. Can `--watch` a dirrectory for live `.fast5` files. Should run on GPU.
 
@@ -74,20 +74,22 @@ Predict labels using a trained model and a directory of `.fast5` files. Can `--w
 achilles predict --help
 ```
 
-***
 
-### :octopus: Pre-trained models:
+### :cat2: Pre-trained models
 ---
 
 Currently all pretrained models are standardized to a lightweight `1 x 256-channel ResBlock + 1 x 200-unit LSTM` architecture with `dropout` in recurrent layers that predicts on overlapping slices of 400 signal values from `R9.4` pores; this creates a network model with around 660,000 trainable parameters, which we trianed over 500 epochs on a Tesla V100 GPU with 16GB memory over 8 hours with a batch size of 3000 bathes per forward pass. The model predicts from a terminal fully connected layer with `softmax` activation function over `n` labels. Training on the alpha version models is conducted on 100,000 signal slices extracted evenly over each subcategory of the label (pathogens, chromosomes) with a random sampling window on the read that extracts `50 x 400` slices with step 40. This equates to roughly 2000 reads per label and around 200 - 1000 reads per subcategory in the label depending on the number of subcategory mixtures that tags in the database are sampled from (e.g. pathogens or chromosome mixtures). Models are trained using `Adam` optimizer and the `binary crossentropy` loss function, which is selected due to the binary prediction of `pathogen` vs. `host`, depending on how we train the models with pathogen subcategories and human chromsomes.
 
 In these pretrained models the human label is always trained from chromosomes 2, 4, 8, 16 and evaluated on chromsomes 5, 9, 15, 17 to make sure that the classifiers generalize over the whole human genome. Mixtures of pathogens on the other hand are useful to build generalized classifiers (bacteria vs. human) vs. specific classifiers (mrsa vs human).
 
-:crab: **Generalizers**:
+:mouse2: **Generalists**:
 
   * Bacteria in human host (trained on Human reference genome mixture of chromosomes and *K. pneumoniae*, *M. tuberculosis*, *B.  pseudomallei*)  - `models/human.bacteria.alpha.1.hd5`
   * Bacteria in human host (trained on Human reference genome mixture of chromosomes and *E. coli*, *M. tuberculosis*, *B.  pseudomallei*)  - `models/human.bacteria.alpha.2.hd5`
   
+:penguin: **Specialists**:
+
+ * ... soon ...
 
 ### :turtle: Training data
 ---
