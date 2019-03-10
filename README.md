@@ -94,7 +94,7 @@ Currently all pretrained models are standardized to a lightweight `1 x 256-chann
 
 <p align="left"><img src="logo/achilles_pretrained.png"></img></p>
 
-In these pretrained models the human label is always trained from chromosomes 2, 4, 8, 16 and evaluated on chromsomes 5, 9, 15, 17 to make sure that the classifiers generalize over the whole human genome. Mixtures of pathogens on the other hand are useful to build generalized classifiers (bacteria vs. human) vs. specific classifiers (mrsa vs human).
+In these pretrained models the human label is always trained from chromosomes 2, 4, 8, 16 and evaluated on chromsomes 5, 9, 15, 17 to make sure that the classifiers generalize over the whole human genome. Mixtures of pathogens on the other hand are useful to build generalized classifiers (bacteria vs. human) vs. specific classifiers (MRSA vs human). Label 0 is always host, and pathogen(s) are label 1, 2, ...
 
 :mouse2: **Generalists**:
 
