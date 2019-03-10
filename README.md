@@ -16,17 +16,25 @@
 
 `Tensorflow-GPU` and the associated `CUDA` driver on the GPU must be installed. We used `Achilles` on the JCU cluster that has two Tesla V100 with 16GB memory. For some reason, installation of the GPU environment did not work with higher `tensorflow-gpu` versions `> v1.8` that interface with `CUDA 9.2` or `CUDA 10`, so we installed `tensorflow-gpu v1.8.0` from `conda` with the `cudnn` library version `v7.1.2`, which also installs the `cudatoolkit` version `v9.0` in `conda`. This environment works with the `CUDA 9.0` driver for the GPUs on the cluster. 
 
+The frozen `conda` env for this can be found in `envs/achilles-jcu.yml` and installed with:
+
 ```
-pip install achilles==0.3-alpha  # does not install tensorflow-gpu
+conda env create --file envs/achilles-jcu.yml
 ```
 
-You know if the driver and `tensorflow-gpu` work when you call the main help interface of `Achilles`, which lists the available tasks:
+Achilles can be installed with:
+
+```
+pip install -e git://github.com/esteinig/achilles.git@v0.3-alpha  # does not install tensorflow-gpu
+```
+
+You know if the driver and `tensorflow-gpu` work when you call the main help interface of `Achilles`:
 
 ```
 achilles --help
 ```
 
-### :whale: Command line interface (CLI)
+### :whale: Command line interface
 ---
 
 Alpha version is for testing the software with some pre-trained models. You can also train your own models, which relies on `Poremongo` also in alpha stage at the moment and subject to change, so the code is not so stable. 
