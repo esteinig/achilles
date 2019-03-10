@@ -41,7 +41,7 @@ Alpha version is for testing the software with some pre-trained models. You can 
 
 Achilles is accessible through the CLI which summarizes some of the important tasks and exposes them to the user. Tasks like `achilles train` and `achilles create` have many parameters for setting the global parameters for signal sampling or the framework in which the models are trained. 
 
-This is somewhat what the process currently looks liek minus NExtflow, but I am working on that.
+This is somewhat what the process currently looks like minus Nextflow + Docker + Google Cloud which is scheduled for the beta release.
 
 <p align="left"><img src="logo/achilles_schematic.png" height="634" width="800"></img></p>
 
