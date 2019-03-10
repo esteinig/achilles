@@ -2,14 +2,21 @@
 
 # Achilles
 
-Achilles is a neural network model that distinguishes between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *Burkholderia pseudomallei*). The model currently trains on a small number of reads reads (~ 3,000 - 12,000 reads). Issues are tracked on Github.
+ **`v0.3-alpha release`**: `it's working, but there are no tests and the code is a mess` :bug: 
 
-This is a minimal Keras implementation / adaptation of the open-source [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron), and all credit for the architecture of the model is due to Haotian Teng and Lachlan Coin, and the co-authors of Chiron [published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989).
+Achilles is a platform for training, evaluating and deploying neural network models that act as taxonomic classifiers of raw nanopore signal, for instance by distinguishing between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *Burkholderia pseudomallei*). The model architectures are essentially a Keras implementation of the hybrid convolutional and recurrent architecture from [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron) [published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989). We have replaced some of the regularization functions with those available in Keras (namely internal and normal Dropout in the LSTM layers and Batch Normalization). The residual blocks in Achilles also contain one more layer of Overall, the implementation is minimal replacing the birdirectional LSTM with a unidirectional LSTM layer and combining only a single resiudal block with a single LSTM, with a total of around 600,00 learnable parameters, somewhere around the size of MobileNets. This necessitates longer training times, but keeps model prediction fast in the interest of mobile deployment or real-time / online learning from sequence streams.
 
-### Models
+### Command line tasks
 ---
 
-Training regimes for architecture and hyperparameter exploration and models for prediction evalutaion of pathogen DNA  in host (human) background can be found in the following sections:
+Alpha version is for testing the software with some pre-trained models. You can also train your own models, which relies on `Poremongo` also in alpha stage at the moment and subject to change, so the code is not so stable. 
+
+Achilels is accessible through the CLI which summarizes some of the important tasks and exposes them to the user. Tasks like `achilles train` and `achilles create` have many parameters for setting the global parameters for signal sampling or the framework i nwhich the models are trained in `Keras`. 
+
+Tasks:
+
+``
+
 
 Pathogens:
 
