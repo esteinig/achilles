@@ -1,89 +1,182 @@
-import yaml
 import click
 
-from pathlib import Path
 from poremongo import PoreMongo
-from achilles.terminal.utils import OptionPromptNull
-
-
-def get_password(config):
-    """ Get password if the config parameter is the prompt (returns tuple from cls OptionPromptNull) """
-    if isinstance(config, tuple):
-        return config[0]
-    else:
-        return None
-
-
-def get_poremongo_uri(pwd, user, host, port, db, config):
-    """ Read PoreMongo URI from configuratin file or construct it from parameters. """
-    if pwd is None:
-        return get_uri_from_config(config)
-    else:
-        return f'mongodb://{user}:{pwd}@{host}:{port}/{db}'
-
-
-def get_uri_from_config(config):
-    """ Load URI from configuration file (YAML). """
-    config_path = Path(config)
-    if not config_path.is_file():
-        print(f'Configuration file could not be found at: {config_path.absolute()}')
-        exit(1)
-
-    with open(config, "r") as config_file:
-        config_dict = yaml.load(config_file)
-        try:
-            return config_dict['uri']
-        except IOError:
-            print('URI not specified in configuration file.')
-            exit(1)
+from achilles.terminal.utils import get_uri, OptionEatAll
+from achilles.dataset import AchillesDataset
 
 
 @click.command()
-@click.option('--config', '-c', default=None, cls=OptionPromptNull, prompt='PoreMongo password', hide_input=True,
-              required=False, help='YAML configuration file for Achilles parameters and connection to PoreMongo. '
-                                   'Enable password prompt if argument is not passed.', metavar='')
-@click.option('--user', '-u', default='esteinig', help='PoreMongo user name.', show_default=True, metavar='')
-@click.option('--host', '-h', default='206.189.91.28', help='PoreMongo host address.', show_default=True, metavar='')
-@click.option('--port', '-p', default='27017', help='PoreMongo host port.', show_default=True, metavar='')
-@click.option('--database', '-db', default='poremongo', help='PoreMongo database name.', show_default=True, metavar='')
-@click.option('--display', '-d', is_flag=True, help='Display tags and exit.', show_default=True, metavar='')
-def create(config, user, host, port, database, display):
-    """ Create datasets with PoreMongo. """
+@click.option(
+    "--pmid",
+    "-i",
+    default=None,
+    help="PoreMongo connection ID.",
+    show_default=True,
+    metavar="",
+)
+@click.option(
+    "--config",
+    "-c",
+    default=None,
+    metavar="",
+    help="YAML configuration file for creating Datasets.",
+)
+@click.option(
+    "--tags",
+    "-t",
+    cls=OptionEatAll,
+    default=None,
+    metavar="",
+    help="Tags (labels) to sample from, comma separated args.",
+)
+@click.option(
+    "--output",
+    "-o",
+    "--dataset",
+    default="dataset.hd5",
+    metavar="",
+    show_default=True,
+    help="Output HDF5 file containing sampled tensors and labels.",
+)
+@click.option(
+    "--max_windows",
+    "-m",
+    default=100000,
+    metavar="",
+    show_default=True,
+    help="Maximum number of sampled " "signal value windows per tag / label.",
+)
+@click.option(
+    "--max_windows_per_read",
+    "-r",
+    default=50,
+    metavar="",
+    show_default=True,
+    help="Maximum number of windows sampled from" " read / diversity of input data.",
+)
+@click.option(
+    "--window_size",
+    "-w",
+    default=200,
+    metavar="",
+    show_default=True,
+    help="Length of sliding window to sample from signal read.",
+)
+@click.option(
+    "--window_step",
+    "-s",
+    default=0.1,
+    metavar="",
+    show_default=True,
+    help="Step of sliding window to sample from signal read.",
+)
+@click.option(
+    "--sample_reads_per_tag",
+    "--sample",
+    default=10000,
+    metavar="",
+    show_default=True,
+    help="Number of random Fast5 models to " "sample from database per tag / label",
+)
+@click.option(
+    "--proportion",
+    default="equal",
+    metavar="",
+    show_default=True,
+    help="Proportion of Fast5 models to sample per tag / label",
+)
+@click.option(
+    "--exclude",
+    default=None,
+    metavar="",
+    show_default=True,
+    help="Comma separated list of HDF5 datasets to exclude from sampling",
+)
+@click.option(
+    "--global_tags",
+    default="R9.4",
+    metavar="",
+    show_default=True,
+    help="Global tags to apply to sample, comma-separated, "
+    "e.g. to force pore version: R9.4",
+)
+@click.option(
+    "--validation",
+    default=0.3,
+    metavar="",
+    help="Proportion of data to be split into validation",
+)
+@click.option(
+    "--scale",
+    is_flag=True,
+    metavar="",
+    help="Scale the raw signal (data acquisition values) to pA.",
+)
+@click.option(
+    "--display",
+    is_flag=True,
+    help="Display tags in database and exit.",
+    show_default=True,
+    metavar="",
+)
+def create(
+    pmid,
+    config,
+    display,
+    tags,
+    output,
+    max_windows,
+    max_windows_per_read,
+    window_size,
+    window_step,
+    sample_reads_per_tag,
+    proportion,
+    exclude,
+    global_tags,
+    validation,
+    scale,
+):
+    """Sample and compile datasets with PoreMongo"""
 
-    pwd = get_password(config)
-    uri = get_poremongo_uri(pwd, user, host, port, database, config)
+    tags = [tag.split(",") for tag in tags]
+
+    uri = None
+    if pmid:
+        uri = get_uri(pmid)
+    elif config:
+        pass  # uri = get_uri_from_config(config)
+    else:
+        click.echo(
+            "You must enter a PoreMongo ID or " "configuration file to create Datasets."
+        )
+        exit(1)
 
     pongo = PoreMongo(uri=uri, connect=True)
 
     if display:
-        pongo.display('tags')
+        pongo.display("tags")
         exit(0)
 
-    # if config:
-    #
-    # else:
-    #     uri =
-    #
-    # pongo = PoreMongo(uri=uri)
-    # pongo.connect()
-    #
-    # if args["ssh"]:
-    #     pongo.open_ssh(config_file=args["config"])
-    #     pongo.open_scp()
-    #
-    # ds = AchillesDataset(poremongo=pongo)
-    #
-    # if args["display"]:
-    #     ds.poremongo.display_tags()
-    #
-    # ds.write(tags=args["tags"], data_file=args["data_file"], max_windows=args["max_windows"],
-    #          max_windows_per_read=args["max_windows_per_read"], window_size=args["window_size"],
-    #          window_step=args["window_step"], window_random=args["random"], window_recover=args["recover"],
-    #          sample_files_per_tag=args["sample_files_per_tag"], sample_proportions=args["sample_proportions"],
-    #          sample_unique=args["sample_unique"], exclude_datasets=args["exclude"], global_tags=args["global_tags"],
-    #          validation=args["validation"], scale=args["scale"], chunk_size=args["chunk_size"], ssh=args["ssh"])
-    #
-    # pongo.disconnect()
-    # if args["ssh"]:
-    #     pongo.close_ssh()
-    #     pongo.close_scp()
+    ds = AchillesDataset(poremongo=pongo)
+
+    ds.write(
+        tags=tags,
+        data_file=output,
+        max_windows=max_windows,
+        max_windows_per_read=max_windows_per_read,
+        window_size=window_size,
+        window_step=window_step,
+        window_random=True,
+        window_recover=False,
+        sample_files_per_tag=sample_reads_per_tag,
+        sample_proportions=proportion,
+        sample_unique=False,
+        exclude_datasets=exclude,
+        global_tags=global_tags,
+        validation=validation,
+        scale=scale,
+        chunk_size=10000,
+        ssh=False,
+    )
+
+    pongo.disconnect()

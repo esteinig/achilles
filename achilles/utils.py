@@ -14,9 +14,8 @@ from ont_fast5_api.fast5_file import Fast5File
 
 import matplotlib
 
-matplotlib.use('agg')
+matplotlib.use("agg")
 
-import seaborn
 
 from matplotlib import pyplot as plt
 from matplotlib import style
@@ -27,9 +26,17 @@ style.use("ggplot")
 # Data IO and Transformation
 
 
-def read_signal(fast5: str, normalize: bool=False, scale: bool=True, window_size: int=400, window_step: int=400,
-                window_max: int=10, window_random: bool=True, window_recover: bool=True,
-                return_signal: bool=False) -> np.array:
+def read_signal(
+    fast5: str,
+    normalize: bool = False,
+    scale: bool = True,
+    window_size: int = 400,
+    window_step: int = 400,
+    window_max: int = 10,
+    window_random: bool = True,
+    window_recover: bool = True,
+    return_signal: bool = False,
+) -> np.array:
 
     """ Read scaled raw signal in pA (float32) if scaling is enabled or raw (DAC, int16) values from Fast5 using ONT API
 
@@ -79,7 +86,7 @@ def read_signal(fast5: str, normalize: bool=False, scale: bool=True, window_size
             # If max_windows_per_read can be extracted...select random index:
             rand_index = random.randint(0, max_index)
             # ... and extract them:
-            signal_windows = signal_windows[rand_index:rand_index + window_max, :]
+            signal_windows = signal_windows[rand_index : rand_index + window_max, :]
         else:
             signal_windows = signal_windows[:window_max]
     else:
@@ -102,16 +109,14 @@ def transform_signal_to_tensor(array):
 
     """ Transform data (nb_windows,window_size) to (nb_windows, 1, window_size, 1)
     for input into Conv2D layer: (samples, height, width, channels),
-
-    TODO: this is slow, is there a better way?
-
     """
 
-    # Rshape 2D array (samples, width) to 4D array (samples, 1, width, 1)
+    # Reshape 2D array (samples, width) to 4D array (samples, 1, width, 1)
     return np.reshape(array, (array.shape[0], 1, array.shape[1], 1))
 
 
 # Data Plots
+
 
 def plot_training(file="epochs.log"):
 
@@ -127,24 +132,31 @@ def plot_signal(fast5):
     fig, axes = plt.subplots(ncols=2, nrows=2)
     ax1, ax2, ax3, ax4 = axes.ravel()
 
-    signal_windows, _ = read_signal(fast5=fast5, normalize=False, scale=False, window_size=200, window_step=200,
-                                    window_max=10, window_random=True, window_recover=False, return_signal=False)
+    signal_windows, _ = read_signal(
+        fast5=fast5,
+        normalize=False,
+        scale=False,
+        window_size=200,
+        window_step=200,
+        window_max=10,
+        window_random=True,
+        window_recover=False,
+        return_signal=False,
+    )
 
     selection = select_random_windows(signal_windows, n=4)
 
-    ax1.plot(selection[0], 'go')
-    ax2.plot(selection[1], 'go')
-    ax3.plot(selection[2], 'mo')
-    ax4.plot(selection[3], 'mo')
+    ax1.plot(selection[0], "go")
+    ax2.plot(selection[1], "go")
+    ax3.plot(selection[2], "mo")
+    ax4.plot(selection[3], "mo")
 
     plt.show()
 
 
-def plot_confusion_matrix(cm, class_labels,
-                          title='Confusion Matrix',
-                          normalize=True,
-                          cmap="Blues",
-                          save=""):
+def plot_confusion_matrix(
+    cm, class_labels, title="Confusion Matrix", normalize=True, cmap="Blues", save=""
+):
 
     """
     This function prints and plots the confusion matrix.
@@ -158,26 +170,30 @@ def plot_confusion_matrix(cm, class_labels,
     """
 
     if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
 
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.imshow(cm, interpolation="nearest", cmap=cmap)
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(class_labels))
     plt.xticks(tick_marks, class_labels, rotation=45)
     plt.yticks(tick_marks, class_labels)
 
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
+    fmt = ".2f" if normalize else "d"
+    thresh = cm.max() / 2.0
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt),
-                 horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
+        plt.text(
+            j,
+            i,
+            format(cm[i, j], fmt),
+            horizontalalignment="center",
+            color="white" if cm[i, j] > thresh else "black",
+        )
 
     plt.grid(None)  # Remove white gridlines when also importing Seaborn
 
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
+    plt.ylabel("True Label")
+    plt.xlabel("Predicted Label")
 
     plt.tight_layout()
 
@@ -188,67 +204,6 @@ def plot_confusion_matrix(cm, class_labels,
 
     plt.close()
 
-
-def plot_pevaluate_runner(results, class_labels=(0, 1)):
-
-    """ Currently only for binary classification! """
-
-    # Results is dictionary of dictionaries with keys:
-    #          keys: prefix
-    #          values: {"confusion_matrix": np.array, "average_prediction_time": float}
-
-    data_frame = []
-    for prefix, data in results.items():
-        cm = data["confusion_matrix"]
-        ms = data["average_prediction_time"]
-        batches = data["batches"]
-
-        # First deconstruct prefix as {model}:{signal_type}:{sample}:{number_windows}
-        model, signal_type, sample, nb_windows = prefix.split(":")
-
-        # Binary classification, needs to be extended later:
-        for i, label in enumerate(class_labels):
-            if i == 0:
-                error, acc = cm[0, 1], cm[0, 0]
-            else:
-                error, acc = cm[1, 0], cm[1, 1]
-
-            row = [model, signal_type, sample, int(nb_windows), label, error, acc, ms, batches]
-            data_frame.append(row)
-
-    df = pandas.DataFrame(data_frame, columns=["model", "signal", "sample", "windows", "label",
-                                               "error", "accuracy", "mu", "per_batch"])
-
-    # Setup a plot for each model:
-
-    for model in df["model"].unique():
-        # TODO: Make this dynamic (columns for start, random)
-        fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(20, 10))
-
-        model_df = df[df["model"] == model]
-
-        for col, sample in enumerate(sorted(model_df["sample"].unique(), reverse=True)):
-            model_sample_df = model_df[model_df["sample"] == sample]
-            for row, metric in enumerate(("error", "accuracy")):
-                ax = axes[row, col]
-                plot = seaborn.pointplot(x="windows", y=metric, hue="label", data=model_sample_df, ci=None, ax=ax)
-                plot.set_title("sampling: " + sample)
-
-            model_sample_df["x_labels"] = model_sample_df["windows"].astype(str).str.cat(
-                model_sample_df["per_batch"].astype(str), sep="_")
-
-            time_ax = axes[2, col]
-            time_plot = seaborn.pointplot(x="x_labels", y="mu", data=model_sample_df,
-                                          ci=None, ax=time_ax, color="green")
-
-            time_plot.set_title("Mean prediction speed per batch {} (mu)".format(sample))
-            time_plot.set_xlabel("windows _ files)")
-
-        plt.suptitle("Model: {}".format(model), size=16)
-        plt.tight_layout()
-        plt.savefig(model+"_summary.pdf")
-
-        plt.close()
 
 # Helper Functions
 
@@ -268,14 +223,14 @@ def sliding_window(iterable, size=2, step=1, fillvalue=None):
         yield iter(q)  # iter() to avoid accidental outside modifications
         try:
             q.append(next(it))
-        except StopIteration: # Python 3.5 pep 479 support
+        except StopIteration:  # Python 3.5 pep 479 support
             return
         q.extend(next(it, fillvalue) for _ in range(step - 1))
 
 
 def chunk(seq, size):
 
-    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+    return (seq[pos : pos + size] for pos in range(0, len(seq), size))
 
 
 def select_random_windows(signal_windows, n=4):
@@ -297,8 +252,11 @@ def timeit(micro=False):
             # print("Runtime:", seconds, "seconds")
             # Flatten output if the output of a function is a tuple with multiple items
             # if this is the case, seconds are at index -1
-            return [num for item in [result, seconds]
-                    for num in (item if isinstance(item, tuple) else (item,))]
+            return [
+                num
+                for item in [result, seconds]
+                for num in (item if isinstance(item, tuple) else (item,))
+            ]
 
         return timed
 
@@ -322,6 +280,7 @@ def mem_usage(pandas_obj):
 
 # From Mako (ONT) - GitHub site here
 
+
 def med_mad(data, factor=1.4826, axis=None):
 
     """Compute the Median Absolute Deviation, i.e., the median
@@ -340,10 +299,7 @@ def med_mad(data, factor=1.4826, axis=None):
     else:
         dmed1 = dmed
 
-    dmad = factor * np.median(
-        np.abs(data - dmed1),
-        axis=axis
-    )
+    dmad = factor * np.median(np.abs(data - dmed1), axis=axis)
     return dmed, dmad
 
 
@@ -364,7 +320,7 @@ def _scale_data(data):
 
 def norm(prediction):
     """ Probability normalization to 1 for predictions along multiple windows of signal """
-    return [float(i)/sum(prediction) for i in prediction]
+    return [float(i) / sum(prediction) for i in prediction]
 
 
 def find(key, dictionary):
@@ -414,15 +370,30 @@ def check_include_exclude(include, exclude, recursive, verbose=False):
     exclude_df = get_dir_file_names(exclude_dirs, recursive)
 
     if verbose:
-        print("Excluding {} files from {} data sets + including {} files from {} data sets."
-              .format(len(exclude_ds), len(exclude_datasets), len(include_ds), len(include_datasets)))
-        print("Excluding {} strings in file names + including {} strings in file names from user specified inputs"
-              .format(len(exclude_strings), len(include_strings)))
-        print("Excluding {} files from dirs + including {} files from dirs."
-              .format(len(exclude_strings), len(include_strings)))
+        print(
+            "Excluding {} files from {} data sets + including {} files from {} data sets.".format(
+                len(exclude_ds),
+                len(exclude_datasets),
+                len(include_ds),
+                len(include_datasets),
+            )
+        )
+        print(
+            "Excluding {} strings in file names + including {} strings in file names from user specified inputs".format(
+                len(exclude_strings), len(include_strings)
+            )
+        )
+        print(
+            "Excluding {} files from dirs + including {} files from dirs.".format(
+                len(exclude_strings), len(include_strings)
+            )
+        )
 
     # [Include files, include strings], [Exclude files, exclude strings], BASENAMES
-    return [include_ds + include_df, include_strings], [exclude_ds + exclude_df, exclude_strings]
+    return (
+        [include_ds + include_df, include_strings],
+        [exclude_ds + exclude_df, exclude_strings],
+    )
 
 
 def get_dir_file_names(dirs, recursive):
@@ -446,6 +417,7 @@ def get_dataset_file_names(datasets):
 
     return file_names
 
+
 def get_dataset_labels(dataset):
 
     """ If we sample from the same (random) subset of reads as the training data, this function
@@ -456,14 +428,27 @@ def get_dataset_labels(dataset):
         return np.array(labels)
 
 
-def get_recursive_files(directory, include=None, exclude=None, recursive=True, extension=".fast5"):
+def get_dataset_dim(dataset):
+
+    """ If we sample from the same (random) subset of reads as the training data, this function
+    makes sure that we are not using the same files used in training for evaluation / prediction. """
+
+    with h5py.File(dataset, "r") as data:
+        return np.array(data["training/data"]).shape
+
+
+def get_recursive_files(
+    directory, include=None, exclude=None, recursive=True, extension=".fast5"
+):
 
     # TODO: Index file in Dataset - make index a parameter to disable for testing!
 
     def _init_index():
         if "achilles.index" in os.listdir(directory):
             try:
-                df = pandas.read_csv(os.path.join(directory, "achilles.index"), header=None)
+                df = pandas.read_csv(
+                    os.path.join(directory, "achilles.index"), header=None
+                )
             except EmptyDataError:
                 return None
             else:
@@ -482,9 +467,15 @@ def get_recursive_files(directory, include=None, exclude=None, recursive=True, e
                     if fname.endswith(extension):
                         file_paths.append(os.path.join(root, fname))
 
-            pandas.DataFrame(file_paths).to_csv(os.path.join(directory, "achilles.index"), index=False, header=False)
+            pandas.DataFrame(file_paths).to_csv(
+                os.path.join(directory, "achilles.index"), index=False, header=False
+            )
     else:
-        file_paths = [os.path.join(directory, path) for path in os.listdir(directory) if path.endswith(extension)]
+        file_paths = [
+            os.path.join(directory, path)
+            for path in os.listdir(directory)
+            if path.endswith(extension)
+        ]
 
     # TODO: Try set difference on file names (exact matches) and fast loops for within string matches.
     file_paths = retain_after_include(file_paths, include)
@@ -501,12 +492,18 @@ def retain_after_exclude(file_paths, exclude):
     exclude_files, exclude_strings = exclude[0], exclude[1]
 
     if exclude_files:
-        file_retains = [path for path in file_paths if not os.path.basename(path) in exclude_files]
+        file_retains = [
+            path for path in file_paths if not os.path.basename(path) in exclude_files
+        ]
     else:
         file_retains = []
 
     if exclude_strings:
-        string_retains = [path for path in file_paths if not any([string in path for string in exclude_strings])]
+        string_retains = [
+            path
+            for path in file_paths
+            if not any([string in path for string in exclude_strings])
+        ]
     else:
         string_retains = []
 
@@ -521,12 +518,18 @@ def retain_after_include(file_paths, include):
     include_files, include_strings = include[0], include[1]
 
     if include_files:
-        file_retains = [path for path in file_paths if os.path.basename(path) in include_files]
+        file_retains = [
+            path for path in file_paths if os.path.basename(path) in include_files
+        ]
     else:
         file_retains = []
 
     if include_strings:
-        string_retains = [path for path in file_paths if any([string in path for string in include_strings])]
+        string_retains = [
+            path
+            for path in file_paths
+            if any([string in path for string in include_strings])
+        ]
     else:
         string_retains = []
 

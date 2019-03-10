@@ -1,23 +1,23 @@
-import json
 import pandas
-import numpy as np
 import yaml
 import pickle
+
+import seaborn as sns
+import numpy as np
 
 from sklearn.metrics import confusion_matrix
 from matplotlib import pyplot as plt
 from pathlib import Path
+
 from poremongo import PoreMongo
 from achilles.dataset import AchillesDataset
 from achilles.model import Achilles
 from achilles.utils import get_dataset_labels
 
 # TODO: Check function for experiment configuration JSON
-import seaborn as sns
 
 
 class TestTube:
-
     def __init__(self, config: str, outdir: str):
 
         with open(config, "r") as config_file:
@@ -47,7 +47,9 @@ class TestTube:
 
         pongo = None
         if poremongo:
-            pongo = PoreMongo(config=self.parameters, ssh=ssh, connect=True)  # Parameters contains URI
+            pongo = PoreMongo(
+                config=self.parameters, ssh=ssh, connect=True
+            )  # Parameters contains URI
             pongo.display("tags")
 
         ds = AchillesDataset(poremongo=pongo)
@@ -57,49 +59,71 @@ class TestTube:
         for prefix, config in self.datasets.items():
 
             # Pull dataset specific parameters
-            training_params, evaluation_params = self._get_dataset_params(config, "create")
+            training_params, evaluation_params = self._get_dataset_params(
+                config, "create"
+            )
 
             exclude_datasets = []
-            for dataset in config['training']["data"]:
-                data_file = paths['training'] / self._create_dataset_name(prefix, dataset, training_params,
-                                                                          'training', False)
+            for dataset in config["training"]["data"]:
+                data_file = paths["training"] / self._create_dataset_name(
+                    prefix, dataset, training_params, "training", False
+                )
                 if not data_file.exists():
-                    ds.write(tags=dataset['tags'], data_file=data_file, ssh=ssh, **training_params)
+                    ds.write(
+                        tags=dataset["tags"],
+                        data_file=data_file,
+                        ssh=ssh,
+                        **training_params,
+                    )
                 else:
                     print(f"Warning: data set file for training exists at {data_file}.")
-                training_data_file = paths['training'] / self._create_dataset_name(prefix, dataset, training_params,
-                                                                                   'training', True)
+                training_data_file = paths["training"] / self._create_dataset_name(
+                    prefix, dataset, training_params, "training", True
+                )
 
                 training_datasets[f"{prefix}.{dataset['id']}"] = training_data_file
 
                 exclude_datasets.append(data_file)
 
-            if 'evaluation' in config.keys():
-                for dataset in config['evaluation']["data"]:
-                    data_file = paths['evaluation'] / self._create_dataset_name(prefix, dataset, evaluation_params,
-                                                                                'evaluation')
+            if "evaluation" in config.keys():
+                for dataset in config["evaluation"]["data"]:
+                    data_file = paths["evaluation"] / self._create_dataset_name(
+                        prefix, dataset, evaluation_params, "evaluation"
+                    )
                     if not data_file.exists():
-                        ds.write(tags=dataset['tags'], data_file=data_file, ssh=ssh, validation=0,
-                                 exclude_datasets=exclude_datasets, **evaluation_params)
+                        ds.write(
+                            tags=dataset["tags"],
+                            data_file=data_file,
+                            ssh=ssh,
+                            validation=0,
+                            exclude_datasets=exclude_datasets,
+                            **evaluation_params,
+                        )
                     else:
-                        print(f"Warning: data set file for evaluation exists at {data_file}.")
+                        print(
+                            f"Warning: data set file for evaluation exists at {data_file}."
+                        )
                     evaluation_datasets[f"{prefix}.{dataset['id']}"] = data_file
 
         if poremongo:
             pongo.disconnect(ssh=ssh)
 
-        self._save_dataset_paths(self.outdir, training_datasets, evaluation_datasets, paths)
+        self._save_dataset_paths(
+            self.outdir, training_datasets, evaluation_datasets, paths
+        )
 
         return training_datasets, evaluation_datasets, paths
 
-    def _save_dataset_paths(self, outdir, training_datasets, evaluation_datasets, paths):
+    def _save_dataset_paths(
+        self, outdir, training_datasets, evaluation_datasets, paths
+    ):
 
         out_path = Path(outdir) / "datasets.npy"
 
         data = {
             "training": training_datasets,
             "evaluation": evaluation_datasets,
-            "paths": paths
+            "paths": paths,
         }
 
         with open(out_path, "wb") as outfile:
@@ -141,7 +165,7 @@ class TestTube:
 
     def run_training(self, training_datasets: dir, paths: dir):
 
-        print('Running training')
+        print("Running training")
         print(self.datasets.keys())
 
         for prefix, config in self.datasets.items():
@@ -150,10 +174,15 @@ class TestTube:
                 training_params, _ = self._get_dataset_params(config, "train")
                 data_file = training_datasets[f"{prefix}.{dataset['id']}"]
                 run_id = data_file.name.replace(".training.h5", "")
-                outdir = paths['training'] / run_id
+                outdir = paths["training"] / run_id
 
                 if not outdir.exists():
-                    self._launch_model_training(data_file=data_file, run_id=run_id, outdir=outdir, **training_params)
+                    self._launch_model_training(
+                        data_file=data_file,
+                        run_id=run_id,
+                        outdir=outdir,
+                        **training_params,
+                    )
                 else:
                     print(f"Training directory for data file exists at: {outdir}")
 
@@ -170,37 +199,89 @@ class TestTube:
 
         return {"outpath": out_path, "training": train_path, "evaluation": eval_path}
 
-    def _create_dataset_name(self, prefix: str, dataset: dict, params: dict, stage="training", validation=False) -> str:
+    def _create_dataset_name(
+        self,
+        prefix: str,
+        dataset: dict,
+        params: dict,
+        stage="training",
+        validation=False,
+    ) -> str:
         """ Construct the dataset name for joining into Path """
         name_params = [str(params[key]) for key in self.name_keys]
 
         if validation:
-            return f"{prefix}.{dataset['id']}.{stage}." + ".".join(name_params) + ".training.h5"
+            return (
+                f"{prefix}.{dataset['id']}.{stage}."
+                + ".".join(name_params)
+                + ".training.h5"
+            )
         else:
             return f"{prefix}.{dataset['id']}.{stage}." + ".".join(name_params) + ".h5"
 
     @staticmethod
-    def _launch_model_training(data_file, window_size: int = 200, activation: str = "softmax", nb_residual_block=1,
-                               nb_channels=256, nb_rnn=1, rnn_units=200, gru=False, gpu=False, dropout=0.2,
-                               recurrent_dropout=0.2, bidirectional=False, optimizer="adam", loss="binary_crossentropy",
-                               epochs=100, batch_size=1000, workers=2, run_id="run_id", outdir="training_output",
-                               verbose=True, nb_classes=2):
+    def _launch_model_training(
+        data_file,
+        window_size: int = 200,
+        activation: str = "softmax",
+        nb_residual_block=1,
+        nb_channels=256,
+        nb_rnn=1,
+        rnn_units=200,
+        gru=False,
+        gpus=1,
+        dropout=0.2,
+        recurrent_dropout=0.2,
+        bidirectional=False,
+        optimizer="adam",
+        loss="binary_crossentropy",
+        epochs=100,
+        batch_size=1000,
+        workers=2,
+        run_id="run_id",
+        outdir="training_output",
+        verbose=True,
+        nb_classes=2,
+    ):
 
         # Build model
         achilles = Achilles(data_file=data_file)
 
-        achilles.build(window_size=window_size, activation=activation,
-                       nb_residual_block=nb_residual_block, nb_channels=nb_channels,
-                       nb_rnn=nb_rnn, rnn_units=rnn_units, gru=gru, gpu=gpu, _nb_classes=nb_classes,
-                       dropout=dropout, rc_dropout=recurrent_dropout, bidirectional=bidirectional)
+        achilles.build(
+            window_size=window_size,
+            activation=activation,
+            nb_residual_block=nb_residual_block,
+            nb_channels=nb_channels,
+            nb_rnn=nb_rnn,
+            rnn_units=rnn_units,
+            gru=gru,
+            gpus=gpus,
+            _nb_classes=nb_classes,
+            dropout=dropout,
+            rc_dropout=recurrent_dropout,
+            bidirectional=bidirectional,
+        )
 
         # Compile model with loss function and optimizer
         achilles.compile(optimizer=optimizer, loss=loss)
 
-        achilles.train(epochs=epochs, batch_size=batch_size, workers=workers,
-                       run_id=run_id, outdir=outdir, verbose=verbose)
+        achilles.train(
+            epochs=epochs,
+            batch_size=batch_size,
+            workers=workers,
+            run_id=run_id,
+            outdir=outdir,
+            verbose=verbose,
+        )
 
-    def run_predictions(self, training_dir, evaluation_path, prefix="exp2", mode="pairwise", batch_size=1000):
+    def run_predictions(
+        self,
+        training_dir,
+        evaluation_path,
+        prefix="experiment",
+        mode="pairwise",
+        batch_size=1000,
+    ):
 
         evaluation_path = Path(evaluation_path)
 
@@ -212,11 +293,14 @@ class TestTube:
                     print(f"Predicting on {item} with models in {training_dir}")
                     labels = get_dataset_labels(item.absolute())
 
-                    predictions = self.predict_models_on_evaluation(training_dir=training_dir, eval_data=item,
-                                                                    batch_size=batch_size)
+                    predictions = self.predict_models_on_evaluation(
+                        training_dir=training_dir, eval_data=item, batch_size=batch_size
+                    )
 
-                    data[item.name.split('evaluation')[0]] = {"predictions": predictions,
-                                                              "labels": np.argmax(labels, 1)}
+                    data[item.name.split("evaluation")[0]] = {
+                        "predictions": predictions,
+                        "labels": np.argmax(labels, 1),
+                    }
 
             np.save(f"{prefix}.eval.{mode}.npy", data)
 
@@ -240,22 +324,27 @@ class TestTube:
                 achilles.load_model(model_file=str(model))
 
                 # Model name: numpy array shape (1, 2)
-                prefix = model.name.split('training')[0]
-                data[prefix] = np.argmax(achilles.predict_generator(data_type="data", batch_size=batch_size), 1)
+                prefix = model.name.split("training")[0]
+                data[prefix] = np.argmax(
+                    achilles.predict_generator(data_type="data", batch_size=batch_size),
+                    1,
+                )
 
                 print(data[prefix])
 
         return data
 
 
-def visualize_binary_predictions(npy_file, prefix="exp1", mode="pairwise", labels=("pathogen", "human")):
+def visualize_binary_predictions(
+    npy_file, prefix="exp1", mode="pairwise", labels=("pathogen", "human")
+):
 
     eval_data = np.load(npy_file)
     eval_data = eval_data.item()
 
     decont_states = [f"false_{labels[0]}", f"false_{labels[1]}"]
 
-    # decont_states = [f"incorrectly_remove_{labels[0]}", f"incorrectly_retain_{labels[1]}"]
+    #     # decont_states = [f"incorrectly_remove_{labels[0]}", f"incorrectly_retain_{labels[1]}"]
 
     dfs_class_0 = []
     dfs_class_1 = []
@@ -267,8 +356,8 @@ def visualize_binary_predictions(npy_file, prefix="exp1", mode="pairwise", label
         labels_1 = []
         labels_2 = []
         labels_3 = []
-        for model_prefix, data in eval_dict['predictions'].items():
-            cfm = confusion_matrix(eval_dict['labels'], data)/(len(data)/2)
+        for model_prefix, data in eval_dict["predictions"].items():
+            cfm = confusion_matrix(eval_dict["labels"], data) / (len(data) / 2)
             print(cfm)
             labels_0.append(cfm[0, 0])
             labels_1.append(cfm[1, 1])
@@ -276,23 +365,55 @@ def visualize_binary_predictions(npy_file, prefix="exp1", mode="pairwise", label
             labels_3.append(cfm[1, 0])  # Lower left: predict human, but is pathogen
             model_names.append(model_prefix)
 
-        df_0 = pandas.DataFrame(data={"models": model_names, f"{labels[0]}": labels_0,
-                                      "evaluation": [eval_prefix for _ in range(len(model_names))]})
-        df_1 = pandas.DataFrame(data={"models": model_names, f"{labels[1]}": labels_1,
-                                      "evaluation": [eval_prefix for _ in range(len(model_names))]})
-        df_2 = pandas.DataFrame(data={"models": model_names, f"{decont_states[0]}": labels_2,
-                                      "evaluation": [eval_prefix for _ in range(len(model_names))]})
-        df_3 = pandas.DataFrame(data={"models": model_names, f"{decont_states[1]}": labels_3,
-                                      "evaluation": [eval_prefix for _ in range(len(model_names))]})
+        df_0 = pandas.DataFrame(
+            data={
+                "models": model_names,
+                f"{labels[0]}": labels_0,
+                "evaluation": [eval_prefix for _ in range(len(model_names))],
+            }
+        )
+        df_1 = pandas.DataFrame(
+            data={
+                "models": model_names,
+                f"{labels[1]}": labels_1,
+                "evaluation": [eval_prefix for _ in range(len(model_names))],
+            }
+        )
+        df_2 = pandas.DataFrame(
+            data={
+                "models": model_names,
+                f"{decont_states[0]}": labels_2,
+                "evaluation": [eval_prefix for _ in range(len(model_names))],
+            }
+        )
+        df_3 = pandas.DataFrame(
+            data={
+                "models": model_names,
+                f"{decont_states[1]}": labels_3,
+                "evaluation": [eval_prefix for _ in range(len(model_names))],
+            }
+        )
         dfs_class_0.append(df_0)
         dfs_class_1.append(df_1)
         dfs_class_2.append(df_2)
         dfs_class_3.append(df_3)
 
-    df_pathogen, pathogen_name = pandas.concat(dfs_class_0), f"{prefix}.eval.{mode}.{labels[0]}.csv"
-    df_host, host_name = pandas.concat(dfs_class_1), f"{prefix}.eval.{mode}.{labels[1]}.csv"
-    df_upper_right, ur_name = pandas.concat(dfs_class_2), f"{prefix}.eval.{mode}.{decont_states[0]}.csv"
-    df_lower_left, ll_name = pandas.concat(dfs_class_3), f"{prefix}.eval.{mode}.{decont_states[1]}.csv"
+    df_pathogen, pathogen_name = (
+        pandas.concat(dfs_class_0),
+        f"{prefix}.eval.{mode}.{labels[0]}.csv",
+    )
+    df_host, host_name = (
+        pandas.concat(dfs_class_1),
+        f"{prefix}.eval.{mode}.{labels[1]}.csv",
+    )
+    df_upper_right, ur_name = (
+        pandas.concat(dfs_class_2),
+        f"{prefix}.eval.{mode}.{decont_states[0]}.csv",
+    )
+    df_lower_left, ll_name = (
+        pandas.concat(dfs_class_3),
+        f"{prefix}.eval.{mode}.{decont_states[1]}.csv",
+    )
 
     df_pathogen.to_csv(pathogen_name)
     df_host.to_csv(host_name)
@@ -321,18 +442,20 @@ def summarize_training(outdir, prefix="exp1"):
 
     log_df = pandas.concat(log_dfs)
 
-    df_group = log_df.groupby('id')
+    df_group = log_df.groupby("id")
 
     f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
-    f.suptitle('Training - Pathogen vs. Mixed Human Chromosomes')
+    f.suptitle("Training - Pathogen vs. Mixed Human Chromosomes")
 
-    df_group['acc'].plot(x="epochs", legend=True, ax=ax1, title="Training Accuracy")
-    df_group['val_acc'].plot(x="epochs", legend=False, ax=ax2,  title="Validation Accuracy")
-    df_group['loss'].plot(x="epochs", legend=False, ax=ax3, title="Training Loss")
-    df_group['val_loss'].plot(x="epochs", legend=False, ax=ax4, title="Validation Loss")
+    df_group["acc"].plot(x="epochs", legend=True, ax=ax1, title="Training Accuracy")
+    df_group["val_acc"].plot(
+        x="epochs", legend=False, ax=ax2, title="Validation Accuracy"
+    )
+    df_group["loss"].plot(x="epochs", legend=False, ax=ax3, title="Training Loss")
+    df_group["val_loss"].plot(x="epochs", legend=False, ax=ax4, title="Validation Loss")
 
     plt.tight_layout()
-    plt.savefig(f"{prefix}.training.pdf", figsize=(8, 6), bbox_inches='tight')
+    plt.savefig(f"{prefix}.training.pdf", figsize=(8, 6), bbox_inches="tight")
 
 
 def make_confusion_superheatmap(confusion_panels):
@@ -346,10 +469,18 @@ def make_confusion_superheatmap(confusion_panels):
 
     axes = [ax1, ax2, ax3, ax4]
     for i in range(len(confusion_panels)):
-        ax = make_heatmap(df=confusion_panels[i], label=labels[i], cmap=cmaps[i], ax=axes[i], vmin=vmin, vmax=vmax)
+        ax = make_heatmap(
+            df=confusion_panels[i],
+            label=labels[i],
+            cmap=cmaps[i],
+            ax=axes[i],
+            vmin=vmin,
+            vmax=vmax,
+        )
 
     plt.tight_layout()
     plt.show()
+
 
 def _get_vmin_vmax(confusion_panels):
 
@@ -364,7 +495,15 @@ def _get_vmin_vmax(confusion_panels):
     return min(mins), max(maxs)
 
 
-def make_heatmap(df=None, csv_file=None, label="class_0", cmap="GnBu", postfix_split=".200.", ax=None, **kwargs):
+def make_heatmap(
+    df=None,
+    csv_file=None,
+    label="class_0",
+    cmap="GnBu",
+    postfix_split=".200.",
+    ax=None,
+    **kwargs,
+):
 
     if csv_file:
         df = pandas.read_csv(csv_file)
