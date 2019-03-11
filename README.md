@@ -59,7 +59,41 @@ This is somewhat what the process currently looks like minus Nextflow + Docker +
 Create a training or evaluation `HDF5` data set of singal slices from the `Fast5` files for input into training with `Achilles`. Uses `Poremongo` to sample labels from `MongoDB` database index of all read files on the system. Does not need GPU.
 
 ```
-achilles create --help
+Usage: achilles create [OPTIONS]
+
+  Sample and compile datasets with PoreMongo
+
+Options:
+  -i, --pmid                      PoreMongo connection ID.
+  -c, --config                    YAML configuration file for creating
+                                  Datasets.
+  -t, --tags                      Tags (labels) to sample from, comma
+                                  separated args.
+  -o, --output, --dataset         Output HDF5 file containing sampled tensors
+                                  and labels.  [default: dataset.hd5]
+  -m, --max_windows               Maximum number of sampled signal value
+                                  windows per tag / label.  [default: 100000]
+  -r, --max_windows_per_read      Maximum number of windows sampled from read
+                                  / diversity of input data.  [default: 50]
+  -w, --window_size               Length of sliding window to sample from
+                                  signal read.  [default: 200]
+  -s, --window_step               Step of sliding window to sample from signal
+                                  read.  [default: 0.1]
+  -rs, --sample                   Number of random Fast5 models to sample from
+                                  database per tag / label  [default: 10000]
+  --proportion                    Proportion of Fast5 models to sample per tag
+                                  / label  [default: equal]
+  --exclude                       Comma separated list of HDF5 datasets to
+                                  exclude from sampling
+  --global_tags                   Global tags to apply to sample, comma-
+                                  separated, e.g. to force pore version: R9.4
+                                  [default: R9.4]
+  --validation                    Proportion of data to be split into
+                                  validation
+  --display                       Display tags in database and exit.
+                                  [default: False]
+  --help                          Show this message and exit.
+
 ```
 
 ***
@@ -69,7 +103,48 @@ achilles create --help
 Train a `HDF5` training dataset of signal slices and labels in `Keras` using the `Achilles` variant of `Chirons` hybrid convolutional and recurrent architecture. A simple fully connected layer predicts labels in the output. Absolutely needs GPU for training.
 
 ```
-achilles train --help
+Usage: achilles train [OPTIONS]
+
+  Train neural network classifiers in Achilles
+
+Options:
+  -f, --file                Input training / validation HDF5 dataset
+                            [required]
+  -i, --run_id              Training run ID  [default: model; required]
+  -o, --outdir              Output directory  [default: training_model;
+                            required]
+  -l, --load                Trained model weights from Keras, HDF5 to continue
+                            training, or re-train model  [default: ]
+  -v, --verbose             Show training progress output and model
+                            architecture in Keras  [default: False]
+  -a, --activation          Activation function applied to final fully
+                            connected classification layer  [default: softmax]
+  --residual_block          Number of stacked ResidualBlocks in initial layers
+                            [default: 1]
+  --lstm                    Number of stacked LSTMs connected to Residual
+                            Blocks  [default: 1]
+  --channels                Number channels per Residual Block  [default: 256]
+  --units                   Number of units per LSTMs  [default: 200]
+  --gru                     Simple GRU cell instead of LSTM  [default: False]
+  --bidirectional           Bidirectional LSTM  [default: False]
+  --dropout                 Dropout applied to LSTM layers  [default: 0.2]
+  --recurrent_dropout       Internal dropout applied to LSTM layers  [default:
+                            0.2]
+  --optimizer               Compile model with optimizer for training
+                            [default: adam]
+  --loss_function, --loss   Compile model with loss function for training
+                            [default: binary_crossentropy]
+  -e, --epochs              Number of epochs to train model for  [default:
+                            100]
+  -b, --batch_size          Batch size for training, major determinant of RAM
+                            used on GPU  [default: 200]
+  -t, --threads             Feed batches into training function using multiple
+                            processes  [default: 2]
+  --gpus                    Build the model for distributed training across
+                            multiple GPUs  [default: 1]
+  -g, --gpu                 SET CUDA_VISIBLE_DEVICES to train model on
+                            specific GPU (e.g. 0 or 0,1)
+  --help                    Show this message and exit.
 ```
 
 ***
@@ -112,7 +187,13 @@ Options:
 Evaluate a trained `HDF5` model (always best validation error from training run with `achilles train`) across a directory of evaluation datasets. Should run on GPU.
 
 ```
-achilles eval --help
+Usage: achilles evaluate [OPTIONS]
+
+Options:
+  -m, --model        Model file HD5.
+  -e, --evaluation   Evaluation file HD5 sampled from Achilles.
+  -b, --batch_size   Evaluation batch size.  [default: 500]
+  --help             Show this message and exit.
 ```
 
 
