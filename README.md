@@ -230,26 +230,14 @@ train:
   recurrent_dropout: 0.2
 ```
 
-In these pretrained models the human label is always trained from chromosomes 2, 4, 8, 16 and evaluated on chromsomes 5, 9, 15, 17 to make sure that the classifiers generalize over the whole human genome. Mixtures of pathogens on the other hand are useful to build generalized classifiers (bacteria vs. human) vs. specific classifiers (MRSA vs human). Label 0 in these models is pathogen, and label 1 is the host.
+In these pretrained models the human label is always trained from chromosomes 2, 4, 8, 16 and evaluated on chromsomes 5, 9, 15, 17 to make sure that the classifiers generalize over the whole human genome. Mixtures of pathogens on the other hand are useful to build generalized classifiers (bacteria vs. human) vs. specific classifiers (MRSA vs human). Label 0 in these models is pathogen, and label 1 is the host, for instance as in this tag sampling pattern from `poremongo:
 
 ```yaml
 training:
   - id: tb
     tags: [[TB], [Chr_2, Chr_8, Chr_14, Chr_18]]
-  - id: bp
-    tags: [[BP], [Chr_2, Chr_8, Chr_14, Chr_18]]
-  - id: kleb
-    tags: [[Kleb], [Chr_2, Chr_8, Chr_14, Chr_18]]
-  - id: ecoli
-    tags: [ Ecoli], [Chr_2, Chr_8, Chr_14, Chr_18]]
-  - id: lambda
-    tags: [[Lambda], [Chr_2, Chr_8, Chr_14, Chr_18]]
-  - id: mock
-    tags: [[Mock], [Chr_2, Chr_8, Chr_14, Chr_18]]
   - id: bacteria1
     tags: [[BP, Kleb, Ecoli], [Chr_2, Chr_8, Chr_14, Chr_18]]
-  - id: bacteria2
-    tags: [[TB, Kleb, Ecoli], [Chr_2, Chr_8, Chr_14, Chr_18]]
 ```
 
 ***
