@@ -7,7 +7,7 @@
 ![](https://img.shields.io/badge/docs-latest-green.svg)
 ![](https://img.shields.io/badge/lifecycle-experimental-orange.svg)
 
- **`v0.3-alpha`**: `it's working, but there are no tests`
+ **`v0.3-alpha`**: `internal release, no tests`
 
 `Achilles` is a platform for training, evaluating and deploying neural network models that act as taxonomic classifiers of raw nanopore signal, for instance by distinguishing between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *Burkholderia pseudomallei* or *Mycobacterium tuberculosis*). The minimal hybrid architecture of the networks can also be thought of as a template for a variety of classifiers, that can be trained on any property of the sequence data that is discernible from the pore signal and can be labelled across signal reads.
 
@@ -74,22 +74,45 @@ achilles train --help
 
 ***
 
+:deciduous_tree: **`achilles predict`**
+
+Predict labels using a trained model and a directory of `.fast5` files. Can `--watch` a dirrectory for live `.fast5` files. Should run on GPU.
+
+```
+Usage: achilles predict [OPTIONS]
+
+  Make predictions on a directory of Fast5
+
+Options:
+  -w, --watch                Watch directory for incoming Fast5 to classify.
+  -m, --model                H5Py file containing trainedAchilles model for
+                             predictions
+  -size, -s, --window_size   Length fo window, must match trained input model
+                             [default: 100]
+  -sc, --window_slices       Maximum number of window slices sampled from read
+                             [default: 50]
+  -ws, --window_step         Step of sliding window to sample from signal
+                             read.  [default: 0.1]
+  -b, --batch_size           Batch size for prediction, determinant of
+                             RAM used on GPU  [default: 200]
+  -g, --gpu                  Set CUDA_VISIBLE_DEVICES to train model on
+                             specific GPU (e.g. 0 or 0,1)
+  -ms, --model_summary       Show model layer summary on loading model
+                             [default: False]
+  -n, --product              Calculate the normalized product for predicting 
+                             labels over slices. [default: False]
+  --help                     Show this message and exit.
+
+```
+
+***
+
 :cactus: **`achilles eval`**
 
 Evaluate a trained `HDF5` model (always best validation error from training run with `achilles train`) across a directory of evaluation datasets. Should run on GPU.
 
 ```
 achilles eval --help
-```
-
-***
-
-:deciduous_tree: **`achilles predict`**
-
-Predict labels using a trained model and a directory of `.fast5` files. Can `--watch` a dirrectory for live `.fast5` files. Should run on GPU.
-
-```
-achilles predict --help
 ```
 
 
@@ -138,23 +161,31 @@ training:
       - id: kleb
         tags: [[Kleb], [Chr_2, Chr_8, Chr_14, Chr_18]]
       - id: ecoli
-        tags: [[Ecoli], [Chr_2, Chr_8, Chr_14, Chr_18]]
+        tags: [ Ecoli], [Chr_2, Chr_8, Chr_14, Chr_18]]
       - id: lambda
         tags: [[Lambda], [Chr_2, Chr_8, Chr_14, Chr_18]]
       - id: mock
         tags: [[Mock], [Chr_2, Chr_8, Chr_14, Chr_18]]
+      - id: bacteria1
+        tags: [[BP, Kleb, Ecoli], [Chr_2, Chr_8, Chr_14, Chr_18]]
+      - id: bacteria2
+        tags: [[TB, Kleb, Ecoli], [Chr_2, Chr_8, Chr_14, Chr_18]]
 ```
 
 ***
 
 :mouse2: **Generalists**:
 
-  * Bacteria in human host (trained on Human reference genome mixture of chromosomes and *K. pneumoniae*, *M. tuberculosis*, *B.  pseudomallei*)  - `models/human.bacteria.alpha.1.hd5`
-  * Bacteria in human host (trained on Human reference genome mixture of chromosomes and *E. coli*, *M. tuberculosis*, *B.  pseudomallei*)  - `models/human.bacteria.alpha.2.hd5`
+  * Bacteria in human host (trained on Human reference genome mixture of chromosomes and *K. pneumoniae*, *M. tuberculosis*, *B.  pseudomallei*)  - `models/alpha/bacteria1.human.hd5`
+  * Bacteria in human host (trained on Human reference genome mixture of chromosomes and *E. coli*, *M. tuberculosis*, *B.  pseudomallei*)  - `models/alpha/bacteria2.human.hd5`
   
 :penguin: **Specialists**:
 
- * ... soon ...
+* *Mycobacterium tuberculosis* in human host  - `models/alpha/mtuberculosis.human.hd5`
+* *Klebsiella pneumoniae* in human host - `models/alpha/kpneumoniae.human.hd5`
+* *Burkholderia pseudomallei* in human host - `models/alpha/bpseudomallei.human.hd5`
+* Lambda phage in human host - `models/alpha/lambda.human.hd5`
+* Mock community bacteria in human host - `models/alpha/bacteria2.human.bacteria.hd5`
  
 :octopus: **Multitaskers**:
 
