@@ -84,10 +84,10 @@ Usage: achilles predict [OPTIONS]
   Make predictions on a directory of Fast5
 
 Options:
-  -w, --watch                Watch directory for incoming Fast5 to classify.
-  -m, --model                H5Py file containing trainedAchilles model for
-                             predictions
-  -s, --window_size   Length fo window, must match trained input model
+  -d, --dir                  Directory for incoming Fast5 to classify
+  -w, --watch                Watch directory for incoming Fast5 to classify
+  -m, --model                HDF5 file of trained Achilles model
+  -s, --window_size          Length fo window, must match trained input model
                              [default: 100]
   -sc, --window_slices       Maximum number of window slices sampled from read
                              [default: 50]
@@ -100,8 +100,8 @@ Options:
   -ms, --model_summary       Show model layer summary on loading model
                              [default: False]
   -n, --product              Calculate the normalized product for predicting 
-                             labels over slices. [default: False]
-  --help                     Show this message and exit.
+                             labels over slices [default: False]
+  --help                     Show this message and exit
 
 ```
 
