@@ -7,7 +7,7 @@
 ![](https://img.shields.io/badge/docs-latest-green.svg)
 ![](https://img.shields.io/badge/lifecycle-experimental-orange.svg)
 
- **`v0.3-alpha`**: `internal release, no tests`
+ **`v0.3-alpha`**`internal release, no tests`
 
 `Achilles` is a platform for training, evaluating and deploying neural network models that act as taxonomic classifiers of raw nanopore signal, for instance by distinguishing between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *Burkholderia pseudomallei* or *Mycobacterium tuberculosis*). The minimal hybrid architecture of the networks can also be thought of as a template for a variety of classifiers, that can be trained on any property of the sequence data that is discernible from the pore signal and can be labelled across signal reads.
 
