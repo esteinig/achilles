@@ -9,18 +9,16 @@
 
  **`v0.3-alpha`**: `it's working, but there are no tests`
 
-`Achilles` is a platform for training, evaluating and deploying neural network models that act as taxonomic classifiers of raw nanopore signal, for instance by distinguishing between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *Burkholderia pseudomallei* or *Mycobacterium tuberculosis*). The neural networks are essentially a Keras implementation of the hybrid convolutional and recurrent architecture from [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron) [published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989). We have replaced some of the regularization functions with those available in `Keras`, in particular we implemented internal and regular Dropout in the LSTM layer instead of Batch Normalization. Overall, the implementation is minimal, and replaces the bi-directional LSTM with a regular LSTM layer, as well as combining only a single resiudal block with a single LSTM, totalling around 600,000 learnable parameters, somewhere around the size of MobileNets. This necessitates a higher number of epochs for training, but stil learns from limited signal data and keeps model prediction fast in the interest of mobile deployment or real-time / online learning from sequence streams.
+`Achilles` is a platform for training, evaluating and deploying neural network models that act as taxonomic classifiers of raw nanopore signal, for instance by distinguishing between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *Burkholderia pseudomallei* or *Mycobacterium tuberculosis*). The minimal hybrid architecture of the networks can also be thought of as a template for a variety of classifiers, that can be trained on any property of the sequence data that is discernible from the pore signal and can be labelled across signal reads.
+
+The neural networks are essentially a Keras implementation of the hybrid convolutional and recurrent architecture from [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron) [published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989). We have replaced some of the regularization functions with those available in `Keras`, in particular we implemented internal and regular Dropout in the LSTM layer instead of Batch Normalization.
+
+<p align="center"><img src="logo/achilles_pretrained.png"></img></p>
+
+Overall, the implementation is minimal, and replaces the bi-directional LSTM with a regular LSTM layer, as well as combining only a single resiudal block with a single LSTM, totalling around 600,000 learnable parameters, somewhere around the size of MobileNets. This necessitates a higher number of epochs for training, but stil learns from limited signal data and keeps model prediction fast in the interest of mobile deployment or real-time / online learning from sequence stream
 
 ### :snake: Install
 ---
-
-`Tensorflow-GPU` and the associated `CUDA` driver on the GPU must be installed. We used `Achilles` on the JCU cluster that has two Tesla V100 with 16GB memory. For some reason, installation of the GPU environment did not work with higher `tensorflow-gpu` versions `> v1.8` that interface with `CUDA 9.2` or `CUDA 10`, so we installed `tensorflow-gpu v1.8.0` from `conda` with the `cudnn` library version `v7.1.2`, which also installs the `cudatoolkit` version `v9.0` in `conda`. This environment works with the `CUDA 9.0` driver for the GPUs on the cluster. 
-
-The frozen `conda` env for this can be found in `envs/achilles-jcu.yml` and installed with:
-
-```
-conda env create --file envs/achilles-jcu.yml
-```
 
 Achilles can be installed with:
 
@@ -32,6 +30,14 @@ You know if the driver and `tensorflow-gpu` work when you call the main help int
 
 ```
 achilles --help
+```
+
+`Tensorflow-GPU` and the associated `CUDA` driver on the GPU must be installed. We used `Achilles` on the JCU cluster that has two Tesla V100 with 16GB memory. For some reason, installation of the GPU environment did not work with higher `tensorflow-gpu` versions `> v1.8` that interface with `CUDA 9.2` or `CUDA 10`, so we installed `tensorflow-gpu v1.8.0` from `conda` with the `cudnn` library version `v7.1.2`, which also installs the `cudatoolkit` version `v9.0` in `conda`. This environment works with the `CUDA 9.0` driver for the GPUs on the cluster. 
+
+The frozen `conda` env for this can be found in `envs/achilles-jcu.yml` and installed with:
+
+```
+conda env create --file envs/achilles-jcu.yml
 ```
 
 ### :whale: Command line interface
@@ -87,14 +93,59 @@ achilles predict --help
 ```
 
 
-### :cat2: Pre-trained models
+### :cat2: Pre-trained models (v.0.3-alpha)
 ---
 
 Currently all pretrained models are standardized to a lightweight `1 x 256-channel ResBlock + 1 x 200-unit LSTM` architecture with `Dropout` in recurrent layers that predicts on overlapping slices of 400 signal values from `R9.4` pores; this creates a network model with around 631,730 parameters, which we trained in 500 epochs on a Tesla V100 GPU with 16GB memory over 8 hours with a batch size of 3000 batches per forward pass. The model predicts from a fully connected layer with `Softmax` activation function over `n` labels. Training on the alpha version models is conducted on 100,000 signal slices extracted evenly over each subcategory of the label (pathogens, chromosomes) with a random sampling window on the read that extracts `50 x 400` slices with step 40. This equates to roughly 2000 reads per label and around 200 - 1000 reads per subcategory in the label depending on the number of subcategory mixtures that tags in the database are sampled from (e.g. pathogens or chromosome mixtures). Models are trained using `Adam` optimizer and the `binary crossentropy` loss function, which is selected due to the binary prediction of `pathogen` vs. `host`, depending on how we train the models with pathogen subcategories and human chromsomes.
 
-<p align="left"><img src="logo/achilles_pretrained.png"></img></p>
+
+```yaml
+create:
+    global_tags: R9.4
+    sample_proportions: equal
+    sample_files_per_tag: 20000
+    max_windows: 100000
+    max_reads: null
+    window_size: 300
+    window_step: 0.1
+    window_random: true
+    window_recover: true
+    max_windows_per_read: 50
+
+  train:
+    window_size: 300
+    workers: 2
+    nb_residual_block: 1
+    nb_rnn: 1
+    activation: softmax
+    optimizer: adam
+    loss: binary_crossentropy
+    epochs: 300
+    batch_size: 300
+    dropout: 0.2
+    recurrent_dropout: 0.2
+```
 
 In these pretrained models the human label is always trained from chromosomes 2, 4, 8, 16 and evaluated on chromsomes 5, 9, 15, 17 to make sure that the classifiers generalize over the whole human genome. Mixtures of pathogens on the other hand are useful to build generalized classifiers (bacteria vs. human) vs. specific classifiers (MRSA vs human). Label 0 in these models is pathogen, and label 1 is the host.
+
+```yaml
+training:
+      data:
+      - id: tb
+        tags: [[TB], [Chr_2, Chr_8, Chr_14, Chr_18]]
+      - id: bp
+        tags: [[BP], [Chr_2, Chr_8, Chr_14, Chr_18]]
+      - id: kleb
+        tags: [[Kleb], [Chr_2, Chr_8, Chr_14, Chr_18]]
+      - id: ecoli
+        tags: [[Ecoli], [Chr_2, Chr_8, Chr_14, Chr_18]]
+      - id: lambda
+        tags: [[Lambda], [Chr_2, Chr_8, Chr_14, Chr_18]]
+      - id: mock
+        tags: [[Mock], [Chr_2, Chr_8, Chr_14, Chr_18]]
+```
+
+***
 
 :mouse2: **Generalists**:
 
