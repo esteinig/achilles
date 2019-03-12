@@ -14,17 +14,18 @@ from achilles.dataset import AchillesDataset
 from achilles.model import Achilles
 from achilles.utils import get_dataset_labels
 
-# TODO: Check function for experiment configuration JSON
+# TODO: Check function for lab configuration JSON
 
 
 class TestTube:
-    def __init__(self, config: str, outdir: str):
+    def __init__(self, config: str = None, outdir: str = None):
 
-        with open(config, "r") as config_file:
-            self.config = yaml.load(config_file)
+        if config:
+            with open(config, "r") as config_file:
+                self.config = yaml.load(config_file)
 
-        self.parameters = self.config["global"]
-        self.datasets = self.config["datasets"]
+            self.parameters = self.config["global"]
+            self.datasets = self.config["datasets"]
 
         self.name_keys = ("window_size", "max_windows")
 
@@ -278,7 +279,7 @@ class TestTube:
         self,
         training_dir,
         evaluation_path,
-        prefix="experiment",
+        prefix="lab",
         mode="pairwise",
         batch_size=1000,
     ):
@@ -326,13 +327,16 @@ class TestTube:
                 # Model name: numpy array shape (1, 2)
                 prefix = model.name.split("training")[0]
                 data[prefix] = np.argmax(
-                    achilles.predict_generator(data_type="data", batch_size=batch_size),
+                    achilles.predict_generator(
+                        data_type="data", batch_size=batch_size
+                    ),
                     1,
                 )
 
                 print(data[prefix])
 
         return data
+
 
 
 def visualize_binary_predictions(

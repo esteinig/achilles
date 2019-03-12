@@ -29,7 +29,7 @@ style.use("ggplot")
 def read_signal(
     fast5: str,
     normalize: bool = False,
-    scale: bool = True,
+    scale: bool = False,
     window_size: int = 400,
     window_step: int = 400,
     window_max: int = 10,
@@ -56,7 +56,6 @@ def read_signal(
         fast5 = Fast5File(fname=fast5)
     except OSError:
         # If the file can't be opened:
-        print("Could not open Fast5 file:", fast5)
         return None, 0
 
     # Scale for array of float(pA values)
@@ -250,8 +249,9 @@ def timeit(micro=False):
             if micro:
                 seconds = int(seconds * 1000000)  # Microseconds
             # print("Runtime:", seconds, "seconds")
-            # Flatten output if the output of a function is a tuple with multiple items
-            # if this is the case, seconds are at index -1
+            # Flatten output if the output of a function is a
+            # tuple with multiple items if this is the case,
+            # seconds are at index -1
             return [
                 num
                 for item in [result, seconds]

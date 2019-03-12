@@ -367,7 +367,7 @@ class AchillesDataset:
 
         self.print_data_summary(data_file=data_file)
 
-        # TODO Randomize all again? for random vector in dataset file. Defeats purpose of coding the above in
+        # TODO Randomize all again? for random vector in dataset file.
         # TODO while loop as memory guard in really large datasets
 
         if validation > 0:
@@ -434,7 +434,6 @@ class AchillesDataset:
                 train_x, train_y, val_x, val_y = self.create_training_validation_paths(
                     file=out, window_size=window_size, classes=classes
                 )
-
                 # Read and write the training / validation data by chunks of indices that
                 # correspond to the max_windows_per_read parameter (minimum memory for processing)
 
@@ -649,10 +648,12 @@ class AchillesDataset:
                 )
             else:
                 logging.debug(
-                    "Could not access either data/data or training/data + validation/data in HDF5."
+                    "Could not access either data/data or training/data + "
+                    "validation/data in HDF5."
                 )
                 raise KeyError(
-                    "Could not access either data/data or training/data + validation/data in HDF5."
+                    "Could not access either data/data or training/data + "
+                    "validation/data in HDF5."
                 )
 
             print(msg)
@@ -700,7 +701,7 @@ class AchillesDataset:
                 idx_max = num_windows - sample_size
                 rand_idx = random.randint(0, idx_max)
 
-                return array[rand_idx : rand_idx + sample_size]
+                return array[rand_idx: rand_idx + sample_size]
             else:
                 return array[:sample_size]
 

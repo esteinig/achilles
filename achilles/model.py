@@ -217,9 +217,6 @@ class Achilles:
         # Read model stats
 
         self.model = load_model(model_file)
-
-        print(dir(self.model))
-
         if summary:
             self.model.summary()
 
@@ -235,7 +232,8 @@ class Achilles:
 
     @timeit(micro=True)
     def predict(
-        self, signal_tensor: np.array = None, batch_size=10, null_pass: np.shape = None
+        self, signal_tensor: np.array = None, batch_size=10,
+        null_pass: np.shape = None
     ):
 
         """ Predict signal arrays using model test function,

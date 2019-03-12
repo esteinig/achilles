@@ -42,14 +42,18 @@ def save_uri(pmid, user, host, port, db):
         click.echo(f"Saved connection with PMID: {pmid}")
     except KeyError:
         config[pmid] = uri
-        click.echo(f"New connections saved with PMID: {pmid}")
+        click.echo(f"New connection saved with PMID: {pmid}")
 
     write_config_path(config, config_file="poremongo.json")
 
 
 @click.command()
-@click.option("--save", is_flag=True, help="Save a connection with PMID (--pmid).")
-@click.option("--delete", is_flag=True, help="Delete connection with PMID (--pmid).")
+@click.option(
+    "--save", is_flag=True, help="Save a connection with PMID (--pmid)."
+)
+@click.option(
+    "--delete", is_flag=True, help="Delete connection with PMID (--pmid)."
+)
 @click.option(
     "--display", is_flag=True, help="Display saved connections for PoreMongo."
 )
