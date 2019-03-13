@@ -15,7 +15,7 @@ The neural networks are essentially a Keras implementation of the hybrid convolu
 
 <p align="center"><img src="logo/achilles_pretrained.png"></img></p>
 
-Overall, the implementation is minimal, and replaces the bi-directional LSTM with a regular LSTM layer, as well as combining only a single resiudal block with a single LSTM, totalling around 600,000 learnable parameters, somewhere around the size of MobileNets. This necessitates a higher number of epochs for training, but stil learns from limited signal data and keeps model prediction fast in the interest of mobile deployment or real-time / online learning from sequence stream
+Overall, the implementation is minimal, and replaces the bi-directional LSTM with a regular LSTM layer. Unlike the deeper architectures used previously, the core model combines a single residual block with a single LSTM. This lightweight architecture has around 600,000 parameters, somewhere around the size of Google's MobileNets. They require a higher number of epochs for training, but learn from limited signal data and keep model predictions fast, particularly in the interest of mobile deployment or real-time / online learning from signal streams.
 
 ### Install
 ---
