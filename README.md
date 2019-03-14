@@ -10,7 +10,7 @@
 
  **`v0.3-alpha`**`internal release, no tests`
 
-`Achilles` is a platform for training, evaluating and deploying neural network models that act as taxonomic classifiers of raw nanopore signal, for instance by distinguishing between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *Burkholderia pseudomallei* or *Mycobacterium tuberculosis*). The minimal hybrid architecture of the networks can also be thought of as a template for a variety of classifiers, that can be trained on any property of the sequence data that is discernible from the pore signal and can be labelled across signal reads.
+`Achilles` is a platform for training, evaluating and deploying neural network models that act as taxonomic classifiers of raw nanopore signal, for instance by distinguishing between nanopore signals from host (e.g. human background) and pathogens DNA (e.g. *Burkholderia pseudomallei* or *Mycobacterium tuberculosis*). The minimal hybrid architecture of the networks can also be thought of as a template for a variety of classifiers, that can be trained on any property of the sequence data that is discernible from the pore signal and can be labelled across signal reads.
 
 The neural networks are essentially a Keras implementation of the hybrid convolutional and recurrent architecture from [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron) [published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989). We have replaced some of the regularization functions with those available in `Keras`, in particular we implemented internal and regular Dropout in the LSTM layer instead of Batch Normalization.
 
