@@ -230,7 +230,7 @@ train:
   recurrent_dropout: 0.2
 ```
 
-In these pretrained models the human label is always trained from chromosomes 2, 4, 8, 16 and evaluated on chromsomes 5, 9, 15, 17 to make sure that the classifiers generalize over the whole human genome. Mixtures of pathogens on the other hand are useful to build generalized classifiers (bacteria vs. human) vs. specific classifiers (MRSA vs human). Label 0 in these models is pathogen, and label 1 is the host, for instance as in this tag sampling pattern from `poremongo:
+In these pretrained models the human label is always trained from chromosomes 2, 8, 14, 18 and evaluated on chromsomes 5, 9, 15, 17 to make sure that the classifiers generalize over the whole human genome. Mixtures of pathogens on the other hand are useful to build generalized classifiers (bacteria vs. human) vs. specific classifiers (MRSA vs human). `Label 0` in these models is pathogen, and `label 1` is the host, for instance in this tag sampling pattern from `PoreMongo`:
 
 ```yaml
 training:
@@ -279,7 +279,8 @@ training:
 
 [achilles.readthedocs.io](https://achilles.readthedocs.io)
 
-### :blowfish: Contributors
+### :monkey: Contributors
+---
 
 * Eike Steinig
 * Lachlan Coin
