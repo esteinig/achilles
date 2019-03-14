@@ -5,11 +5,12 @@
 ![](https://img.shields.io/badge/tf--gpu-1.8-blue.svg)
 ![](https://img.shields.io/badge/keras-2.2.0-blue.svg)
 ![](https://img.shields.io/badge/docs-latest-green.svg)
+![](https://img.shields.io/badge/preprint-soon-green.svg)
 ![](https://img.shields.io/badge/lifecycle-experimental-orange.svg)
 
  **`v0.3-alpha`**`internal release, no tests`
 
-`Achilles` is a platform for training, evaluating and deploying neural network models that act as taxonomic classifiers of raw nanopore signal, for instance by distinguishing between nanopore signals from hosts (e.g. human background) and pathogens (e.g. *Burkholderia pseudomallei* or *Mycobacterium tuberculosis*). The minimal hybrid architecture of the networks can also be thought of as a template for a variety of classifiers, that can be trained on any property of the sequence data that is discernible from the pore signal and can be labelled across signal reads.
+`Achilles` is a platform for training, evaluating and deploying neural network models that act as taxonomic classifiers of raw nanopore signal, for instance by distinguishing between nanopore signals from host (e.g. human background) and pathogen DNA (e.g. *Burkholderia pseudomallei* or *Mycobacterium tuberculosis*). The minimal hybrid architecture of the networks can also be thought of as a template for a variety of classifiers, that can be trained on any property of the sequence data that is discernible from the pore signal and can be labelled across signal reads.
 
 The neural networks are essentially a Keras implementation of the hybrid convolutional and recurrent architecture from [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron) [published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989). We have replaced some of the regularization functions with those available in `Keras`, in particular we implemented internal and regular Dropout in the LSTM layer instead of Batch Normalization.
 
@@ -51,7 +52,7 @@ conda env create --file environment.yml
 ### Walkthrough
 ---
 
-Just a quick walkthrough for prediction at the moment. First, pull the model collections into local storage (`~/.achilles/collections`):
+Just a quick walkthrough for prediction at the moment. First, pull the model collections into local storage which is in a hidden folder in the home directory (`~/.achilles/collections`):
 
 ```
 achilles pull
@@ -90,7 +91,7 @@ achilles predict -d path/to/human/fast5 -m alpha/mtb-g1 --size 300 -s 100 -b 100
 ### Command line interface
 ---
 
-Alpha version is for testing the software with some pre-trained models. You can also train your own models, which relies on `Poremongo` also in alpha stage at the moment and subject to change, so the code is not so stable. 
+Alpha version is for testing the software with some pre-trained models. You can also train your own models, which relies on the MongoDB database sampler from `Poremongo`, which is also in alpha stage and subject to change, so the code is not stable or tested at the moment. 
 
 Achilles is accessible through the CLI which summarizes some of the important tasks and exposes them to the user. Tasks like `achilles train` and `achilles create` have many parameters for setting the global parameters for signal sampling or the framework in which the models are trained. 
 
@@ -98,7 +99,7 @@ This is somewhat what the process currently looks like minus Nextflow + Docker +
 
 <p align="left"><img src="logo/achilles_schematic.png" height="634" width="800"></img></p>
 
-#### Tasks
+#### Neural Network Tasks
 ---
 
 :sunflower: **`achilles create`**
@@ -243,11 +244,56 @@ Options:
   --help             Show this message and exit.
 ```
 
+#### Model Management Tasks
+---
+
+:leaves: **`achilles pull`**
+
+Pulls model collections from Achilles repository into `~/.achilles/collections`. This includes the trained neural network model `HD5` files and a `YAML` file that hold some data related to the models.
+
+```
+Usage: achilles pull [OPTIONS]
+
+Pull model collections into a local cache
+
+Options:
+  --help  Show this message and exit.
+```
+
+:four_leaf_clover: **`achilles list`**
+
+List all collections in local cache directory `~/.achilles/collections`
+
+```
+Usage: achilles list [OPTIONS]
+
+Options:
+  -c, --collections  List all collections available in cache.
+  --help             Show this message and exit.
+
+```
+
+:palm_tree: **`achilles inspect`**
+
+Inspect a collection or model within a collection, also with more detail using the flag `-p`:
+
+```
+Usage: achilles inspect [OPTIONS]
+
+Options:
+  -m, --model        Model file to inspect.
+  -c, --collection   Name or UUID of model collection in local cache.
+  -p, --params       Show detailed collection parameters for sampling and
+                     training stages.  [default: False]
+  --help             Show this message and exit.
+
+```
+
 
 ### Pre-trained models (v.0.3-alpha)
 ---
 
-Currently all pretrained models are standardized to a lightweight `1 x 256-channel ResBlock + 1 x 200-unit LSTM` architecture with `Dropout` in recurrent layers that predicts on overlapping slices of 400 signal values from `R9.4` pores; this creates a network model with around 631,730 parameters, which we trained in 500 epochs on a Tesla V100 GPU with 16GB memory over 8 hours with a batch size of 3000 batches per forward pass. The model predicts from a fully connected layer with `Softmax` activation function over `n` labels. Training on the alpha version models is conducted on 100,000 signal slices extracted evenly over each subcategory of the label (pathogens, chromosomes) with a random sampling window on the read that extracts `50 x 400` slices with step 40. This equates to roughly 2000 reads per label and around 200 - 1000 reads per subcategory in the label depending on the number of subcategory mixtures that tags in the database are sampled from (e.g. pathogens or chromosome mixtures). Models are trained using `Adam` optimizer and the `binary crossentropy` loss function, which is selected due to the binary prediction of `pathogen` vs. `host`, depending on how we train the models with pathogen subcategories and human chromsomes.
+Currently all pretrained models are standardized to a lightweight `1 x 256-channel ResBlock + 1 x 200-unit LSTM` architecture with `Dropout` in recurrent layers that predicts on overlapping slices of 300 signal values from `R9.4` pores; this creates a network model with around 631,730 parameters, which we trained in 500 epochs on a Tesla V100 GPU with 16GB memory over 8 hours with a batch size of 3000 batches per forward pass. The model predicts from a fully connected layer with `Softmax` activation function over `n` labels. Training on the alpha version models is conducted on 100,000 signal slices extracted evenly over each subcategory of the label (pathogens, chromosomes) with a random sampling window on the read that extracts `50 x 300` slices with step 40. This equates to roughly 2000 reads per label and around 200 - 1000 reads per subcategory in the label depending on the number of subcategory mixtures that tags in the database are sampled from (e.g. pathogens or chromosome mixtures). Models are trained using `Adam` optimizer and the `binary crossentropy` loss function, which is selected due to the binary prediction of `pathogen` vs. `host`, depending on how we train the models with pathogen subcategories and human chromsomes.
 
 
 ```yaml
