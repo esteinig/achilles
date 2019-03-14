@@ -198,7 +198,7 @@ def train(
     gpus,
     gpu,
 ):
-    """Train neural network classifiers in AchillesModel"""
+    """Train neural network classifiers in Achilles"""
 
     achilles = AchillesModel(data_file=file)
 

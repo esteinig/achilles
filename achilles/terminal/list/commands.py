@@ -18,6 +18,8 @@ RE = Fore.RESET
 )
 def list(collections):
 
+    """ List model collections in Achilles """
+
     achilles = Achilles()
 
     if collections:

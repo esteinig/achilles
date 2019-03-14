@@ -35,6 +35,8 @@ RE = Fore.RESET
 )
 def evaluate(model, evaluation, batch_size):
 
+    """ Evaluate a model against a data set from PoreMongo """
+
     achilles = AchillesModel(evaluation)
     achilles.load_model(model_file=model)
 

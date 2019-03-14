@@ -318,12 +318,10 @@ class Achilles:
             collection=collection, name=model
         )
 
-
-
     @staticmethod
     def read_yaml(yaml_file: Path):
 
         with yaml_file.open('r') as fstream:
-            yml = yaml.load(fstream)
+            yml = yaml.load(fstream, Loader=yaml.FullLoader)
 
         return yml

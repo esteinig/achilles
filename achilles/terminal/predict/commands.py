@@ -113,7 +113,7 @@ def predict(
         gpu,
         model_summary,
 ):
-    """ Make predictions on a directory of Fast5 """
+    """ Make model predictions on a directory of Fast5 """
 
     if gpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
@@ -159,7 +159,7 @@ def predict(
         if first_pass:
             print(f"\n{R}Null pass {Y}for memory allocation in Keras.{RE}")
             _ = achilles.predict(null_pass=signal_tensor.shape)
-            print(f"{G}Null pass complete.{RE}\n")
+            print(f"{G}Null pass {Y}complete.{RE}\n")
             first_pass = False
 
         try:

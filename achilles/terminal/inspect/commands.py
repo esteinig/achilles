@@ -32,6 +32,8 @@ from achilles.achilles import Achilles
 )
 def inspect(model, collection, params):
 
+    """ Inspect a model or model collection """
+
     achilles = Achilles()
 
     if collection and not model:

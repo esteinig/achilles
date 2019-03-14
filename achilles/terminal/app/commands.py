@@ -6,7 +6,7 @@ from time import sleep
 @click.option("--host", "-h", default="localhost")
 @click.option("--port", "-p", default="8080")
 def app(host, port):
-    """Launch local server and application for AchillesModel"""
+    """Launch local server and application for Achilles"""
 
     click.launch(url=f"https://{host}:{port}/")
 

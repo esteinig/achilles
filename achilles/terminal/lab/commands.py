@@ -37,6 +37,8 @@ from pathlib import Path
 )
 def lab(outdir, training_dir, evaluation_dir):
 
+    """ Run predictions in a test tube, not completed. """
+
     tube = TestTube(outdir=outdir)
 
     tube.run_predictions(
