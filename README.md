@@ -367,14 +367,14 @@ training:
 
 * [Human nanopore reference genome](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md) CEPH1463 (NA12878/GM12878, Ceph/Utah pedigree) - 1d Rapid R9 + R9.4
 
-### :fish: Documentation
+### Documentation
 ---
 
 Coming soon.
 
 [achilles.readthedocs.io](https://achilles.readthedocs.io)
 
-### :monkey: Contributors
+### Contributors
 ---
 
 * Eike Steinig
