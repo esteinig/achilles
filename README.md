@@ -46,6 +46,39 @@ The frozen `conda` env for this can be found in `envs/achilles-jcu.yml` and inst
 conda env create --file envs/achilles-jcu.yml
 ```
 
+### Walkthrough
+---
+
+Just a quick walkthrough for prediction at the moment. First, pull the model collections into local storage (`~/.achilles/collections`):
+
+```
+achilles pull
+```
+
+List your collections:
+
+```
+achilles list -c
+```
+
+Inspect the alpha version collection, including parameters:
+
+```
+achilles inspect -c alpha -p
+```
+
+Inspect model in collection alpha, including training and validation results:
+
+```
+achilles inspect -c alpha -m bacteria-g1 -p
+```
+
+Run a prediction on a directory of `Fast5` files, models can be `HD5` files generated with `achilles train` or a simple path of `collection/model_name` if models were pulled into local storage. `Size` of window slices determines the size of the input layer, therefore the parameter must be the same as in the trained model. You can see this with `achilles inspect` and the `-p` flag. For now batch size `-b` should equal the number of slices sampled from a read `-c`, since this constitutes a single forward pass on the GPU.
+
+```
+achilles predict -d path/to/fast5 -m alpha/bacteria-g1 --size 300 -s 100 -b 100
+```
+
 ### Command line interface
 ---
 
