@@ -8,6 +8,8 @@ from .predict import predict
 from .lab import lab
 from .inspect import inspect
 from .evaluate import evaluate
+from .list import list
+from .pull import pull
 
 VERSION = "0.3-alpha"
 
@@ -26,3 +28,5 @@ terminal_client.add_command(predict)
 terminal_client.add_command(lab)
 terminal_client.add_command(inspect)
 terminal_client.add_command(evaluate)
+terminal_client.add_command(list)
+terminal_client.add_command(pull)

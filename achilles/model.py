@@ -51,8 +51,6 @@ class Achilles:
         ######################
 
         # Residual block stack, see config
-        # There must always be one residual block for input dimensions
-        # by data generator:
         x = self.residual_block(inputs, nb_channels, input_shape=shape)
 
         if nb_residual_block > 1:

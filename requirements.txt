@@ -12,3 +12,5 @@ colorama
 mongoengine
 click
 pyyaml
+delegator.py
+wget

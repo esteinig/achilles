@@ -1,0 +1,152 @@
+uuid: er2823h232
+date: 21-03-2019
+author: esteinig
+description: Achilles pre-trained models, v0.3
+
+config:
+  create:
+    global_tags:
+      - R9.4
+      - DNA
+    sample_files_per_tag: 20000
+    sample_proportions: equal
+    max_windows: 100000
+    max_windows_per_read: 50
+    window_size: 300
+    window_step: 0.1
+    window_random: true
+    window_recover: true
+
+  train:
+    epochs: 300
+    batch_size: 300
+
+    window_size: 300
+    nb_residual_block: 1
+    nb_rnn: 1
+
+    activation: softmax
+    optimizer: adam
+    loss: binary_crossentropy
+
+    dropout: 0.2
+    recurrent_dropout: 0.2
+
+    workers: 2
+
+models:
+    bacteria-g1:
+      labels:
+        - Bacteria
+        - Human
+      description: >
+        A generalist model for detecting bacteria in human DNA,
+        trained on M. tuberculosis, K. pneumoniae, and E. coli
+      accuracy:
+        training: 0.980787
+        validation: 0.989233
+      loss:
+        training: 0.05172
+        validation: 0.033563
+      file: models/alpha/bacteria.g1.hd5
+
+    bacteria-g2:
+      labels:
+        - Bacteria
+        - Human
+      description: >
+        A generalist model for detecting bacteria in human DNA,
+        trained on B. pseudomallei, K. pneumoniae, and E. coli
+      accuracy:
+        training: 0.985172
+        validation: 0.99075
+      loss:
+        training: 0.040367
+        validation: 0.026571
+      file: models/alpha/bacteria.g2.hd5
+
+    bacteria-g3:
+      labels:
+        - Microbes
+        - Human
+      description: >
+        A generalist model for detecting microbial DNA in human hosts,
+        trained on a mock community (ATCC MSA-3001) containing
+        one species of Archaea and nine species of Bacteria.
+      accuracy:
+        training: 0.953419
+        validation: 0.97725
+      loss:
+        training: 0.118333
+        validation: 0.064774
+      file: models/alpha/bacteria.g3.hd5
+
+    melioidosis-s1:
+      labels:
+        - B. pseudomallei
+        - Human
+      description: >
+        A specialist model for detecting B. pseudomallei in human DNA
+      accuracy:
+        training: 0.983598
+        validation:  0.99
+      loss:
+        training:  0.043968
+        validation: 0.029068
+      file: models/alpha/bp.s1.hd5
+
+    tuberculosis-s2:
+      labels:
+        - M. tuberculosis
+        - Human
+      description: >
+        A specialist model for detecting M. tuberculosis in human DNA
+      accuracy:
+        training: 0.98113
+        validation: 0.98815
+      loss:
+        training:  0.052325
+        validation: 0.033951
+      file: models/alpha/mtb.s2.hd5
+
+    kleb-s3:
+      labels:
+        - K. pneumoniae
+        - Human
+      description: >
+        A specialist model for detecting K. pneumoniae in human DNA
+      accuracy:
+        training: 0.96887
+        validation: 0.983467
+      loss:
+        training:  0.081608
+        validation: 0.048676
+      file: models/alpha/kleb.s3.hd5
+
+    ecoli-s4:
+      labels:
+        - E. coli
+        - Human
+      description: >
+        A specialist model for detecting E. coli in human DNA
+      accuracy:
+        training: 0.985794
+        validation: 0.992833
+      loss:
+        training:  0.038597
+        validation: 0.021345
+      file: models/alpha/ecoli.s4.hd5
+
+    lambda-s5:
+      labels:
+        - Lambda
+        - Human
+      description: >
+        A specialist model for detecting Lambda phage in human DNA
+      accuracy:
+        training: 0.961745
+        validation: 0.98312
+      loss:
+        training:  0.043968
+        validation: 0.029068
+      file: models/alpha/lambda.s5.hd5

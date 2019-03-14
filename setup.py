@@ -23,6 +23,8 @@ setup(
         "click",
         "pyyaml",
         "pytest",
+        "wget",
+        "delegator.py"
     ],
     entry_points="""
         [console_scripts]

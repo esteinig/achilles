@@ -89,14 +89,6 @@ from achilles.utils import get_dataset_dim
     help="Bidirectional LSTM",
 )
 @click.option(
-    "--gru",
-    metavar="",
-    is_flag=True,
-    required=False,
-    show_default=True,
-    help="Simple GRU cell instead of LSTM",
-)
-@click.option(
     "--units",
     metavar="",
     default=200,
@@ -195,7 +187,6 @@ def train(
     lstm,
     channels,
     units,
-    gru,
     bidirectional,
     dropout,
     recurrent_dropout,
@@ -224,7 +215,6 @@ def train(
             nb_channels=channels,
             nb_rnn=lstm,
             rnn_units=units,
-            gru=gru,
             dropout=dropout,
             rc_dropout=recurrent_dropout,
             bidirectional=bidirectional,

@@ -12,6 +12,19 @@ from pandas.errors import EmptyDataError
 
 from ont_fast5_api.fast5_file import Fast5File
 
+
+from colorama import Fore
+
+Y = Fore.YELLOW
+R = Fore.RED
+G = Fore.GREEN
+C = Fore.CYAN
+M = Fore.MAGENTA
+LR = Fore.LIGHTRED_EX
+LC = Fore.LIGHTCYAN_EX
+LY = Fore.LIGHTYELLOW_EX
+RE = Fore.RESET
+
 import matplotlib
 
 matplotlib.use("agg")
@@ -534,3 +547,70 @@ def retain_after_include(file_paths, include):
         string_retains = []
 
     return list(set(string_retains + file_retains))
+
+
+class TableFormatter:
+
+    def __init__(
+            self,
+            header: list = None,
+            row_template: str = None,
+            header_template: str = None,
+            header_color: str = Y,
+            header_gap: bool = True
+    ):
+
+        self.header = header
+
+        self.header_color = header_color
+        self.header_gap = header_gap
+
+        self.row_template = row_template
+
+        if not header_template:
+            self.header_template = row_template
+        else:
+            self.header_template = header_template
+
+        self.head = self.format_header()  # Current header formatted
+        self.row = None  # Current row formatted
+        self.table = None  # Current table formatted
+
+    def __enter__(self):
+
+        print()
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+
+        print()
+
+    def format_header(self):
+
+        head = f"{self.header_color}{self.header_template.format(*self.header)}{RE}" + "\n"
+
+        divider = [len(colname) * '=' + '=' for colname in self.header]
+
+        head += self.header_template.format(*divider)
+
+        if self.header_gap:
+            head += '\n'
+
+        return head
+
+    def format_row(self, data: list, color=G):
+
+        data = [self._shorten(d) for d in data]
+
+        self.row = f"{color}{self.row_template.format(*data)}{RE}"
+
+    @staticmethod
+    def _shorten(string, max_len=32):
+
+        if len(string) > max_len:
+            return string[:max_len-3] + '...'
+        else:
+            return string
+
+

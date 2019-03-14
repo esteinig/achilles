@@ -1,32 +1,38 @@
 import click
 import h5py
 
+from achilles.achilles import Achilles
 
 @click.command()
 @click.option(
-    "--file",
-    "-f",
+    "--model",
+    "-m",
     metavar="",
     default=None,
-    required=True,
+    required=False,
     show_default=True,
-    help="HD5 file to inspect.",
+    help="Model file to inspect.",
 )
-def inspect(file):
+@click.option(
+    "--collection",
+    "-c",
+    metavar="",
+    default=None,
+    required=False,
+    show_default=True,
+    help="Name or UUID of model collection in local cache.",
+)
+@click.option(
+    "--params",
+    "-p",
+    metavar="",
+    is_flag=True,
+    show_default=True,
+    help="Show detailed collection parameters for sampling and training stages.",
+)
+def inspect(model, collection, params):
 
-    with h5py.File(file, "r") as data_file:
+    if collection:
+        achilles = Achilles()
 
-        if 'data/data' in data_file.keys():
-            print(
-                data_file['data/data'][:5]
-            )
-            print(
-                data_file['data/labels'][:5]
-            )
-
-        print(
-            data_file['data/files'][:5]
-        )
-        print(
-            data_file['data/decoded'][:5]
-        )
+        achilles.inspect_collection(collection, params=params)
