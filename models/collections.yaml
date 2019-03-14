@@ -5,11 +5,11 @@ alpha:
   description: Achilles pre-trained models, v0.3s
   config: alpha.yaml
   models:
-    - alpha-g1.h5
-    - alpha-g2.h5
-    - alpha-g3.h5
-    - alpha-s1.h5
-    - alpha-s2.h5
-    - alpha-s3.h5
-    - alpha-s4.h5
-    - alpha-s5.h5
+    - bacteria-g1.h5
+    - bacteria-g2.h5
+    - bacteria-g3.h5
+    - bp-s1.h5
+    - mtb-s2.h5
+    - kp-s3.h5
+    - ecoli-s4.h5
+    - lambda-s5.h5

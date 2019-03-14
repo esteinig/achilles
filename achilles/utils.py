@@ -556,13 +556,17 @@ class TableFormatter:
             header: list = None,
             row_template: str = None,
             header_template: str = None,
-            header_color: str = Y,
+            header_color: str = None,
             header_gap: bool = True
     ):
 
         self.header = header
 
-        self.header_color = header_color
+        if header_color is None:
+            self.header_color = RE
+        else:
+            self.header_color = header_color
+
         self.header_gap = header_gap
 
         self.row_template = row_template

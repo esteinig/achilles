@@ -48,7 +48,6 @@ models:
       loss:
         training: 0.05172
         validation: 0.033563
-      file: models/alpha/bacteria.g1.hd5
 
     bacteria-g2:
       labels:
@@ -63,7 +62,6 @@ models:
       loss:
         training: 0.040367
         validation: 0.026571
-      file: models/alpha/bacteria.g2.hd5
 
     bacteria-g3:
       labels:
@@ -79,9 +77,8 @@ models:
       loss:
         training: 0.118333
         validation: 0.064774
-      file: models/alpha/bacteria.g3.hd5
 
-    melioidosis-s1:
+    bp-s1:
       labels:
         - B. pseudomallei
         - Human
@@ -93,9 +90,8 @@ models:
       loss:
         training:  0.043968
         validation: 0.029068
-      file: models/alpha/bp.s1.hd5
 
-    tuberculosis-s2:
+    mtb-s2:
       labels:
         - M. tuberculosis
         - Human
@@ -107,9 +103,8 @@ models:
       loss:
         training:  0.052325
         validation: 0.033951
-      file: models/alpha/mtb.s2.hd5
 
-    kleb-s3:
+    kp-s3:
       labels:
         - K. pneumoniae
         - Human
@@ -121,7 +116,6 @@ models:
       loss:
         training:  0.081608
         validation: 0.048676
-      file: models/alpha/kleb.s3.hd5
 
     ecoli-s4:
       labels:
@@ -135,7 +129,6 @@ models:
       loss:
         training:  0.038597
         validation: 0.021345
-      file: models/alpha/ecoli.s4.hd5
 
     lambda-s5:
       labels:
@@ -149,4 +142,3 @@ models:
       loss:
         training:  0.043968
         validation: 0.029068
-      file: models/alpha/lambda.s5.hd5

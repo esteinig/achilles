@@ -22,7 +22,7 @@ def get_param_template(ds, tr):
 
     return dedent(
         f"""
-        {C}Dataset{R} 
+        {C}Dataset{RE} 
         {RE}=========={RE} 
 
         {M}Global tags{RE}              {G}{', '.join(ds['global_tags'])}{RE} 

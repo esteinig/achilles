@@ -24,7 +24,6 @@ setup(
         "pyyaml",
         "pytest",
         "wget",
-        "delegator.py"
     ],
     entry_points="""
         [console_scripts]

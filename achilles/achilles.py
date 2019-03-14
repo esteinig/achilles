@@ -11,7 +11,6 @@ from achilles.templates import get_param_template
 from pathlib import Path
 
 import shutil
-import delegator
 import wget
 import yaml
 
@@ -40,8 +39,11 @@ class Achilles:
         self.collections_yaml = 'https://raw.githack.com/esteinig/achilles/' \
                                 'master/models/collections.yaml'
 
-        self.models_template = 'https://github.com/esteinig/achilles/' \
-                               'trunk/models/{collection}'
+        self.collection_template = 'https://raw.githack.com/esteinig/achilles/'\
+                                   'master/models/{collection}/{file}'
+
+        if not self.collections.exists():
+            self.collections.mkdir(parents=True)
 
     def inspect_collection(self, collection, params=False):
 
@@ -62,14 +64,14 @@ class Achilles:
 
         with TableFormatter(
             header=['Model', "Validation", "Labels"],
-            row_template=f"{Y}{{0:15}} {G}{{1:^15}} {LB}{{2:21}}{RE}",
-            header_template="{0:15} {1:15} {2:21}",
+            row_template=f"{Y}{{0:21}} {G}{{1:15}} {LB}{{2:21}}{RE}",
+            header_template="{0:21} {1:15} {2:21}",
             header_color=R,
         ) as table:
 
             print(
                 dedent(f"""
-                {R}Collection Inspection{RE}
+                {Y}Collection Inspection{RE}
                 ====================== 
                 
                 {M}Name{RE}     {C}{collection}{RE}
@@ -104,8 +106,8 @@ class Achilles:
                 )
                 if not collections:
                     print(
-                        f'{Y} No collections found in local cache,'
-                        f'use {R}achilles pull{RE}'
+                        f'{Y}No collections found in local cache,'
+                        f'use: {R}achilles pull{RE}'
                     )
                     exit(1)
                 else:
@@ -125,10 +127,8 @@ class Achilles:
                 )
 
                 data = [
-                    collection.name,
-                    yml["date"],
-                    yml["author"],
-                    yml["description"]
+                    collection.name, yml["date"],
+                    yml["author"], yml["description"]
                 ]
 
                 table.format_row(
@@ -142,20 +142,43 @@ class Achilles:
     def pull_collections(self):
         """ Pull collections into local cache """
 
+        print(f'{Y}Pulling model collections from GitHub.{RE}')
+
         collection_yaml = self.pull_collections_yaml()
 
-        cnames = self.read_yaml(collection_yaml).keys()
-        for collection in cnames:
-            cpath = self.collections / collection
-            giturl = self.models_template.format(collection=collection)
+        collections = self.read_yaml(collection_yaml)
 
+        for collection, data in collections.items():
+            cpath = self.collections / collection
+
+            # Model files
+            file_urls = [
+                self.collection_template.format(
+                    collection=collection, file=file
+                )
+                for file in data['models']
+            ]
+
+            # Configuration YAML
+            file_urls += [
+                self.collection_template.format(
+                    collection=collection, file=data['config']
+                )
+            ]
+
+            # Check if collection exists:
             if cpath.exists():
                 self.vprint(f'{Y}Updating collection: {G}{collection}{RE}')
                 shutil.rmtree(cpath)
 
-            delegator.run(
-                f'git-svn export {giturl} {cpath}'
-            )
+            cpath.mkdir(parents=True)
+
+            # Download collection files:
+            for url in file_urls:
+                fpath = str(
+                    self.collections / collection / Path(url).name
+                )
+                wget.download(url, fpath, bar=None)
 
             self.vprint(f'{Y}Downloaded collection: {G}{collection}{RE}.')
 
@@ -168,7 +191,7 @@ class Achilles:
             fpath.unlink()
 
         wget.download(
-            self.collections_yaml, str(fpath)
+            str(self.collections_yaml), str(fpath), bar=None
         )
 
         return fpath
@@ -178,4 +201,5 @@ class Achilles:
 
         with yaml_file.open('r') as fstream:
             yml = yaml.load(fstream)
+
         return yml
