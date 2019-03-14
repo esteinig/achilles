@@ -51,7 +51,7 @@ conda env create --file environment.yml
 ### Walkthrough
 ---
 
-Just a quick walkthrough for prediction at the moment. First, pull the model collections into local storage (`~/.achilles/collections`):
+Just a quick walkthrough for prediction at the moment. First, pull the model collections into local storage which is in a hidden folder in the home directory (`~/.achilles/collections`):
 
 ```
 achilles pull
