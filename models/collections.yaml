@@ -3,3 +3,13 @@ alpha:
   date: 21-03-2019
   author: esteinig
   description: Achilles pre-trained models, v0.3s
+  config: alpha.yaml
+  models:
+    - alpha-g1.h5
+    - alpha-g2.h5
+    - alpha-g3.h5
+    - alpha-s1.h5
+    - alpha-s2.h5
+    - alpha-s3.h5
+    - alpha-s4.h5
+    - alpha-s5.h5

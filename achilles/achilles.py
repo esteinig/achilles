@@ -10,6 +10,7 @@ from achilles.utils import TableFormatter
 from achilles.templates import get_param_template
 from pathlib import Path
 
+import shutil
 import delegator
 import wget
 import yaml
@@ -28,11 +29,14 @@ Y = Fore.YELLOW
 class Achilles:
     """ Achilles base management class """
 
-    def __init__(self):
+    def __init__(self, verbose=False):
 
         self.path: Path = Path().home() / '.achilles'
         self.collections: Path = self.path / 'collections'
 
+        self.vprint = print if verbose else lambda *a, **k: None
+
+        # TODO: Change to production CDN:
         self.collections_yaml = 'https://raw.githack.com/esteinig/achilles/' \
                                 'master/models/collections.yaml'
 
@@ -140,30 +144,38 @@ class Achilles:
 
         collection_yaml = self.pull_collections_yaml()
 
-        cnames = self.read_yaml(collection_yaml)
-        print(cnames)
+        cnames = self.read_yaml(collection_yaml).keys()
         for collection in cnames:
             cpath = self.collections / collection
             giturl = self.models_template.format(collection=collection)
 
-            print(giturl, cpath)
+            if cpath.exists():
+                self.vprint(f'{Y}Updating collection: {G}{collection}{RE}')
+                shutil.rmtree(cpath)
 
             delegator.run(
                 f'git-svn export {giturl} {cpath}'
             )
 
-            print(f'{Y}Downloaded collection: {G}{collection}{RE}.')
+            self.vprint(f'{Y}Downloaded collection: {G}{collection}{RE}.')
 
     def pull_collections_yaml(self) -> Path:
         """ Pull the collections.yaml file from Github """
         fpath = self.collections / 'collections.yaml'
+
+        if fpath.exists():
+            self.vprint(f'{Y}Updating collection YAML.{RE}')
+            fpath.unlink()
+
         wget.download(
             self.collections_yaml, str(fpath)
         )
+
         return fpath
 
     @staticmethod
     def read_yaml(yaml_file: Path):
 
         with yaml_file.open('r') as fstream:
-            return yaml.load(fstream)
+            yml = yaml.load(fstream)
+        return yml
