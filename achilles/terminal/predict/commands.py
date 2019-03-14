@@ -170,9 +170,6 @@ def predict(
             print(f'{R}Prediction failed for read: {f5.name}{RE}')
             continue
 
-        # Slice the predictions by window_max and
-        # compute mean over slice of batch:
-
         scores, score_str = label_product_score(
             read_prediction, product=False
         )
