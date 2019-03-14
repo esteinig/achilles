@@ -20,10 +20,16 @@ Overall, the implementation is minimal, and replaces the bi-directional LSTM wit
 ### Install
 ---
 
-Achilles can be installed with:
+`Achilles` can be installed with:
 
 ```
-pip install -e git://github.com/esteinig/achilles.git@v0.3-alpha  # does not install tensorflow-gpu
+pip install -e git://github.com/esteinig/achilles.git@v0.3-pre  # does not install tensorflow-gpu
+```
+
+It requires `PoreMongo`, which can for now be installed with:
+
+```
+pip install -e git://github.com/esteinig/poremongo.git@v0.3-pre
 ```
 
 You know if the driver and `tensorflow-gpu` work when you call the main help interface of `Achilles`:
