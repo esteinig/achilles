@@ -244,7 +244,7 @@ Options:
   --help             Show this message and exit.
 ```
 
-#### Model Management
+#### Model Management Tasks
 ---
 
 :leaves: **`achilles pull`**
