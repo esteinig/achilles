@@ -278,3 +278,8 @@ training:
 ---
 
 [achilles.readthedocs.io](https://achilles.readthedocs.io)
+
+### :blowfish: Contributors
+
+* Eike Steinig
+* Lachlan Coin
