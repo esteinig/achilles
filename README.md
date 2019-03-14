@@ -12,7 +12,7 @@
 
 `Achilles` is a platform for training, evaluating and deploying neural network models that act as taxonomic classifiers of raw nanopore signal, for instance by distinguishing between nanopore signals from host (e.g. human background) and pathogen DNA (e.g. *Burkholderia pseudomallei* or *Mycobacterium tuberculosis*). The minimal hybrid architecture of the networks can also be thought of as a template for a variety of classifiers, that can be trained on any property of the sequence data that is discernible from the pore signal and can be labelled across signal reads.
 
-The neural networks are essentially a Keras implementation of the hybrid convolutional and recurrent architecture from [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron) [published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989). We have replaced some of the regularization functions with those available in `Keras`, in particular we implemented internal and regular Dropout in the LSTM layer instead of Batch Normalization.
+The neural networks are essentially a Keras implementation of the hybrid convolutional and recurrent architecture from [deep neural net base-caller Chiron](https://github.com/haotianteng/Chiron) [published in Gigascience (2018)](https://academic.oup.com/gigascience/article/7/5/giy037/4966989). We have replaced some of the regularization functions with those available in `Keras`. In particular, we implemented recurrent and regular Dropout in the LSTM layer instead of Batch Normalization.
 
 <p align="center"><img src="logo/achilles_pretrained.png"></img></p>
 
@@ -76,26 +76,20 @@ Inspect model in collection alpha, including training and validation results:
 achilles inspect -c alpha -m bacteria-g1 -p
 ```
 
-Run a prediction on a directory of `Fast5` files, models can be `HD5` files generated with `achilles train` or a simple path of `collection/model_name` if models were pulled into local storage. `Size` of window slices determines the size of the input layer, therefore the parameter must be the same as in the trained model. You can see this with `achilles inspect` and the `-p` flag. For now batch size `-b` should equal the number of slices sampled from a read `-c`, since this constitutes a single forward pass on the GPU.
+Run a prediction on a directory of `Fast5` files, models can be `HD5` files generated with `achilles train` or `collection/model_name`. `Size` of window slices determines the size of the input layer, therefore the parameter must be the same as in the trained model. You can see the trained window size when you use `achilles inspect` and the `-p` flag to inspect a collection. For now batch size `-b` should equal the number of slices sampled from a read `-c` as this constitutes a single forward pass on the GPU. Mini batch support for multipel read predictions is coming soon.
 
 ```
 achilles predict -d path/to/fast5 -m alpha/bacteria-g1 --size 300 -s 100 -b 100
 ```
 
-If you use the predictor on human reads, you can see that a specialist model trained on a single pathogen actually performs much worse:
-
-```
-achilles predict -d path/to/human/fast5 -m alpha/mtb-g1 --size 300 -s 100 -b 100
-```
-
 ### Command line interface
 ---
 
-Alpha version is for testing the software with some pre-trained models. You can also train your own models, which relies on the MongoDB database sampler from `Poremongo`, which is also in alpha stage and subject to change, so the code is not stable or tested at the moment. 
+This pre-release version is for testing the software with some pre-trained models. You can sorta also train your own models, but that relies on the `MongoDB` database sampler from `Poremongo`, which is also in pre-release and subject to change, so the code is not stable or tested at the moment. 
 
-Achilles is accessible through the CLI which summarizes some of the important tasks and exposes them to the user. Tasks like `achilles train` and `achilles create` have many parameters for setting the global parameters for signal sampling or the framework in which the models are trained. 
+`Achilles` is accessible through the command line interface, which exposes the important tasks to the user, and the access point interface through the modules in Python (API documentation coming soon). Command line tasks like `achilles train` and `achilles create` have a fairly wide range of parameters for signal sampling, training and evaluating the networks.
 
-This is somewhat what the process currently looks like minus Nextflow + Docker + Google Cloud which is scheduled for the beta release.
+This is kind of what the process currently looks like, minus `Nextflow` + `Docker` + `Kubernetes` + `Google Cloud` which is scheduled for the beta release.
 
 <p align="left"><img src="logo/achilles_schematic.png" height="634" width="800"></img></p>
 
