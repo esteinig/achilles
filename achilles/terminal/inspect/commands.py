@@ -32,7 +32,13 @@ from achilles.achilles import Achilles
 )
 def inspect(model, collection, params):
 
-    if collection:
-        achilles = Achilles()
+    achilles = Achilles()
 
+    if collection and not model:
         achilles.inspect_collection(collection, params=params)
+    elif collection and model:
+        achilles.inspect_model(collection, model=model, params=params)
+    else:
+        click.echo(
+            'Please specify a collection to inspect a model.', color='red'
+        )

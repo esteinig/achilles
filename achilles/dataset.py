@@ -273,7 +273,7 @@ class AchillesDataset:
                 # Main loop for reading through Fast5 files and extracting windows (slices) of signal
                 # (window_size, window_step) of normalized (pA) signal until limit for proportioned data
                 # set is reached. Write each signal windows to HDF5 (self.output) after transforming to
-                # 4D input tensor to residual blocks in Achilles model.
+                # 4D input tensor to residual blocks in AchillesModel model.
                 total = 0
                 n_files = []
 
@@ -400,7 +400,7 @@ class AchillesDataset:
         """
 
         # Generate new file name for splitting data randomly into training and
-        # validation data for input to Achilles (data_file + _training.h5)
+        # validation data for input to AchillesModel (data_file + _training.h5)
 
         fname, fext = os.path.splitext(data_file)
         outfile = fname + ".training" + fext
@@ -709,7 +709,7 @@ class AchillesDataset:
     def sample_to_input(array: np.array) -> np.array:
 
         """ Transform input array of (number_windows, window_size) to (number_windows, 1, window_size, 1)
-        for input into convolutional layers: (samples, height, width, channels) in Achilles
+        for input into convolutional layers: (samples, height, width, channels) in AchillesModel
         """
 
         if array.ndim != 2:
@@ -724,7 +724,7 @@ class AchillesDataset:
         print(
             dedent(
                 f"""
-        Generating data set for input to Achilles.
+        Generating data set for input to AchillesModel.
         =========================================================
 
         Sampling from PoreMongo:

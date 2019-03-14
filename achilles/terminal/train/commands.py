@@ -1,5 +1,5 @@
 import click
-from achilles.model import Achilles
+from achilles.model import AchillesModel
 from achilles.utils import get_dataset_dim
 
 
@@ -198,9 +198,9 @@ def train(
     gpus,
     gpu,
 ):
-    """Train neural network classifiers in Achilles"""
+    """Train neural network classifiers in AchillesModel"""
 
-    achilles = Achilles(data_file=file)
+    achilles = AchillesModel(data_file=file)
 
     window_size = get_dataset_dim(file)[2]  # 4D tensors
 

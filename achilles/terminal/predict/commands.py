@@ -8,8 +8,9 @@ from numpy import prod
 import numpy as np
 
 from ont_fast5_api.fast5_file import Fast5File, Fast5Info
-from achilles.utils import view_as_windows, norm
-from achilles.model import Achilles
+from achilles.utils import view_as_windows
+from achilles.model import AchillesModel
+from achilles.achilles import Achilles
 from pathlib import Path
 
 RE = Fore.RESET
@@ -19,7 +20,16 @@ Y = Fore.YELLOW
 C = Fore.CYAN
 M = Fore.MAGENTA
 
+
 @click.command()
+@click.option(
+    "--directory",
+    "-d",
+    default=None,
+    help="Directory with Fast5 files to classify.",
+    show_default=True,
+    metavar="",
+)
 @click.option(
     "--watch",
     "-w",
@@ -32,13 +42,13 @@ M = Fore.MAGENTA
     "--model",
     "-m",
     default=None,
-    help="H5Py file containing trainedAchilles model for predictions",
+    help="HD5 model file or <collection>/<model> from local model cache.",
     show_default=True,
     metavar="",
 )
 @click.option(
     "--window_size",
-    "-size",
+    "--size",
     "-s",
     default=100,
     metavar="",
@@ -47,7 +57,8 @@ M = Fore.MAGENTA
 )
 @click.option(
     "--window_slices",
-    "-sc",
+    '--slices',
+    "-c",
     default=50,
     metavar="",
     show_default=True,
@@ -79,7 +90,8 @@ M = Fore.MAGENTA
     type=str,
     required=False,
     show_default=True,
-    help="Set CUDA_VISIBLE_DEVICES to train model on specific" " GPU (e.g. 0 or 0,1)",
+    help="Set CUDA_VISIBLE_DEVICES to train model"
+         " on specific GPUs (e.g. 0 or 0,1)",
 )
 @click.option(
     "--model_summary",
@@ -90,25 +102,8 @@ M = Fore.MAGENTA
     show_default=True,
     help="Show model layer summary on loading model.",
 )
-@click.option(
-    "--normal",
-    "-n",
-    metavar="",
-    is_flag=True,
-    required=False,
-    show_default=True,
-    help="Calculate the average cumulative probability for labels over slices.",
-)
-@click.option(
-    "--cumulative",
-    "-cu",
-    metavar="",
-    is_flag=True,
-    required=False,
-    show_default=True,
-    help="Calculate the average cumulative probability for labels over slices.",
-)
 def predict(
+        directory,
         watch,
         model,
         window_slices,
@@ -117,22 +112,29 @@ def predict(
         batch_size,
         gpu,
         model_summary,
-        normal,
-        cumulative
 ):
     """ Make predictions on a directory of Fast5 """
 
     if gpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
-    path = Path(watch)
-
+    # TODO: live watching of Fast5
+    path = Path(directory)
     fast5 = path.glob("*.fast5")
 
-    achilles = Achilles()
+    base = Achilles()
+    achilles = AchillesModel()
+
+    # Find model - if in local collection, the
+    # collections should be specified like this: collection/model
+    model_path = Path(model)
+    if not model_path.exists():
+        # Try and see if the name matches a model in
+        # the collections, and if so, return the file path:
+        model_path = str(base.get_model(model))
 
     print(f"{Y}Loading model: {G}{model}{RE}")
-    achilles.load_model(model_file=model, summary=model_summary)
+    achilles.load_model(model_file=model_path, summary=model_summary)
 
     first_pass = True
     for i, f5 in enumerate(fast5):
@@ -172,18 +174,20 @@ def predict(
         # compute mean over slice of batch:
 
         scores, score_str = label_product_score(
-            read_prediction, normalize=normal, cumsum=cumulative)
+            read_prediction, product=False
+        )
 
-        if len(f5.name) > 30:
-            name = f5.name[:27] + '...'
+        if len(f5.name) > 50:
+            name = f5.name[:47] + '...'
         else:
             name = f5.name
 
-        msg = f"{C}{name:<30} " \
-              f"{M}{round(time_ms * 1e-06, 4):<10}{Y}" \
+        msg = f"{C}{name:<50} " \
+              f"{M}{round(time_ms * 1e-06, 6):<15}{Y}" \
               f"{G}{score_str}{RE}"
 
         print(msg)
+
 
 def get_reads(
         fast5,
@@ -226,19 +230,15 @@ def get_reads(
                 raise ValueError("No reads in array.")
 
 
-def label_product_score(read_prediction, cumsum=False, normalize=False):
+def label_product_score(read_prediction, product=False):
 
     scores = list()
     for i in range(
             read_prediction.shape[1]
     ):
-        if cumsum:
-            score = np.cumsum(
-                read_prediction[:, i]
-            )[-1] / read_prediction.shape[0]
-        elif normalize:
+        if product:
             score = np.prod(
-                norm(read_prediction[:, i]), axis=0
+                read_prediction[:, i], axis=0
             )
         else:
             score = read_prediction[:, i].mean()
@@ -309,7 +309,7 @@ def sample_to_input(array: np.array) -> np.array:
     """ Transform input array of (number_windows, window_size) to:
     (number_windows, 1, window_size, 1)
     for input into convolutional layers:
-    (samples, height, width, channels) in Achilles
+    (samples, height, width, channels) in AchillesModel
     """
 
     if array.ndim != 2:

@@ -1,6 +1,6 @@
 import click
 from numpy import argmax
-from achilles.model import Achilles
+from achilles.model import AchillesModel
 from achilles.utils import get_dataset_labels
 from colorama import Fore
 from pathlib import Path
@@ -21,7 +21,7 @@ RE = Fore.RESET
     "--evaluation",
     "-e",
     default=None,
-    help="Evaluation file HD5 sampled from Achilles.",
+    help="Evaluation file HD5 sampled from AchillesModel.",
     show_default=True,
     metavar="",
 )
@@ -35,7 +35,7 @@ RE = Fore.RESET
 )
 def evaluate(model, evaluation, batch_size):
 
-    achilles = Achilles(evaluation)
+    achilles = AchillesModel(evaluation)
     achilles.load_model(model_file=model)
 
     print(f'{Y}Evaluating model: {G}{Path(model).name}{RE}')

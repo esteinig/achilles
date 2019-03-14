@@ -10,12 +10,23 @@ M = Fore.MAGENTA
 Y = Fore.YELLOW
 
 
+def get_collection_yaml_template():
+    return 'https://raw.githack.com/esteinig/achilles/' \
+           'master/models/collections.yaml'
+
+
+def get_collection_template():
+    return 'https://raw.githack.com/esteinig/achilles/' \
+           'master/models/{collection}/{file}'
+
+
 def get_inspect_model_message():
     return f"Inspect models with: {M}achilles inspect -m {Y}<model>{RE}"
 
 
 def get_inspect_oollection_message():
-    return f"Inspect collections with: {M}achilles inspect -c {Y}<collection>{RE}"
+    return f"Inspect collections with: {M}achilles inspect " \
+           f"-c {Y}<collection>{RE}"
 
 
 def get_param_template(ds, tr):

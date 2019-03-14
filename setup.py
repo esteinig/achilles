@@ -31,6 +31,6 @@ setup(
     """,
     version="0.3",
     license="MIT",
-    description="Achilles is a platform to train and evaluate neural networks"
+    description="AchillesModel is a platform to train and evaluate neural networks"
     " for nanopore signal classification.",
 )

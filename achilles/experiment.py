@@ -11,7 +11,7 @@ from pathlib import Path
 
 from poremongo import PoreMongo
 from achilles.dataset import AchillesDataset
-from achilles.model import Achilles
+from achilles.model import AchillesModel
 from achilles.utils import get_dataset_labels
 
 # TODO: Check function for lab configuration JSON
@@ -35,7 +35,7 @@ class TestTube:
 
     def setup_experiment_datasets(self, poremongo=True):
 
-        """ Setup the datasets for the Achilles create
+        """ Setup the datasets for the AchillesModel create
         task with global and specific parameters """
 
         paths = self.setup_experiment_paths()
@@ -246,7 +246,7 @@ class TestTube:
     ):
 
         # Build model
-        achilles = Achilles(data_file=data_file)
+        achilles = AchillesModel(data_file=data_file)
 
         achilles.build(
             window_size=window_size,
@@ -321,7 +321,7 @@ class TestTube:
 
                 print(f"Using {model} to predict on {eval_data}")
 
-                achilles = Achilles(eval_data)
+                achilles = AchillesModel(eval_data)
                 achilles.load_model(model_file=str(model))
 
                 # Model name: numpy array shape (1, 2)

@@ -612,6 +612,8 @@ class TableFormatter:
     @staticmethod
     def _shorten(string, max_len=32):
 
+        string = str(string)
+
         if len(string) > max_len:
             return string[:max_len-3] + '...'
         else:

@@ -14,7 +14,7 @@ from achilles.utils import timeit
 from achilles.dataset import AchillesDataset
 
 
-class Achilles:
+class AchillesModel:
     def __init__(self, data_file=None, log_dir=""):
 
         self.data_file = data_file
@@ -143,7 +143,7 @@ class Achilles:
         # Estimated memory for dimensions and
         # batch size of model, before adjustment:
         memory = self.estimate_memory_usage(batch_size=batch_size)
-        print("Estimated GPU memory for Achilles model: {} GB".format(memory))
+        print("Estimated GPU memory for AchillesModel model: {} GB".format(memory))
 
         # Reads data from HDF5 data file:
         dataset = AchillesDataset()
@@ -223,7 +223,8 @@ class Achilles:
         """ Evaluate model against presented dataset """
 
         loss, acc = self.model.evaluate_generator(
-            eval_generator, workers=workers, use_multiprocessing=False, verbose=True
+            eval_generator, workers=workers, verbose=True,
+            use_multiprocessing=False
         )
 
         return loss, acc

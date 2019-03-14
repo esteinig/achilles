@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 from achilles.experiment import TestTube
-from achilles.model import Achilles
+from achilles.model import AchillesModel
 from pathlib import Path
 
 @click.command()
@@ -24,7 +24,7 @@ from pathlib import Path
     default=None,
     required=True,
     show_default=True,
-    help="Evaluation HD5 file from Achilles.",
+    help="Evaluation HD5 file from AchillesModel.",
 )
 @click.option(
     "--outdir",

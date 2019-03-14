@@ -5,9 +5,13 @@ Achilles Base Module
 
 """
 
-from textwrap import dedent
+from textwrap import dedent, wrap
 from achilles.utils import TableFormatter
+
 from achilles.templates import get_param_template
+from achilles.templates import get_collection_template
+from achilles.templates import get_collection_yaml_template
+
 from pathlib import Path
 
 import shutil
@@ -26,7 +30,7 @@ Y = Fore.YELLOW
 
 
 class Achilles:
-    """ Achilles base management class """
+    """ AchillesModel base management class """
 
     def __init__(self, verbose=False):
 
@@ -36,20 +40,98 @@ class Achilles:
         self.vprint = print if verbose else lambda *a, **k: None
 
         # TODO: Change to production CDN:
-        self.collections_yaml = 'https://raw.githack.com/esteinig/achilles/' \
-                                'master/models/collections.yaml'
+        self.collections_yaml = get_collection_yaml_template()
 
-        self.collection_template = 'https://raw.githack.com/esteinig/achilles/'\
-                                   'master/models/{collection}/{file}'
+        self.collection_template = get_collection_template()
 
         if not self.collections.exists():
             self.collections.mkdir(parents=True)
 
-    def inspect_collection(self, collection, params=False):
+    def inspect_model(self, collection, model, params=False):
+
+        data = self.get_collection_yaml(collection=collection)
+
+        models = data['models']
+
+        try:
+            model_data = models[model]
+        except KeyError:
+            print(f'{R}Could not find model: {Y}{model}{RE}')
+            raise
+
+        descr = '\n'.join(wrap(
+            model_data['description'], width=60
+        ))
+
+        labels = ', '.join([
+            f'{M}Label {i}{RE}: {C}{label}{RE}'
+            for i, label in enumerate(model_data['labels'])
+        ])
+
+        header = dedent(
+            f"""
+            
+            {Y}Model Inspection{RE}
+            =================
+            
+            {M}Name{RE}      {C}{model}{RE}
+            {M}Date{RE}      {C}{data['date']}{RE}
+            {M}Author{RE}    {C}{data['author']}{RE}
+            
+            {Y}Description{RE}
+            ============
+            
+            {labels}
+
+            """
+        )
+
+        header += f'{Y}{descr}{RE}'
+
+        print(header)
+
+        if params:
+            with TableFormatter(
+                header=['Stage', 'Loss', 'Accuracy'],
+                header_color=R,
+                header_template='{0:15} {1:10} {2:10}',
+                row_template=f'{M}{{0:15}} {LB}{{1:10}} {G}{{2:10}}{RE}'
+            ) as table:
+
+                print(table.head)
+
+                train = [
+                    'Training',
+                    model_data['loss']['training'],
+                    model_data['accuracy']['training'],
+                ]
+
+                val = [
+                    'Validation',
+                    model_data['loss']['validation'],
+                    model_data['accuracy']['validation']
+                ]
+
+                table.format_row(train)
+                print(table.row)
+                table.format_row(val)
+                print(table.row)
+        else:
+            print()
+
+    def get_collection_yaml(self, collection) -> dict:
 
         collection_yaml = self.collections / collection / f'{collection}.yaml'
 
-        data = self.read_yaml(collection_yaml)
+        try:
+            return self.read_yaml(collection_yaml)
+        except FileNotFoundError:
+            print(f'Could not find collection file: {collection_yaml}.')
+            raise
+
+    def inspect_collection(self, collection, params=False):
+
+        data = self.get_collection_yaml(collection=collection)
 
         ds = data['config']['create']
         tr = data['config']['train']
@@ -95,7 +177,8 @@ class Achilles:
 
         with TableFormatter(
             header=['Collection', 'Date', 'Author', 'Description'],
-            row_template="{0:15} {1:15} {2:15} {3:21}"
+            row_template="{0:15} {1:15} {2:15} {3:21}",
+            header_color=Y,
         ) as table:
 
             if remote:
@@ -195,6 +278,47 @@ class Achilles:
         )
 
         return fpath
+
+    def _find_local_model(self, collection, name):
+
+        cyaml = self.read_yaml(
+            self.collections / 'collections.yaml'
+        )
+
+        try:
+            models = cyaml[collection]['models']
+        except KeyError:
+            print(f'{R}Could not find collection: {collection}.{RE}')
+            raise
+
+        model_names = [m.strip('.h5') for m in models]
+
+        if name not in model_names:
+            print(f'{R}Could not find model {name} '
+                  f'in collection {collection}.{RE}')
+            exit(1)
+        else:
+            return (self.collections / collection / name).with_suffix('.h5')
+
+    def get_model(self, model_name) -> Path:
+
+        """ Name should always be `collection/model` """
+
+        if model_name.endswith('.h5'):
+            model_name = model_name.strip('.h5')
+
+        try:
+            collection, model = model_name.split('/')
+        except ValueError:
+            print(f'{R}Model name ({Y}{model_name}{R}) must be '
+                  f'in format: {Y}<collection>/<model>{RE}')
+            raise
+
+        return self._find_local_model(
+            collection=collection, name=model
+        )
+
+
 
     @staticmethod
     def read_yaml(yaml_file: Path):

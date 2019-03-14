@@ -2,7 +2,7 @@ alpha:
   uuid: er2823h232
   date: 21-03-2019
   author: esteinig
-  description: Achilles pre-trained models, v0.3s
+  description: AchillesModel pre-trained models, v0.3s
   config: alpha.yaml
   models:
     - bacteria-g1.h5
