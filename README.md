@@ -90,7 +90,7 @@ achilles predict -d path/to/human/fast5 -m alpha/mtb-g1 --size 300 -s 100 -b 100
 ### Command line interface
 ---
 
-Alpha version is for testing the software with some pre-trained models. You can also train your own models, which relies on `Poremongo` also in alpha stage at the moment and subject to change, so the code is not so stable. 
+Alpha version is for testing the software with some pre-trained models. You can also train your own models, which relies on the MongoDB database sampler from `Poremongo`, which is also in alpha stage and subject to change, so the code is not stable or tested at the moment. 
 
 Achilles is accessible through the CLI which summarizes some of the important tasks and exposes them to the user. Tasks like `achilles train` and `achilles create` have many parameters for setting the global parameters for signal sampling or the framework in which the models are trained. 
 
