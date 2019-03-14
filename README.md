@@ -99,7 +99,7 @@ This is somewhat what the process currently looks like minus Nextflow + Docker +
 
 <p align="left"><img src="logo/achilles_schematic.png" height="634" width="800"></img></p>
 
-#### Tasks
+#### Neural Network Tasks
 ---
 
 :sunflower: **`achilles create`**
@@ -242,6 +242,51 @@ Options:
   -e, --evaluation   Evaluation file HD5 sampled from Achilles.
   -b, --batch_size   Evaluation batch size.  [default: 500]
   --help             Show this message and exit.
+```
+
+#### Model Management
+---
+
+:leaves: **`achilles pull`**
+
+Pulls model collections from Achilles repository into `~/.achilles/collections`. This includes the trained neural network model `HD5` files and a `YAML` file that hold some data related to the models.
+
+```
+Usage: achilles pull [OPTIONS]
+
+Pull model collections into a local cache
+
+Options:
+  --help  Show this message and exit.
+```
+
+:four_leaf_clover: **`achilles list`**
+
+List all collections in local cache directory `~/.achilles/collections`
+
+```
+Usage: achilles list [OPTIONS]
+
+Options:
+  -c, --collections  List all collections available in cache.
+  --help             Show this message and exit.
+
+```
+
+:palm_tree: **`achilles inspect`**
+
+Inspect a collection or model within a collection, also with more detail using the flag `-p`:
+
+```
+Usage: achilles inspect [OPTIONS]
+
+Options:
+  -m, --model        Model file to inspect.
+  -c, --collection   Name or UUID of model collection in local cache.
+  -p, --params       Show detailed collection parameters for sampling and
+                     training stages.  [default: False]
+  --help             Show this message and exit.
+
 ```
 
 
