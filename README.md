@@ -355,7 +355,7 @@ training:
 ### Training data
 ---
 
-**Pathogens**:
+:alien: **Pathogen**:
 
 * Zika virus detection from [ZIBRA](http://www.zibraproject.org/data/) project in Brazil - 2D R9 amplicons
 * *Burkholderia pseudomallei* + closely related *B. cepacia*, *B. mallei* - 1D Rapid R9.4
@@ -363,7 +363,7 @@ training:
 * *Klebsiella penumoniae* from clinical culture in Australia - 1D Rapid R9.4
 * *Staphylococcus aureus* from reference strain ST243 - 1D Rapid R9.4
 
-**Hosts**:
+:ghost: **Host**:
 
 * [Human nanopore reference genome](https://github.com/nanopore-wgs-consortium/NA12878/blob/master/Genome.md) CEPH1463 (NA12878/GM12878, Ceph/Utah pedigree) - 1d Rapid R9 + R9.4
 
