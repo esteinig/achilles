@@ -42,10 +42,10 @@ For now, the best way to install `Achilles` is to create a fresh `conda` env, `p
 
 `Tensorflow-GPU` and the associated `CUDA` driver on the GPU must be installed. We used `Achilles` on a cluster with two Tesla V100 and 16GB memory each. For some reason, installation of the GPU environment did not work with higher `tensorflow-gpu` versions `> v1.8` that interface with `CUDA 9.2` or `CUDA 10`, so we installed `tensorflow-gpu v1.8.0` from `conda` with the `cudnn` library version `v7.1.2`, which also installs the `cudatoolkit` version `v9.0` in `conda`. This environment works with the `CUDA 9.0` driver for the GPUs on the cluster. 
 
-The frozen `conda` env for this situation can be found in `envs/environment.yml` and installed with:
+The frozen `conda` `environment.yml` for `tensorflow-gpu v1.8.0` can be installed with:
 
 ```
-conda env create --file envs/environment.yml
+conda env create --file environment.yml
 ```
 
 ### Walkthrough
@@ -79,6 +79,12 @@ Run a prediction on a directory of `Fast5` files, models can be `HD5` files gene
 
 ```
 achilles predict -d path/to/fast5 -m alpha/bacteria-g1 --size 300 -s 100 -b 100
+```
+
+If you use the predictor on human reads, you can see that a specialist model trained on a single pathogen actually performs much worse:
+
+```
+achilles predict -d path/to/human/fast5 -m alpha/mtb-g1 --size 300 -s 100 -b 100
 ```
 
 ### Command line interface
