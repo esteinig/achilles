@@ -355,7 +355,7 @@ training:
 ### Training data
 ---
 
-:alien: **Pathogen**:
+:space_invader: **Pathogen**:
 
 * Zika virus detection from [ZIBRA](http://www.zibraproject.org/data/) project in Brazil - 2D R9 amplicons
 * *Burkholderia pseudomallei* + closely related *B. cepacia*, *B. mallei* - 1D Rapid R9.4
@@ -369,6 +369,8 @@ training:
 
 ### :fish: Documentation
 ---
+
+Coming soon.
 
 [achilles.readthedocs.io](https://achilles.readthedocs.io)
 
