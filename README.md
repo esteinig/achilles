@@ -21,7 +21,7 @@ Overall, the implementation is minimal, and replaces the bi-directional LSTM wit
 ### Install
 ---
 
-`Achilles` can be installed with:
+`Achilles` can be installed with **`Python 3.6`**:
 
 ```
 pip install git+https://github.com/esteinig/achilles@v0.3-pre  # does not install tensorflow-gpu
@@ -39,7 +39,7 @@ You know if the driver and `tensorflow-gpu` work when you call the main help int
 achilles --help
 ```
 
-For now, the best way to install `Achilles` is to create a fresh `conda` env, `pip` install the packages into the environment, and then add the correct version of `tensorflow-gpu` depending on your CUDA driver version on the GPU. I found that the `conda` version of `tensorflow-gpu` is the easiest to install under these circumstances. 
+For now, the best way to install `Achilles` is to create a fresh `conda` env with `Python 3.6`, `pip` install the packages into the environment, and then add the correct version of `tensorflow-gpu` depending on your CUDA driver version on the GPU. I found that the `conda` version of `tensorflow-gpu` is the easiest to install under these circumstances. 
 
 `Tensorflow-GPU` and the associated `CUDA` driver on the GPU must be installed. We used `Achilles` on a cluster with two Tesla V100 and 16GB memory each. For some reason, installation of the GPU environment did not work with higher `tensorflow-gpu` versions `> v1.8` that interface with `CUDA 9.2` or `CUDA 10`, so we installed `tensorflow-gpu v1.8.0` from `conda` with the `cudnn` library version `v7.1.2`, which also installs the `cudatoolkit` version `v9.0` in `conda`. This environment works with the `CUDA 9.0` driver for the GPUs on the cluster. 
 
