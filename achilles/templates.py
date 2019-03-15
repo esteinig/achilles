@@ -9,24 +9,22 @@ RE = Fore.RESET
 M = Fore.MAGENTA
 Y = Fore.YELLOW
 
-
-def get_collection_yaml_template():
-    return 'https://raw.githack.com/esteinig/achilles/' \
-           'master/models/collections.yaml'
+# TODO implement production CDN for raw.githack.com
 
 
-def get_collection_template():
-    return 'https://raw.githack.com/esteinig/achilles/' \
-           'master/models/{collection}/{file}'
+collection_yaml_template = 'https://raw.githack.com/esteinig/achilles/' \
+    'master/models/collections.yaml'
+
+collection_template = 'https://raw.githack.com/esteinig/achilles/' \
+    'master/models/{collection}/{file}'
 
 
-def get_inspect_model_message():
-    return f"Inspect models with: {M}achilles inspect -m {Y}<model>{RE}"
+inspect_model_info = f"Inspect models with: {M}achilles inspect" \
+    f" -m {Y}<model>{RE}"
 
 
-def get_inspect_oollection_message():
-    return f"Inspect collections with: {M}achilles inspect " \
-           f"-c {Y}<collection>{RE}"
+inspect_collection_info = f"Inspect collections with: {M}achilles inspect " \
+     f"-c {Y}<collection>{RE}"
 
 
 def get_param_template(ds, tr):
@@ -74,3 +72,34 @@ def get_param_template(ds, tr):
         
         """
     )
+
+
+def get_model_header_template(model, data):
+    return dedent(
+        f"""
+    
+        {Y}Model Inspection{RE}
+        =================
+        
+        {M}Name{RE}      {C}{model}{RE}
+        {M}Date{RE}      {C}{data['date']}{RE}
+        {M}Author{RE}    {C}{data['author']}{RE}
+        
+        {Y}Description{RE}
+        ============
+    
+        """
+)
+
+
+def get_collection_header_template(collection, data):
+    return dedent(f"""
+    {Y}Collection Inspection{RE}
+    ====================== 
+
+    {M}Name{RE}     {C}{collection}{RE}
+    {M}Date{RE}     {C}{data['date']}{RE}
+    {M}Author{RE}   {C}{data['author']}{RE}
+    {M}Note{RE}     {C}{data['description']}{RE}
+    """
+)

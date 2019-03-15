@@ -9,8 +9,10 @@ from textwrap import dedent, wrap
 from achilles.utils import TableFormatter
 
 from achilles.templates import get_param_template
-from achilles.templates import get_collection_template
-from achilles.templates import get_collection_yaml_template
+from achilles.templates import collection_template
+from achilles.templates import collection_yaml_template
+from achilles.templates import get_collection_header_template
+from achilles.templates import get_model_header_template
 
 from pathlib import Path
 
@@ -39,10 +41,9 @@ class Achilles:
 
         self.vprint = print if verbose else lambda *a, **k: None
 
-        # TODO: Change to production CDN:
-        self.collections_yaml = get_collection_yaml_template()
+        self.collections_yaml = collection_yaml_template
 
-        self.collection_template = get_collection_template()
+        self.collection_template = collection_template
 
         if not self.collections.exists():
             self.collections.mkdir(parents=True)
@@ -68,24 +69,8 @@ class Achilles:
             for i, label in enumerate(model_data['labels'])
         ])
 
-        header = dedent(
-            f"""
-            
-            {Y}Model Inspection{RE}
-            =================
-            
-            {M}Name{RE}      {C}{model}{RE}
-            {M}Date{RE}      {C}{data['date']}{RE}
-            {M}Author{RE}    {C}{data['author']}{RE}
-            
-            {Y}Description{RE}
-            ============
-            
-            {labels}
-
-            """
-        )
-
+        header = get_model_header_template(model, data)
+        header += f'{labels}'
         header += f'{Y}{descr}{RE}'
 
         print(header)
@@ -152,15 +137,7 @@ class Achilles:
         ) as table:
 
             print(
-                dedent(f"""
-                {Y}Collection Inspection{RE}
-                ====================== 
-                
-                {M}Name{RE}     {C}{collection}{RE}
-                {M}Date{RE}     {C}{data['date']}{RE}
-                {M}Author{RE}   {C}{data['author']}{RE}
-                {M}Note{RE}     {C}{data['description']}{RE}
-                """)
+                get_collection_header_template(collection, data)
             )
 
             print(table.head)
@@ -325,3 +302,4 @@ class Achilles:
             yml = yaml.load(fstream, Loader=yaml.FullLoader)
 
         return yml
+    
