@@ -5,7 +5,6 @@ import numpy as np
 from keras import backend as K
 from keras import layers, Model
 from keras.models import load_model
-from keras.utils.training_utils import multi_gpu_model
 from keras.callbacks import CSVLogger, ModelCheckpoint
 
 from keras import callbacks
@@ -113,7 +112,9 @@ class AchillesModel:
             return self.model
         else:
             print(f"Building model for distributed training on {gpus} GPUs.")
-            return multi_gpu_model(self.model, gpus=gpus)
+            raise ValueError(
+                'Current version of Keras does not support multi GPU models.'
+            )
 
     def save(self, run_id, file):
 
@@ -242,7 +243,7 @@ class AchillesModel:
 
         if null_pass:
             # Warmup pass to allocate memory
-            signal_tensor = np.empty(shape=null_pass)
+            signal_tensor = np.zeros(shape=null_pass)
 
         # Select random or beginning consecutive windows
         return self.model.predict(x=signal_tensor, batch_size=batch_size)

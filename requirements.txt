@@ -1,4 +1,3 @@
-keras
 pandas
 numpy
 scipy

@@ -302,4 +302,3 @@ class Achilles:
             yml = yaml.load(fstream, Loader=yaml.FullLoader)
 
         return yml
-    
