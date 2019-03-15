@@ -20,18 +20,14 @@ config:
   train:
     epochs: 300
     batch_size: 300
-
     window_size: 300
     nb_residual_block: 1
     nb_rnn: 1
-
     activation: softmax
     optimizer: adam
     loss: binary_crossentropy
-
     dropout: 0.2
     recurrent_dropout: 0.2
-
     workers: 2
 
 models:

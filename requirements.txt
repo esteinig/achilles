@@ -13,3 +13,4 @@ mongoengine
 click
 pyyaml
 wget
+watchdog

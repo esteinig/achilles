@@ -11,6 +11,7 @@ from ont_fast5_api.fast5_file import Fast5File, Fast5Info
 from achilles.utils import view_as_windows
 from achilles.model import AchillesModel
 from achilles.achilles import Achilles
+from achilles.realtime import watch_path
 from pathlib import Path
 
 RE = Fore.RESET
@@ -50,7 +51,7 @@ M = Fore.MAGENTA
     "--window_size",
     "--size",
     "-s",
-    default=100,
+    default=300,
     metavar="",
     show_default=True,
     help="Length fo window, must match trained input model",
@@ -119,8 +120,6 @@ def predict(
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
     # TODO: live watching of Fast5
-    path = Path(directory)
-    fast5 = path.glob("*.fast5")
 
     base = Achilles()
     achilles = AchillesModel()
@@ -133,57 +132,85 @@ def predict(
         # the collections, and if so, return the file path:
         model_path = str(base.get_model(model))
 
-    print(f"{Y}Loading model: {G}{model}{RE}")
+    print(f"{Y}Preparing predictions with Achilles:{RE}\n")
+    print(f"  {Y}- Loading model: {G}{model}{RE}")
     achilles.load_model(model_file=model_path, summary=model_summary)
 
-    first_pass = True
-    for i, f5 in enumerate(fast5):
-        # print(f"{Y}Extracting signal slices from: {G}{f5.name}{RE}")
+    print(f"  {Y}- {G}Null pass {Y}for memory allocation in Keras.{RE}\n")
+    _ = achilles.predict(null_pass=(window_slices, 1, window_size, 1))
 
-        read_windows = get_reads(
-            fast5=f5, window_size=window_size,
-            window_step=int(window_step*window_size),
-            scale=False, template=True, return_all=False
-        )
+    if directory:
+        path = Path(directory)
+        fast5 = path.glob("*.fast5")
 
-        random_windows = sample_from_array(
-           array=read_windows, sample_size=window_slices,
-           random_sample=True, recover=False
-        )
-
-        if random_windows is None:
-            continue
-
-        signal_tensor = sample_to_input(random_windows)
-
-        if first_pass:
-            print(f"\n{R}Null pass {Y}for memory allocation in Keras.{RE}")
-            _ = achilles.predict(null_pass=signal_tensor.shape)
-            print(f"{G}Null pass {Y}complete.{RE}\n")
-            first_pass = False
-
-        try:
-            read_prediction, time_ms = achilles.predict(
-                signal_tensor, batch_size=batch_size
+        for i, f5 in enumerate(fast5):
+            predict_read(
+                f5,
+                achilles,
+                window_size,
+                window_step,
+                window_slices,
+                batch_size
             )
-        except IndexError:
-            print(f'{R}Prediction failed for read: {f5.name}{RE}')
-            continue
-
-        scores, score_str = label_product_score(
-            read_prediction, product=False
+    elif watch:
+        watch_path(
+            watch,
+            callback=predict_read,
+            recursive=False,
+            achilles=achilles,
+            window_size=window_size,
+            window_step=window_step,
+            window_slices=window_slices,
+            batch_size=batch_size
         )
 
-        if len(f5.name) > 50:
-            name = f5.name[:47] + '...'
-        else:
-            name = f5.name
 
-        msg = f"{C}{name:<50} " \
-              f"{M}{round(time_ms * 1e-06, 6):<15}{Y}" \
-              f"{G}{score_str}{RE}"
+def predict_read(
+        f5,
+        achilles,
+        window_size,
+        window_step,
+        window_slices,
+        batch_size
+):
+    read_windows = get_reads(
+        fast5=f5, window_size=window_size,
+        window_step=int(window_step * window_size),
+        scale=False, template=True, return_all=False
+    )
 
-        print(msg)
+    random_windows = sample_from_array(
+        array=read_windows, sample_size=window_slices,
+        random_sample=True, recover=False
+    )
+
+    if random_windows is None:
+        return
+
+    signal_tensor = sample_to_input(random_windows)
+
+    try:
+        read_prediction, time_ms = achilles.predict(
+            signal_tensor, batch_size=batch_size
+        )
+    except IndexError:
+        print(f'{R}Prediction failed for read: {f5.name}{RE}')
+        return
+
+    scores, score_str = label_product_score(
+        read_prediction, product=False
+    )
+
+    if len(f5.name) > 50:
+        name = f5.name[:47] + '...'
+    else:
+        name = f5.name
+
+    msg = f"{C}{name:<50} " \
+        f"{M}{round(time_ms * 1e-06, 6):<15}{Y}" \
+        f"{G}{score_str}{RE}"
+
+    print(msg)
 
 
 def get_reads(
@@ -202,8 +229,12 @@ def get_reads(
         if template:
             reads = np.array([Fast5File(fast5).get_raw_data(scale=scale)])
         else:
-            reads = np.array([Fast5File(fast5).get_raw_data(attr.read_number, scale=scale)
-                              for attr in Fast5Info(fast5).read_info])
+            reads = np.array(
+                [
+                    Fast5File(fast5).get_raw_data(attr.read_number, scale=scale)
+                    for attr in Fast5Info(fast5).read_info
+                ]
+            )
 
         # Windows will only return full-sized windows,
         # incomplete windows at end of read are not included -
@@ -214,7 +245,7 @@ def get_reads(
                 [
                     view_as_windows(
                         read, window_shape=window_size, step=window_step
-                    )  for read in reads
+                    ) for read in reads
                 ]
             )
 

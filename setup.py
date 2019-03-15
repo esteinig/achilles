@@ -24,6 +24,7 @@ setup(
         "pyyaml",
         "pytest",
         "wget",
+        "watchdog",
     ],
     entry_points="""
         [console_scripts]
