@@ -79,7 +79,7 @@ achilles inspect -c alpha -m bacteria-g1 -p
 Run a prediction on a directory of `Fast5` files, models can be `HD5` files generated with `achilles train` or `collection/model_name`. `Size` of window slices determines the size of the input layer, therefore the parameter must be the same as in the trained model. You can see the trained window size when you use `achilles inspect` and the `-p` flag to inspect a collection. For now batch size `-b` should equal the number of slices sampled from a read `-c` as this constitutes a single forward pass on the GPU. Mini batch support for multipel read predictions is coming soon.
 
 ```
-achilles predict -d path/to/fast5 -m alpha/bacteria-g1 --size 300 -s 100 -b 100
+achilles predict -d path/to/fast5 -m alpha/bacteria-g1 --size 300 -c 100 -b 100
 ```
 
 ### Command line interface
