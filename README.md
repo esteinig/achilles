@@ -24,7 +24,7 @@ Overall, the implementation is minimal, and replaces the bi-directional LSTM wit
 `Achilles` can be installed with **`Python 3.6`**:
 
 ```
-pip install git+https://github.com/esteinig/achilles@v0.3-pre  # does not install tensorflow-gpu
+pip install git+https://github.com/esteinig/achilles@v0.3-pre  # does not install tensorflow-gpu or keras
 ```
 
 It requires `PoreMongo`, which can for now be installed with:
@@ -39,15 +39,9 @@ You know if the driver and `tensorflow-gpu` work when you call the main help int
 achilles --help
 ```
 
-For now, the best way to install `Achilles` is to create a fresh `conda` env with `Python 3.6`, `pip` install the packages into the environment, and then add the correct version of `tensorflow-gpu` depending on your CUDA driver version on the GPU. I found that the `conda` version of `tensorflow-gpu` is the easiest to install under these circumstances. 
+**Important**
 
-We used `Achilles` on a cluster with two Tesla V100 and 16GB memory each and a server with a GTX 1080-Ti. For some reason, installation of the GPU environment did not work with higher `tensorflow-gpu` versions `> v1.8` that interface with `CUDA 9.2 or 10.0` on the cluster cards, so we installed `tensorflow-gpu v1.8.0` from `conda` with `cudnn v7.1.2`, which also installs the `cudatoolkit v9.0`. This environment works with the `CUDA 9.0` driver for the GPUs on the cluster. Any `tensorflow-gpu` version that interfaces with your cards is fine.
-
-The frozen `conda` `environment.yml` for `tensorflow-gpu v1.8.0` can be installed with:
-
-```
-conda env create --file environment.yml
-```
+The installation does not include `tensorflow-gpu` or `keras` since both depend on the GPU setup you are running. For now, the easiest way to install a suitable environment for `Achilles` on most relatively up-to-date setups is to install the `conda env` `environment.yml` from this directory. The environment comes with `tensorflow-gpu 1.12`, `cudnn 7.3.1`, `cudatoolkit 9.2`, `keras 2.1.6`, and `Python 3.6`. This however may not work if different `CUDA` drivers are used on the GPU (not tested on < `9.2`). If that is the case, please use the appropriate versions for these packages or contact your sysadmins to install the right environment for you.
 
 ### Walkthrough
 ---
