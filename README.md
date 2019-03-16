@@ -237,7 +237,7 @@ Options:
 
 :leaves: **`achilles pull`**
 
-Pulls model collections from Achilles repository into `~/.achilles/collections`. This includes the trained neural network model `HD5` files and a `YAML` file that hold some data related to the models.
+Pulls model collections from Achilles repository into `~/.achilles/collections`. This includes the trained neural network model `HDF5` files and a `YAML` file that holds some data related to the models.
 
 ```
 Usage: achilles pull [OPTIONS]
@@ -263,7 +263,7 @@ Options:
 
 :palm_tree: **`achilles inspect`**
 
-Inspect a collection or model within a collection, also with more detail using the flag `-p`:
+Inspect a collection or model within a collection, with more detail using the flag `-p`:
 
 ```
 Usage: achilles inspect [OPTIONS]
