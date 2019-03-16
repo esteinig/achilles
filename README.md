@@ -41,7 +41,7 @@ achilles --help
 
 **Important**
 
-The installation does not include `tensorflow-gpu` or `keras` ince both depend on the GPU setup you are running. For now, the easiest way to install a suitable environment for `Achilles` on most relatively up-to-date setups is to install the `conda env` `environment.yml` from this directory. The environment comes with `tensorflow-gpu 1.12`, `cudnn 7.3.1`, `cudatoolkit 9.2`, `keras 2.1.6`, and `Python 3.6`. This however may not work if different `CUDA` drivers are used on the GPU (not tested on < `9.2`). If that is the case, please use the appropriate versions for these packages or contact your sysadmins to install the right environment for you.
+The installation does not include `tensorflow-gpu` or `keras` since both depend on the GPU setup you are running. For now, the easiest way to install a suitable environment for `Achilles` on most relatively up-to-date setups is to install the `conda env` `environment.yml` from this directory. The environment comes with `tensorflow-gpu 1.12`, `cudnn 7.3.1`, `cudatoolkit 9.2`, `keras 2.1.6`, and `Python 3.6`. This however may not work if different `CUDA` drivers are used on the GPU (not tested on < `9.2`). If that is the case, please use the appropriate versions for these packages or contact your sysadmins to install the right environment for you.
 
 ### Walkthrough
 ---
