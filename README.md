@@ -2,8 +2,8 @@
 
 # Achilles
 
-![](https://img.shields.io/badge/tf--gpu-1.8-blue.svg)
-![](https://img.shields.io/badge/keras-2.2.0-blue.svg)
+![](https://img.shields.io/badge/tf--gpu-1.12.0-blue.svg)
+![](https://img.shields.io/badge/keras-2.1.6-blue.svg)
 ![](https://img.shields.io/badge/docs-latest-green.svg)
 ![](https://img.shields.io/badge/preprint-soon-green.svg)
 ![](https://img.shields.io/badge/lifecycle-experimental-orange.svg)
