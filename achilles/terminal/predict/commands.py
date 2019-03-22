@@ -201,17 +201,9 @@ def predict_read(
         read_prediction, product=False
     )
 
-    if len(f5.name) > 50:
-        name = f5.name[:47] + '...'
-    else:
-        name = f5.name
-
-    msg = f"{C}{name:<50} " \
-        f"{M}{round(time_ms * 1e-06, 6):<15}{Y}" \
-        f"{G}{score_str}{RE}"
-
-    print(msg)
-
+    print(
+        f"{f5.name}\t{round(time_ms * 1e-06, 6)}\t{score_str}"
+    )
 
 def get_reads(
         fast5,
