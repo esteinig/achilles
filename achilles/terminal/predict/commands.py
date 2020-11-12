@@ -11,7 +11,6 @@ from ont_fast5_api.fast5_file import Fast5File, Fast5Info
 from achilles.utils import view_as_windows
 from achilles.model import AchillesModel
 from achilles.achilles import Achilles
-from achilles.realtime import watch_path
 from pathlib import Path
 
 RE = Fore.RESET
@@ -152,18 +151,6 @@ def predict(
                 window_slices,
                 batch_size
             )
-    elif watch:
-        watch_path(
-            watch,
-            callback=predict_read,
-            recursive=False,
-            achilles=achilles,
-            window_size=window_size,
-            window_step=window_step,
-            window_slices=window_slices,
-            batch_size=batch_size
-        )
-
 
 def predict_read(
         f5,

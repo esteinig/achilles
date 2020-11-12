@@ -18,16 +18,37 @@ setup(
         "seaborn",
         "matplotlib",
         "colorama",
+        "pymongo",
         "mongoengine",
+        "keras",
         "click",
         "pyyaml",
         "pytest",
         "wget",
         "watchdog",
+        "paramiko",
+        'numpy',
+        'tqdm',
+        'colorama',
+        'pymongo',
+        'mongoengine',
+        'ont_fast5_api',
+        'pandas',
+        'paramiko',
+        'scp',
+        'scikit-image',
+        'scipy',
+        'watchdog',
+        'apscheduler',
+        'click',
+        'deprecation',
+        'pyfastaq'
     ],
     entry_points="""
         [console_scripts]
         achilles=achilles.terminal.client:terminal_client
+        poremongo=poremongo.terminal.client:terminal_client
+        pm=poremongo.terminal.client:terminal_client
     """,
     version="0.3",
     license="MIT",

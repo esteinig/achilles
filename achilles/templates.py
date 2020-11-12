@@ -11,7 +11,6 @@ Y = Fore.YELLOW
 
 # TODO implement production CDN for raw.githack.com
 
-
 collection_yaml_template = 'https://raw.githack.com/esteinig/achilles/' \
     'master/models/collections.yaml'
 

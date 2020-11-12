@@ -49,9 +49,9 @@ class TestTube:
         pongo = None
         if poremongo:
             pongo = PoreMongo(
-                config=self.parameters, ssh=ssh, connect=True
+                config=self.parameters
             )  # Parameters contains URI
-            pongo.display("tags")
+            pongo.connect()
 
         ds = AchillesDataset(poremongo=pongo)
 
@@ -73,11 +73,11 @@ class TestTube:
                     ds.write(
                         tags=dataset["tags"],
                         data_file=data_file,
-                        ssh=ssh,
                         **training_params,
                     )
                 else:
                     print(f"Warning: data set file for training exists at {data_file}.")
+
                 training_data_file = paths["training"] / self._create_dataset_name(
                     prefix, dataset, training_params, "training", True
                 )
@@ -95,7 +95,6 @@ class TestTube:
                         ds.write(
                             tags=dataset["tags"],
                             data_file=data_file,
-                            ssh=ssh,
                             validation=0,
                             exclude_datasets=exclude_datasets,
                             **evaluation_params,
@@ -336,7 +335,6 @@ class TestTube:
                 print(data[prefix])
 
         return data
-
 
 
 def visualize_binary_predictions(

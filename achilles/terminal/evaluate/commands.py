@@ -44,7 +44,7 @@ def evaluate(model, evaluation, batch_size):
     print(f'{Y}Using evaluation data from: {G}{Path(evaluation).name}{RE}')
 
     predicted = achilles.predict_generator(
-            data_type="data", batch_size=batch_size
+        data_type="data", batch_size=batch_size
     )
 
     print(predicted)

@@ -15,6 +15,12 @@ import seaborn as sns
 
 from colorama import Fore, Style
 
+Y = Fore.YELLOW
+C = Fore.CYAN
+RE = Fore.RESET
+G = Fore.GREEN
+M = Fore.MAGENTA
+
 from tqdm import tqdm
 from scipy.stats import sem
 from sklearn.model_selection import train_test_split
@@ -23,7 +29,7 @@ from textwrap import dedent
 from keras.utils import Sequence
 from keras.utils.np_utils import to_categorical
 
-from poremongo.models import Fast5
+from poremongo.poremodels import Read
 
 style.use("ggplot")
 
@@ -68,9 +74,9 @@ class AchillesDataset:
 
     def clean_data(self):
 
-        """ Used on directory containing Fast5 to be used for data set construction.
+        """ Used on directory containing reads to be used for data set construction.
 
-        Basecalled FASTQ is extracted from Fast5 and mapped against a given reference genome sequence
+        Basecalled FASTQ is extracted from reads and mapped against a given reference genome sequence
         with Minimap2. Generates a mapping plot showing coverage of mapped regions along the reference.
         Mapped FASTQ reads are linked to Fast5 files. Fast5 files are then filtered for only reference mapped
         reads.
@@ -117,7 +123,7 @@ class AchillesDataset:
             "window_step",
             "window_random",
             "window_recover",
-            "sample_files_per_tag",
+            "sample_reads_per_tag",
             "sample_proportions",
             "sample_unique",
             "scale",
@@ -140,17 +146,17 @@ class AchillesDataset:
         return True
 
     @staticmethod
-    def get_files_to_exclude(exclude_datasets):
+    def get_reads_to_exclude(exclude_datasets):
 
         if exclude_datasets is not None:
             exclude = []
             for dataset in exclude_datasets:
                 with h5py.File(dataset, "r") as infile:
                     try:
-                        exclude += infile["data/files"]
+                        exclude += infile["data/reads"]
                     except KeyError:
                         raise ValueError(
-                            f"Could not detect path 'data/files' in file {dataset}"
+                            f"Could not detect path 'data/reads' in file {dataset}"
                         )
             return exclude
         else:
@@ -160,7 +166,7 @@ class AchillesDataset:
     def parse(data_file):
 
         with h5py.File(data_file, "r") as infile:
-            return infile["data/files"], infile["data/labels"]
+            return infile["data/reads"], infile["data/labels"]
 
     def write(
         self,
@@ -172,15 +178,13 @@ class AchillesDataset:
         window_step=0.1,
         window_random=True,
         window_recover=True,
-        sample_files_per_tag=25000,
+        sample_reads_per_tag=25000,
         sample_proportions=None,
         sample_unique=False,
         exclude_datasets=None,
         validation=0.3,
-        scale=False,
         chunk_size=10000,
         max_reads=None,
-        ssh=False,
         global_tags=None,
     ):
 
@@ -188,7 +192,7 @@ class AchillesDataset:
 
         :param tags:
         :param data_file:
-        :param sample_files_per_tag:
+        :param sample_reads_per_tag:
         :param sample_proportions:
         :param sample_unique:
         :param scale:
@@ -217,17 +221,17 @@ class AchillesDataset:
         classes = len(tags)
 
         # Get list of Fast5 file names to exclude from sampling in PoreMongo
-        exclude = self.get_files_to_exclude(exclude_datasets)
+        exclude = self.get_reads_to_exclude(exclude_datasets)
 
         with h5py.File(data_file, "w") as f:
 
             # Create data paths for storing all extracted data:
-            data, labels, decoded, extracted = self.create_data_paths(
+            data, labels, decoded, sampled_reads = self.create_data_paths(
                 file=f, window_size=window_size, classes=classes
             )
 
             self.print_write_summary(
-                sample_files_per_tag=sample_files_per_tag,
+                sample_reads_per_tag=sample_reads_per_tag,
                 sample_proportions=sample_proportions,
                 sample_unique=sample_unique,
                 max_windows_per_read=max_windows_per_read,
@@ -237,7 +241,7 @@ class AchillesDataset:
                 window_random=window_random,
             )
 
-            # Each input directory corresponds to label (0, 1, 2, ...)
+            # Each input tag corresponds to label (0, 1, 2, ...)
             for label, tag in enumerate(tags):
 
                 if exclude_datasets is not None:
@@ -246,79 +250,49 @@ class AchillesDataset:
                     eds = 0
 
                 print(
-                    dedent(
-                        f"""
-                {Fore.YELLOW}Process label: {Fore.CYAN}{label}{Fore.YELLOW} 
-                {Fore.YELLOW}Global tags: {Fore.CYAN}{global_tags}{Fore.YELLOW}
-                {Fore.YELLOW}Sample tags: {Fore.CYAN}{tag}{Fore.YELLOW}
-                {Fore.YELLOW}Exclude {Fore.CYAN}{len(exclude)}{Fore.YELLOW} Fast5 from {Fore.CYAN}{eds}{Fore.YELLOW} datasets{Style.RESET_ALL}
-                """
-                    )
+                    dedent(f"""
+                {Y}Process label: {C}{label}{Y} 
+                {Y}Global tags: {C}{global_tags}{Y}
+                {Y}Sample tags: {C}{tag}{Y}
+                {Y}Exclude {C}{len(exclude)}{Y} reads from {C}{eds}{Y} datasets{RE}
+                """)
                 )
 
-                files = self.poremongo.sample(
-                    Fast5.objects,
+                reads = self.poremongo.sample(
+                    Read.objects,
                     tags=tag,
-                    limit=sample_files_per_tag,
+                    limit=sample_reads_per_tag,
                     proportion=sample_proportions,
                     unique=sample_unique,
-                    exclude_name=exclude,
+                    exclude_reads=exclude,
                     include_tags=global_tags,
-                    return_documents=True,
+                    return_documents=True
                 )
 
                 # Randomize, not necessary but precaution:
-                random.shuffle(files)
+                random.shuffle(reads)
 
-                # Main loop for reading through Fast5 files and extracting windows (slices) of signal
-                # (window_size, window_step) of normalized (pA) signal until limit for proportioned data
-                # set is reached. Write each signal windows to HDF5 (self.output) after transforming to
-                # 4D input tensor to residual blocks in AchillesModel model.
                 total = 0
-                n_files = []
+                read_ids = []
 
-                # The progress bar is just a feature for reference, this loop will be stopped as soon
-                # as the maximum number of signal arrays per class is reached (progress bar is therefore not
-                # accurate but just looks good and gives the user an overestimate of when extraction is finished.
                 with tqdm(total=max_windows) as pbar:
                     pbar.set_description(f"Extracting tensors for label {label}")
-                    for file in files:
+                    for read in reads:
 
-                        # If the Poremongo instance is connected to server via SSH.
-                        # This has some bandwidth cost associated with it, but only on the
-                        # sampled Fast5 files that are actually used (usually much less than
-                        # sample_files_per_tag) - total for a 100000 max_windows, 50 per read set, this
-                        # should be around 2000 files in total, i.e. somewhere on average 1 - 2 GB in traffic
-                        # over SSH connection to create Dataset from remote. This also requires all files sampled
-                        # to be located on same server.
+                        # e.g. 100000 max_windows, 50 per read set
 
-                        # TODO: Multiple SSH connections in config; add tag for server to sampling?
-
-                        if self.poremongo.scp is not None and ssh:
-                            file.get(self.poremongo.scp)
-
-                        # TODO: Template strand only, add second strand:
-                        signal_windows = file.get_reads(
-                            window_size=window_size,
-                            window_step=window_step,
-                            scale=scale,
-                            template=True,
-                            return_all=False,
-                        )
-
-                        # Remove the local copy of the file from SSH
-                        if self.poremongo.scp is not None and ssh:
-                            file.remove()
+                        signal_windows = read.get_signal_windows(
+                            window_size=window_size, window_step=window_step
+                        )  # full window slices
 
                         sampled_windows = self.sample_from_array(
-                            signal_windows,
-                            sample_size=max_windows_per_read,
-                            random_sample=window_random,
-                            recover=window_recover,
-                        )
+                            signal_windows, sample_size=max_windows_per_read,
+                            random_sample=window_random, recover=window_recover
+                        )  # sampled contiguous window slices
 
                         # Proceed if the maximum number of windows per class has not been reached,
-                        # and if there are windows extracted from the Fast5:
+                        # and if there are windows extracted from the read:
+
                         if total < max_windows and sampled_windows.size > 0:
                             # If the number of extracted signal windows exceeds the difference between
                             # current total and max_windows is reached, cut off the signal window
@@ -338,15 +312,15 @@ class AchillesDataset:
                             nb_windows = input_tensor.shape[0]
                             total += nb_windows
                             pbar.update(nb_windows)
-                            n_files.append(file.name)
+                            read_ids.append(read.read_id)
 
                             # If the maximum number of signals for this class (label) has
-                            # been reached, break the Fast5-file loop and proceed to writing
+                            # been reached, break the Read loop and proceed to writing
                             # label stored in memory (all at once)
                             if total >= max_windows - 1:
                                 break
 
-                print(f"Extracted {total} / {max_windows} windows for label {label}")
+                self.poremongo.logger.info(f"Extracted {total} / {max_windows} windows for label {label}")
 
                 # Writing all training labels to HDF5, as categorical (one-hot) encoding:
                 encoded_labels = to_categorical(
@@ -358,17 +332,14 @@ class AchillesDataset:
                 decoded_labels = np.array([label for _ in range(total)])
                 self.write_chunk(decoded, decoded_labels)
 
-                # Fast5 file paths from which signal arrays were extracted for dataset summary:
-                file_labels = np.array(
-                    [fast5_file.encode("utf8") for fast5_file in n_files]
+                # Read IDs from which signal arrays were extracted:
+                read_id_array = np.array(
+                    [read_id.encode("utf8") for read_id in read_ids]
                 )
 
-                self.write_chunk(extracted, file_labels)
+                self.write_chunk(sampled_reads, read_id_array)
 
         self.print_data_summary(data_file=data_file)
-
-        # TODO Randomize all again? for random vector in dataset file.
-        # TODO while loop as memory guard in really large datasets
 
         if validation > 0:
             # Split dataset into training / validation data:
@@ -377,7 +348,7 @@ class AchillesDataset:
                 validation=validation,
                 window_size=window_size,
                 classes=classes,
-                chunk_size=chunk_size,
+                chunk_size=chunk_size
             )
 
     def _training_validation_split(
@@ -424,10 +395,10 @@ class AchillesDataset:
 
             if set(training_indices).intersection(validation_indices):
                 logging.debug(
-                    "Training and validation data are overlapping after splitting."
+                    "Training and validation data are overlapping after splitting"
                 )
                 raise ValueError(
-                    "Training and validation data are overlapping after splitting."
+                    "Training and validation data are overlapping after splitting"
                 )
 
             with h5py.File(outfile, "w") as out:
@@ -568,7 +539,7 @@ class AchillesDataset:
 
         decoded = file.create_dataset("data/decoded", shape=(0,), maxshape=(None,))
         extracted = file.create_dataset(
-            "data/files", shape=(0,), maxshape=(None,), dtype=dt
+            "data/reads", shape=(0,), maxshape=(None,), dtype=dt
         )
 
         return data, labels, decoded, extracted
@@ -605,11 +576,11 @@ class AchillesDataset:
         print(
             dedent(
                 f"""
-        {Fore.YELLOW}Dataset (HD5)          {Fore.CYAN}{data_file}{Style.RESET_ALL}
+        {Y}Dataset (HD5)          {C}{data_file}{RE}
 
-        {Fore.YELLOW}Encoded label vector:  {Fore.MAGENTA}/data/labels{Style.RESET_ALL}
-        {Fore.YELLOW}Decoded label vector:  {Fore.MAGENTA}/data/decoded{Style.RESET_ALL}
-        {Fore.YELLOW}Extracted file names:  {Fore.MAGENTA}/data/files{Style.RESET_ALL}
+        {Y}Encoded label vector  :  {M}/data/labels{RE}
+        {Y}Decoded label vector  :  {M}/data/decoded{RE}
+        {Y}Sampled reads         :  {M}/data/reads{RE}
         """
             )
         )
@@ -619,30 +590,30 @@ class AchillesDataset:
             if "data/data" in f.keys():
                 msg = dedent(
                     f"""
-                    {Fore.YELLOW}Data file: {Fore.CYAN}{data_file}{Style.RESET_ALL}
+                    {Y}Data file: {C}{data_file}{RE}
 
-                    {Fore.CYAN}Dimensions:{Style.RESET_ALL}
+                    {C}Dimensions:{RE}
 
-                    {Fore.GREEN}Data:       {Fore.YELLOW}{f["data/data"].shape}{Style.RESET_ALL}
-                    {Fore.GREEN}Labels:     {Fore.YELLOW}{f["data/labels"].shape}{Style.RESET_ALL}
-                    {Fore.GREEN}Fast5:      {Fore.YELLOW}{f["data/files"].shape}{Style.RESET_ALL}
+                    {G}Data:       {Y}{f["data/data"].shape}{RE}
+                    {G}Labels:     {Y}{f["data/labels"].shape}{RE}
+                    {G}Reads:      {Y}{f["data/reads"].shape}{RE}
                     """
                 )
 
             elif "training/data" in f.keys() and "validation/data" in f.keys():
                 msg = dedent(
                     f"""
-                    {Fore.YELLOW}Data file: {Fore.CYAN}{data_file}{Style.RESET_ALL}
+                    {Y}Data file: {C}{data_file}{RE}
 
-                    {Fore.CYAN}Training Dimensions:{Style.RESET_ALL}
+                    {C}Training Dimensions:{RE}
 
-                    {Fore.GREEN}Data:       {Fore.YELLOW}{f["training/data"].shape}{Style.RESET_ALL}
-                    {Fore.GREEN}Labels:     {Fore.YELLOW}{f["training/labels"].shape}{Style.RESET_ALL}
+                    {G}Data:       {Y}{f["training/data"].shape}{RE}
+                    {G}Labels:     {Y}{f["training/labels"].shape}{RE}
 
-                    {Fore.CYAN}Validation Dimensions:{Style.RESET_ALL}
+                    {C}Validation Dimensions:{RE}
 
-                    {Fore.GREEN}Data:       {Fore.YELLOW}{f["validation/data"].shape}{Style.RESET_ALL}
-                    {Fore.GREEN}Labels:     {Fore.YELLOW}{f["validation/labels"].shape}{Style.RESET_ALL}
+                    {G}Data:       {Y}{f["validation/data"].shape}{RE}
+                    {G}Labels:     {Y}{f["validation/labels"].shape}{RE}
 
                     """
                 )
@@ -729,18 +700,18 @@ class AchillesDataset:
 
         Sampling from PoreMongo:
 
-            - {Fore.GREEN}sample_files_per_tag{Style.RESET_ALL}     {Fore.YELLOW}{kwargs["sample_files_per_tag"]}{Style.RESET_ALL} 
-            - {Fore.GREEN}sample_proportions{Style.RESET_ALL}       {Fore.YELLOW}{kwargs["sample_proportions"]}{Style.RESET_ALL} 
-            - {Fore.GREEN}sample_unique{Style.RESET_ALL}            {Fore.YELLOW}{kwargs["sample_unique"]}{Style.RESET_ALL} 
+            - {G}sample_reads_per_tag{RE}     {Y}{kwargs["sample_reads_per_tag"]}{RE} 
+            - {G}sample_proportions{RE}       {Y}{kwargs["sample_proportions"]}{RE} 
+            - {G}sample_unique{RE}            {Y}{kwargs["sample_unique"]}{RE} 
 
-        Generating tensors of shape {Fore.YELLOW}({kwargs["max_windows_per_read"]}, 1, {kwargs["window_size"]}, 1){Style.RESET_ALL} per read.
+        Generating tensors of shape {Y}({kwargs["max_windows_per_read"]}, 1, {kwargs["window_size"]}, 1){RE} per read.
         
         For each class, sample signal windows with the following parameters:
 
-            - {Fore.GREEN}max_windows{Style.RESET_ALL}              {Fore.YELLOW}{kwargs["max_windows"]}{Style.RESET_ALL}
-            - {Fore.GREEN}window_size{Style.RESET_ALL}              {Fore.YELLOW}{kwargs["window_size"]}{Style.RESET_ALL}
-            - {Fore.GREEN}window_step{Style.RESET_ALL}              {Fore.YELLOW}{kwargs["window_step"]}{Style.RESET_ALL}
-            - {Fore.GREEN}window_random{Style.RESET_ALL}            {Fore.YELLOW}{kwargs["window_random"]}{Style.RESET_ALL}             
+            - {G}max_windows{RE}              {Y}{kwargs["max_windows"]}{RE}
+            - {G}window_size{RE}              {Y}{kwargs["window_size"]}{RE}
+            - {G}window_step{RE}              {Y}{kwargs["window_step"]}{RE}
+            - {G}window_random{RE}            {Y}{kwargs["window_random"]}{RE}             
 
         Fast5 models are shuffled by default after sampling.
 

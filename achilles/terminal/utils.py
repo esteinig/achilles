@@ -1,6 +1,5 @@
 import click
 import json
-import bcrypt
 
 from pathlib import Path
 

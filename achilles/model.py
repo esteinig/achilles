@@ -69,7 +69,8 @@ class AchillesModel:
         else:
             rnn_layer = layers.LSTM
 
-        dropout_params = {"dropout": dropout, "recurrent_dropout": rc_dropout}
+        # "recurrent_dropout": rc_dropout  <-- this hits performance massively even if set to 0
+        dropout_params = {"dropout": dropout}
 
         # Add two Bidirectional RNN layers where sequences returned,
         # then into last layer with standard RNN output into Dense
@@ -143,8 +144,9 @@ class AchillesModel:
 
         # Estimated memory for dimensions and
         # batch size of model, before adjustment:
-        memory = self.estimate_memory_usage(batch_size=batch_size)
-        print("Estimated GPU memory for AchillesModel model: {} GB".format(memory))
+
+        # memory = self.estimate_memory_usage(batch_size=batch_size)
+        # print("Estimated GPU memory for AchillesModel model: {} GB".format(memory))
 
         # Reads data from HDF5 data file:
         dataset = AchillesDataset()
@@ -172,7 +174,7 @@ class AchillesModel:
             save_best_only=False,
             save_weights_only=False,
             mode="auto",
-            period=1,
+            save_freq=1,
         )
 
         print(
@@ -182,7 +184,7 @@ class AchillesModel:
 
         # TODO: Enable NCPU
 
-        history = self.model.fit_generator(
+        history = self.model.fit(
             training_generator,
             use_multiprocessing=False,
             workers=workers,
