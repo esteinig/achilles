@@ -85,7 +85,7 @@ Next we use the `Achilles` task `create` to sample and extract a set of tensors 
 ```
 achilles achilles create \
   --tags TestData,Human TestData,MRSA \  # or use --global_tags
-  --dataset test_training.hd5 \
+  --dataset ${DATA}/test_training.hd5 \
   --max_windows 100000 \
   --max_windows_per_read 50 \
   --window_size 200 \
@@ -102,7 +102,7 @@ Here we sample to train a network on a binary class prediction of `Human` and `M
 If there are fewer than --sample reads in the database, the sample will contain non-unique reads!
 ```
 
-Window size here pre-determines the tensor dimensions for input into the convolutional residual block layer of the nets with a total training size of `2 * 100000 * (1, 1, 200, 1)` total window samples (!) with `2 * 100000` labels for each tag combination / prediction class. This then corresponds to `100000 / 50 = 2000` reads sampled for 50 consecutive windows per read. Training and validation sets are split (`--validation`) - besides the initial random sample from the reads in the database, the order of blocks of overlapping windows (50 consecutive overlapping windows of size 200 `(50, 1, 200, 1)` that 'scan' the read signal) is randomised before written to the `--dataset {name}.hd5` (total data) and `{name}.training.hd5` (training-validation data).
+Window size here pre-determines the tensor dimensions for input into the convolutional residual block layer of the nets with a total training size of `2 * 100000 * (1, 1, 200, 1)` total window samples (!) with `2 * 100000` labels for each tag combination / prediction class. This then corresponds to `100000 / 50 = 2000` reads sampled for 50 consecutive windows per read. Training and validation sets are split (`--validation`) - besides the initial random sample from the reads in the database, the order of blocks of overlapping windows (50 consecutive overlapping windows of size 200 `(50, 1, 200, 1)` that 'scan' the read signal) is randomised before written to the `--dataset {name}.hd5` (total data) and `{name}.training.hd5` (training-validation data) to the linked `Singularity` directory `$DATA`.
 
 `HDF5` standard datasets are currently structured as follows:
 
@@ -111,8 +111,9 @@ Window size here pre-determines the tensor dimensions for input into the convolu
 * `/data/decoded`: vector of numeric prediction labels, ordered as `data`
 * `/data/reads`: vector of `read_id` of the signal reads used in this dataset, no specific order
 
-In the training-validation set the data are in `/training/data` and `/validation/data` as well as their label vectors in the corresponding paths.
+In the training-validation set the data are in `/training/data` and `/validation/data` including label vectors in the corresponding paths.
 
+*Cleaning up after testing*
 
 You can drop the entire database to remove all traces of the indexed reads:
 
