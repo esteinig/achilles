@@ -77,3 +77,12 @@ Output columns are in order:
 read_id   read_file   tags    read_uuid
 ```
 
+
+## Achilles Training Dataset
+
+
+You can now drop the entire database to clean up:
+
+```
+achilles pm drop --force
+```
