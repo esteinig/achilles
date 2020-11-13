@@ -324,7 +324,6 @@ class PoreMongo:
         objects = self.query(
             raw_query=raw_query,
             path_query=path_query,
-            name_query=name_query,
             tag_query=tag_query,
             recursive=recursive,
             not_in=not_in
