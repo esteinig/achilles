@@ -113,6 +113,63 @@ Window size here pre-determines the tensor dimensions for input into the convolu
 
 In the training-validation set the data are in `/training/data` and `/validation/data` including label vectors in the corresponding paths.
 
+## Achilles GPU Training
+
+This section is fairly specific to the Spartan cluster. I wrote a `SLURM` job template here, at the moment the best way is to copy the template into the directory with the training file and run it from there, so in this case:
+
+```
+cd $DATA/test_data
+cp $BASE/slurm/train.slurm .
+
+# --> Edit the SLURM job file to modify training (see below) <--
+
+sbatch train.slurm
+```
+
+Here is what the `SLURM` file currently does - note the different parameters. I think this default configuration on a 200 x window size with 10% overlap and batch size 2048 uses around 10 GB RAM - enough for the P100 GPUs on the cluster (12 GB). If you increase the window size for tensor sampling to e.g. 400 x window size withh 10% overlap it is recommended to halve the batch size as both parameters are major determinators of GPU memory required
+
+```
+#!/bin/bash
+#SBATCH --job-name train_achilles
+#SBATCH --nodes 1
+#SBATCH --account punim1384
+#SBATCH --partition gpgpu
+#SBATCH --gres=gpu:1
+#SBATCH --time 72:00:00
+#SBATCH --cpus-per-task=2
+#SBATCH --qos gpgpuresplat
+
+# ASSUME RUNNING IN TRAIN FILE DIRECTORY
+
+module purge
+module load singularity/3.6.3
+
+TRAIN=test_training.training.hd5
+OUTDIR=training_run
+
+echo "Running training job in $PWD : $TRAIN --> $OUTDIR"
+
+BASE=/data/gpfs/projects/punim1384/achilles
+
+BATCH_SIZE=2048
+EPOCHS=300
+DROPOUT=0.2
+LSTM=1
+RESBLOCK=1
+
+BASE_TRAIN=$(dirname $TRAIN)
+TRAIN_NAME=$(basename $TRAIN)
+
+echo "Directory of training $TRAIN : $BASE_TRAIN"
+echo "Base name of $TRAIN : $TRAIN_NAME"
+
+
+singularity run --nv -B $PWD:/data/achilles/training -B $BASE_TRAIN:/data/achilles/train_data ${BASE}/containers/achilles.sif achilles train \
+     --batch_size $BATCH_SIZE --epochs $EPOCHS --dropout $DROPOUT --lstm $LSTM --residual_block $RESBLOCK \
+     --threads 2 --outdir /data/achilles/training/${OUTDIR} --run_id $OUTDIR --file /data/achilles/train_data/$TRAIN_NAME --verbose
+```
+
+
 *Cleaning up after testing*
 
 You can drop the entire database to remove all traces of the indexed reads:
