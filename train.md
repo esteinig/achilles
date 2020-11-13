@@ -1,6 +1,18 @@
 ## Test documentation for training networks 
 
-This is for our partition on Spartan using `Singularity`: `module load singularity/3.6.3`
+This is for our partition on Spartan using `Singularity`: 
+
+```
+module load singularity/3.6.3
+```
+
+You can update the container by pulling the latest version from `DockerHub`:
+
+```
+singularity pull achilles_latest.sif docker://esteinig/achilles:latest
+```
+
+Then just assign base directory and container alias for working with the container:
 
 ```bash
 achilles_dir='/data/gpfs/projects/punim1384/achilles'
@@ -14,7 +26,7 @@ achilles pm --help
 achilles achilles --help
 ```
 
-Start a MongoDB service in background screen on login node - do not use for intensive tasks! It's a bit sneaky but we should not use a lot of memory of processors for samplign from the Database (so it should be fine)
+Start a `MongoDB` service in background screen on login node - do not use for intensive tasks! It's a bit sneaky but we will not use a lot of memory or processors for samplimg from the database so it should be fine
 
 ```bash
 screen -S mongo-service -d -m bash -c "singularity run -B ${achilles_dir}/dbs/fuyi:/data/db ${achilles_dir}/containers/mongo.sif"
@@ -22,7 +34,7 @@ screen -S mongo-service -d -m bash -c "singularity run -B ${achilles_dir}/dbs/fu
 
 This will open the user specific `MongoDB` database in `${achilles_dir}/dbs` and serve on `localhost:27017` by default - you can open the screen with `screen -r mongo-service` to confirm the client is running and detach with `Ctrl + A + D`.
 
-Now test a query against the database using `PoreMongo` CLI. This should give a connection success log and an empty tag table
+Now test a query against the database using `PoreMongo` CLI. This should give a connection success log and an empty tag table.
 
 ```bash
 achilles pm display
@@ -41,13 +53,13 @@ Now run the display task again to check out the new tagged reads in the DB which
 achilles pm display -tq
 ```
 
-Next we sample 20 signal reads with the Human tag randomly from the database using the `sample` task with display (`-d`) and suppressed log output (`-q`) so the results are printed cleanly into the console:
+Next we sample 20 signal reads with the `Human` tag randomly from the database using the `sample` task with display (`-d`) and suppressed log output (`-q`) so the results are printed cleanly into the console:
 
 ```bash
 achilles pm sample -dq -s 20 -t Human
 ```
 
-Repeat the command to confirm that reads with the Human tag are sampled randomly
+Repeat the command to confirm that reads with the `Human` tag are sampled randomly
 
 ```bash
 achilles pm sample -dq -s 20 -t Human
