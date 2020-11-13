@@ -1,4 +1,4 @@
-## Test documentation for training networks 
+## Setting up on Spartan
 
 This is for our partition on Spartan using `Singularity`: 
 
