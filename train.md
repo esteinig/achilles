@@ -15,10 +15,10 @@ singularity pull achilles.sif docker://esteinig/achilles:latest
 Then assign base directory and container execution alias for working with the container loading the data directory into the `/data/achilles` path inside the container:
 
 ```
-achilles_base='/data/gpfs/projects/punim1384/achilles'  # <-- Achilles stuff on partition to load (outside container)
-achilles_data=/data/achilles  # <-- Achilles loaded data (inside container)
+BASE=/data/gpfs/projects/punim1384/achilles  # <-- Achilles stuff on partition to load (outside container)
+DATA=/data/achilles                          # <-- Achilles loaded data (inside container)
 
-alias achilles="singularity run -B ${achilles_base}/data:${achilles_data} ${achilles_base}/containers/achilles.sif"
+alias achilles="singularity run -B ${BASE}/data:${DATA} ${BASE}/containers/achilles.sif"
 ```
 
 Test `PoreMongo` and `Achilles` CLI - the latter may raise some `tensorflow-gpu` warnings because we have not passed the (non available) GPU drivers through to the `Singularity` container, which is fine for now:
@@ -33,10 +33,10 @@ achilles achilles --help
 Start a `MongoDB` service in background screen on login node - do not use for intensive tasks! It's a bit sneaky but we will not use a lot of memory or processors for samplimg from the database so it should be fine
 
 ```bash
-screen -S mongo-service -d -m bash -c "singularity run -B ${achilles_base}/dbs/fuyi:/data/db ${achilles_base}/containers/mongo.sif"
+screen -S mongo-service -d -m bash -c "singularity run -B ${BASE}/dbs/fuyi:/data/db ${BASE}/containers/mongo.sif"
 ```
 
-This will open the user specific `MongoDB` database in `${achilles_dir}/dbs` and serve on `localhost:27017` by default - you can open the screen with `screen -r mongo-service` to confirm the client is running and detach with `Ctrl + A + D`.
+This will open the user specific `MongoDB` database in `${BASE}/dbs` and serve on `localhost:27017` by default - you can open the screen with `screen -r mongo-service` to confirm the client is running and detach with `Ctrl + A + D`.
 
 ## PoreMongo Client
 
@@ -49,8 +49,8 @@ achilles pm display
 Next step is to index some test files with the `PoreMongo `client for loading data into the DB. Each time reads are indexed from a (multi-)`Fast5` or directory of `Fast5` files, the objects are assigned user provided tags: usually they will be somethign like `R9.4`, `Staphylococcus aureus`, or `FAO92834` flow cell numbers to access sample tags later for generating the training sets; a database (`--db`) can be specified to separate data sets and must be specified in subsequent queries and sampling operations to change the default `poremongo` DB
 
 ```bash
-achilles pm index -f ${achilles_data}/test_data/human.fast5 -t R9.4,Human,TestData
-achilles pm index -f ${achilles_data}/test_data/saureus.fast5 -t R9.4,MRSA,TestData 
+achilles pm index -f ${DATA}/test_data/human.fast5 -t R9.4,Human,TestData
+achilles pm index -f ${DATA}/test_data/saureus.fast5 -t R9.4,MRSA,TestData 
 ```
 
 Now run the display task again to check out the new tagged reads in the DB which we can now sample from (using `--total` for a read total count query and `--quiet` to suppress connection log output)
