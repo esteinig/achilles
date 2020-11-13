@@ -80,8 +80,33 @@ read_id   read_file   tags    read_uuid
 
 ## Achilles Training Dataset
 
+Next we use the `Achilles` task `create` to sample and extract a set of tensors for training the nets with the `PoreMongo` client. We sample from tag or combinations of tags (`&`) in the command line interface, which are then used as classes for predictions (`0, 1, 2 ...` for each tag combination):
 
-You can now drop the entire database to clean up:
+```
+achilles achilles create \
+  --tags TestData,Human TestData,MRSA \  # or use --global_tags
+  --dataset test_training.hd5 \
+  --max_windows 100000 \
+  --max_windows_per_read 50 \
+  --window_size 200 \
+  --window_step 0.1 \
+  --sample 10000 \
+  --proportion equal \
+  --global_tags R9.4 \
+  --validation 0.3
+```
+
+Here we sample to train a network on a binary class prediction of `Human` and `MRSA` signal from the `TestData` and `R9.4` tags applied to all indexed reads. We extract 100,000 raw data acquisition value windows per tag combination, where we sample a maximum of 50 windows in a continous sequence of windows of size 200 values with overlap of 10% from an equal sample of 10,000 reads for each tag combination (`--tags` & `--global_tags`).
+
+Window size here pre-determines the tensor dimensions for input into the convolutional residual block layer of the nets with a total training size of `100,000 * (50, 1, 200, 1)` for each tag combination / prediction class. Training and validation sets are split (`--validation`) - besides the initial random sample from the reads in the database, the order of blocks of consecutive tensors deriving from a random starting point and sequence of overlapping windows (`(50, 1, 200, 1)` = 50 consecutive overlapping windows of size 200 that 'scan' the read signal) is radnomised before written to the `--dataset {name}.hd5` (total data) and `{name}.training.hd5` (training-validation data).
+
+`HDF5` datasets are currently structured as follows:
+
+
+
+
+
+You can drop the entire database to remove all traces of the indexed reads:
 
 ```
 achilles pm drop --force
