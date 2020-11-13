@@ -169,6 +169,11 @@ singularity run --nv -B $PWD:/data/achilles/training -B $BASE_TRAIN:/data/achill
      --threads 2 --outdir /data/achilles/training/${OUTDIR} --run_id $OUTDIR --file /data/achilles/train_data/$TRAIN_NAME --verbose
 ```
 
+Follow training in the `SLURM` log:
+
+```
+tail -f slurm-*.out
+```
 
 *Cleaning up after testing*
 
