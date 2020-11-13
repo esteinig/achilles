@@ -15,8 +15,8 @@ singularity pull achilles.sif docker://esteinig/achilles:latest
 Then assign base directory and container execution alias for working with the container loading the data directory into the `/data/achilles` path inside the container:
 
 ```
-BASE=/data/gpfs/projects/punim1384/achilles  # <-- Achilles stuff on partition to load (outside container)
-DATA=/data/achilles                          # <-- Achilles loaded data (inside container)
+BASE=/data/gpfs/projects/punim1384/achilles  # Achilles stuff on partition to load (outside container)
+DATA=/data/achilles                          # Achilles loaded data (inside container)
 
 alias achilles="singularity run -B ${BASE}/data:${DATA} ${BASE}/containers/achilles.sif"
 ```
