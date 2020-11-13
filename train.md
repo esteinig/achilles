@@ -102,7 +102,7 @@ Here we sample to train a network on a binary class prediction of `Human` and `M
 If there are fewer than --sample reads in the database, the sample will contain non-unique reads!
 ```
 
-Window size here pre-determines the tensor dimensions for input into the convolutional residual block layer of the nets with a total training size of `100,000 * (50, 1, 200, 1)` for each tag combination / prediction class. Training and validation sets are split (`--validation`) - besides the initial random sample from the reads in the database, the order of blocks of consecutive tensors deriving from a random starting point and sequence of overlapping windows (`(50, 1, 200, 1)` = 50 consecutive overlapping windows of size 200 that 'scan' the read signal) is radnomised before written to the `--dataset {name}.hd5` (total data) and `{name}.training.hd5` (training-validation data).
+Window size here pre-determines the tensor dimensions for input into the convolutional residual block layer of the nets with a total training size of `100,000 * (50, 1, 200, 1)` for each tag combination / prediction class. Training and validation sets are split (`--validation`) - besides the initial random sample from the reads in the database, the order of blocks of consecutive tensors deriving from a random starting point and sequence of overlapping windows (50 consecutive overlapping windows of size 200 `(50, 1, 200, 1)` that 'scan' the read signal) is randomised before written to the `--dataset {name}.hd5` (total data) and `{name}.training.hd5` (training-validation data).
 
 `HDF5` datasets are currently structured as follows:
 
