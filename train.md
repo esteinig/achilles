@@ -26,6 +26,8 @@ achilles pm --help
 achilles achilles --help
 ```
 
+## MongoDB Service
+
 Start a `MongoDB` service in background screen on login node - do not use for intensive tasks! It's a bit sneaky but we will not use a lot of memory or processors for samplimg from the database so it should be fine
 
 ```bash
@@ -33,6 +35,8 @@ screen -S mongo-service -d -m bash -c "singularity run -B ${achilles_dir}/dbs/fu
 ```
 
 This will open the user specific `MongoDB` database in `${achilles_dir}/dbs` and serve on `localhost:27017` by default - you can open the screen with `screen -r mongo-service` to confirm the client is running and detach with `Ctrl + A + D`.
+
+## PoreMongo Client
 
 Now test a query against the database using `PoreMongo` CLI. This should give a connection success log and an empty tag table.
 
