@@ -164,9 +164,18 @@ echo "Directory of training $TRAIN : $BASE_TRAIN"
 echo "Base name of $TRAIN : $TRAIN_NAME"
 
 
-singularity run --nv -B $PWD:/data/achilles/training -B $BASE_TRAIN:/data/achilles/train_data ${BASE}/containers/achilles.sif achilles train \
-     --batch_size $BATCH_SIZE --epochs $EPOCHS --dropout $DROPOUT --lstm $LSTM --residual_block $RESBLOCK \
-     --threads 2 --outdir /data/achilles/training/${OUTDIR} --run_id $OUTDIR --file /data/achilles/train_data/$TRAIN_NAME --verbose
+singularity run --nv -B $PWD:/data/achilles/training -B $BASE_TRAIN:/data/achilles/train_data \
+     ${BASE}/containers/achilles.sif achilles train \
+     --batch_size $BATCH_SIZE \
+     --epochs $EPOCHS \
+     --dropout $DROPOUT \
+     --lstm $LSTM \
+     --residual_block $RESBLOCK \
+     --threads 2 \
+     --outdir /data/achilles/training/${OUTDIR} \
+     --run_id $OUTDIR \
+     --file /data/achilles/train_data/$TRAIN_NAME \
+     --verbose
 ```
 
 Follow training in the `SLURM` log:
